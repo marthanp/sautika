@@ -4,19 +4,19 @@ import type { Tab, Theme } from '@/types';
 
 interface AppState {
   xp: number; streak: number; lastDay: string; enrolled: string[]; done: Record<string, number>;
-  activeCourse: string | null; tab: Tab; theme: Theme; scale: string; wide: boolean;
+  activeCourse: string | null; tab: Tab; theme: Theme; colorMode: 'light' | 'dark'; scale: string; wide: boolean;
   touchStreak: () => void;
   startCourse: (id: string) => void;
   completeLesson: (courseId: string | undefined, index: number | undefined, xp: number) => void;
   setTab: (t: Tab) => void;
-  setPrefs: (p: Partial<Pick<AppState, 'theme' | 'scale' | 'wide'>>) => void;
+  setPrefs: (p: Partial<Pick<AppState, 'theme' | 'colorMode' | 'scale' | 'wide'>>) => void;
 }
 
 export const useApp = create<AppState>()(
   persist(
     (set, get) => ({
       xp: 0, streak: 1, lastDay: '', enrolled: [], done: {}, activeCourse: null, tab: 'courses',
-      theme: 'navy', scale: '100%', wide: false,
+      theme: 'navy', colorMode: 'light', scale: '100%', wide: false,
       touchStreak: () => {
         const today = new Date().toDateString();
         const { lastDay, streak } = get();

@@ -6,13 +6,13 @@ export function Emblem({ leaf = '#fff', className }: { leaf?: string; className?
     </svg>
   );
 }
-export function Logo() {
+export function Logo({ dark = false, compact = false }: { dark?: boolean; compact?: boolean }) {
   return (
-    <span className="inline-flex items-center gap-2.5">
-      <Emblem className="h-12 w-12" />
+    <span className={`inline-flex items-center ${compact ? 'gap-2' : 'gap-2.5'}`}>
+      <Emblem leaf={dark ? '#001731' : '#fff'} className={compact ? 'h-9 w-9' : 'h-12 w-12'} />
       <span className="flex flex-col leading-none">
-        <span className="text-[31px] font-extrabold tracking-wide text-white">SAUT<span className="relative">I<i className="absolute -top-1.5 left-1/2 h-1.5 w-1.5 -translate-x-1/2 rounded-full bg-sun" /></span>KA</span>
-        <span className="mt-1 text-[12px] font-semibold text-white">Speak <b className="text-sun">•</b> Learn <b className="text-sun">•</b> Grow</span>
+        <span className={`${compact ? 'text-[23px]' : 'text-[31px]'} font-extrabold tracking-wide ${dark ? 'text-navy' : 'text-white'}`}>SAUT<span className="relative">I<i className="absolute -top-1.5 left-1/2 h-1.5 w-1.5 -translate-x-1/2 rounded-full bg-sun" /></span>KA</span>
+        <span className={`mt-1 ${compact ? 'text-[9px]' : 'text-[12px]'} font-semibold ${dark ? 'text-navy' : 'text-white'}`}>Speak <b className="text-sun">•</b> Learn <b className="text-sun">•</b> Grow</span>
       </span>
     </span>
   );

@@ -37,9 +37,12 @@ export default function Sidebar() {
           Sign out
         </button>
       </aside>
-      <nav aria-label="Main" className="fixed inset-x-0 bottom-0 z-30 grid grid-cols-7 border-t border-line bg-white pb-[env(safe-area-inset-bottom)] lg:hidden">
+      <nav aria-label="Main" className="fixed inset-x-0 bottom-0 z-30 grid min-h-16 grid-cols-7 border-t border-line bg-white pb-[env(safe-area-inset-bottom)] lg:hidden">
         {NAV.map(({ href, label, icon: Icon }) => (
-          <Link key={href} href={href} aria-label={label} aria-current={path.startsWith(href) ? 'page' : undefined} className="grid h-14 place-items-center text-slate-500 aria-[current=page]:bg-sun aria-[current=page]:text-navy"><Icon className="h-6 w-6" /></Link>
+          <Link key={href} href={href} aria-label={label} aria-current={path.startsWith(href) ? 'page' : undefined} className="flex min-h-16 min-w-0 flex-col items-center justify-center gap-0.5 px-0.5 py-1.5 text-slate-500 aria-[current=page]:bg-sun aria-[current=page]:text-navy">
+            <Icon className="h-5 w-5 shrink-0" />
+            <span className="max-w-full truncate text-[9px] font-semibold leading-tight min-[400px]:text-[10px]">{label === 'Coins & Rewards' ? 'Rewards' : label === 'Notebook' ? 'Notes' : label}</span>
+          </Link>
         ))}
       </nav>
     </>
