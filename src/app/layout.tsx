@@ -9,7 +9,6 @@ export const metadata: Metadata = {
   title: 'Sautika · Speak • Learn • Grow',
   description: 'A voice-first AI learning assistant for primary and secondary students in East Africa. Learn in your native language, even offline.',
   manifest: '/manifest.webmanifest',
-  icons: { icon: '/Logo_symbol.png' },
 };
 export const viewport: Viewport = { themeColor: '#001731', width: 'device-width', initialScale: 1 };
 
