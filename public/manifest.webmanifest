@@ -1,0 +1,2 @@
+{ "name": "Sautika", "short_name": "Sautika", "description": "Speak • Learn • Grow", "start_url": "/", "display": "standalone", "background_color": "#030F26", "theme_color": "#030F26",
+  "icons": [{ "src": "/Logo_symbol.png", "sizes": "1254x1254", "type": "image/png", "purpose": "any" }] }
