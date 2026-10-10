@@ -1,8 +1,8 @@
 import { Accessibility, CloudUpload, Languages, Mic, Star, type LucideIcon } from 'lucide-react';
 
 const FEATURES: { icon: LucideIcon; title: string; text: string; bg: string; fg: string }[] = [
-  { icon: Mic, title: 'Voice-First Learning', text: 'Ask questions and get answers using your voice — in your language.', bg: 'bg-amber-50', fg: 'text-amber-500' },
-  { icon: Languages, title: 'Native Languages', text: 'Learn in Luganda, Swahili, Acholi, Ateso and Runyankole.', bg: 'bg-sky-50', fg: 'text-blue-600' },
+  { icon: Mic, title: 'Voice-First Learning', text: 'Ask questions and get answers using your voice in your language.', bg: 'bg-amber-50', fg: 'text-amber-500' },
+  { icon: Languages, title: 'Native Languages', text: 'Learn in Swahili, Luganda, Acholi, Ateso, Runyankole and many more native languages.', bg: 'bg-sky-50', fg: 'text-blue-600' },
   { icon: Accessibility, title: 'Dyslexia-Friendly', text: 'Custom fonts, high contrast and easy-to-read layouts.', bg: 'bg-emerald-50', fg: 'text-green-600' },
   { icon: CloudUpload, title: 'Works Offline', text: 'No internet? No problem. Keep learning, anywhere.', bg: 'bg-violet-50', fg: 'text-violet-500' },
   { icon: Star, title: 'Earn & Grow', text: 'Get learner coins, track your streaks and unlock new levels.', bg: 'bg-yellow-50', fg: 'text-sun' },

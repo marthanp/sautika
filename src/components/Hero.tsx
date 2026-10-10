@@ -2,11 +2,10 @@
 import Image from 'next/image';
 import { useState } from 'react';
 import { ArrowRight, ChevronDown, GraduationCap, Globe } from 'lucide-react';
-import { GoogleG, Logo } from './Icons';
-import { continueWithGoogle } from '@/lib/auth';
+import { Logo } from './Icons';
 
 const NAV = [['Home', '#home'], ['Features', '#features'], ['About', '#about'], ['Help', '#help']] as const;
-const LANGS = ['Luganda', 'Swahili', 'Acholi', 'Ateso', 'Runyankole'] as const;
+const LANGS = ['Swahili', 'Luganda', 'Acholi', 'Ateso', 'Runyankole', 'Many more'] as const;
 
 export default function Hero() {
   const [lang, setLang] = useState<(typeof LANGS)[number]>('Luganda');
@@ -38,7 +37,7 @@ export default function Hero() {
             Your Voice.<br /><span className="text-sun">Your Language.</span><br />A Brighter Future.
           </h1>
           <p className="mt-5 max-w-[360px] text-[14px] leading-[1.55] text-white/90">
-            Sautika is a voice-first, AI-powered learning assistant that helps primary and secondary school students learn in their native languages — anytime, anywhere, even offline.
+            Sautika is a voice-first, AI-powered learning assistant that helps primary and secondary school students learn in their native languages anytime, anywhere, even offline.
           </p>
           <div role="group" aria-label="Choose your language" className="mt-5 flex flex-wrap gap-2.5">
             {LANGS.map((l) => (
@@ -46,11 +45,10 @@ export default function Hero() {
                 className="min-h-9 rounded-full border border-white/15 bg-navy-2/80 px-4 text-[12px] font-medium backdrop-blur hover:border-sun aria-pressed:border-sun aria-pressed:bg-navy-2 aria-pressed:shadow-[inset_3px_0_0_var(--color-sun)]">{l}</button>
             ))}
           </div>
-          <button type="button" onClick={continueWithGoogle} className="mt-6 inline-flex min-h-[52px] items-center gap-3 rounded-full bg-sun py-2 pl-3 pr-5 text-[14px] font-semibold text-ink shadow-lg shadow-black/20 hover:bg-sun-dark">
-            <span className="grid h-8 w-8 place-items-center rounded-full bg-white"><GoogleG className="h-[18px] w-[18px]" /></span>
-            Continue with Google <ArrowRight className="ml-2 h-4 w-4" />
-          </button>
-          <p className="mt-3.5 text-[12px]">No Google account? <a href="#signin" className="inline-flex items-center gap-1 font-medium text-sun">Use email instead <ArrowRight className="h-3 w-3" /></a></p>
+          <a href="#signin" className="mt-6 inline-flex min-h-[52px] items-center gap-3 rounded-full bg-sun px-6 py-2 text-[14px] font-semibold text-ink shadow-lg shadow-black/20 hover:bg-sun-dark">
+            Join the Platform <ArrowRight className="h-4 w-4" />
+          </a>
+          <p className="mt-3.5 text-[12px]">New to Sautika? <a href="#signin" className="inline-flex items-center gap-1 font-medium text-sun">Create an Account <ArrowRight className="h-3 w-3" /></a></p>
         </div>
       </div>
     </section>
