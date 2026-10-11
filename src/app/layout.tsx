@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from 'next';
 import { Inter, Poppins } from 'next/font/google';
+import AccessibilitySync from '@/components/AccessibilitySync';
 import './globals.css';
 
 const inter = Inter({ subsets: ['latin'], variable: '--font-inter' });
@@ -15,7 +16,10 @@ export const viewport: Viewport = { themeColor: '#001731', width: 'device-width'
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" className={`${inter.variable} ${poppins.variable}`}>
-      <body>{children}</body>
+      <body>
+        <AccessibilitySync />
+        {children}
+      </body>
     </html>
   );
 }

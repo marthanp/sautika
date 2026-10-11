@@ -1,4 +1,8 @@
 @import 'tailwindcss';
+@import '@fontsource/opendyslexic/index.css';
+@import '@fontsource/lexend/index.css';
+@import '@fontsource/atkinson-hyperlegible/index.css';
+@import '@fontsource/comic-neue/index.css';
 
 @theme {
   --color-navy: #001731;
@@ -101,3 +105,96 @@ html[data-color-mode='dark'] .border-red-300 { border-color: #79404a; }
 :focus-visible { outline: 3px solid var(--color-sun); outline-offset: 3px; border-radius: 12px; }
 .scrollbar-none { scrollbar-width: none; }
 .scrollbar-none::-webkit-scrollbar { display: none; }
+
+/* Dyslexia-friendly and accessibility fonts */
+.font-opendyslexic { font-family: 'OpenDyslexic', sans-serif !important; }
+.font-lexend { font-family: 'Lexend', sans-serif !important; }
+.font-atkinson { font-family: 'Atkinson Hyperlegible', sans-serif !important; }
+.font-comic-neue { font-family: 'Comic Neue', cursive, sans-serif !important; }
+
+html[data-font='opendyslexic'],
+html[data-font='opendyslexic'] body,
+html[data-font='opendyslexic'] button,
+html[data-font='opendyslexic'] input,
+html[data-font='opendyslexic'] textarea,
+html[data-font='opendyslexic'] select,
+html[data-font='opendyslexic'] .font-sans,
+html[data-font='opendyslexic'] .font-display {
+  font-family: 'OpenDyslexic', -apple-system, BlinkMacSystemFont, sans-serif !important;
+}
+
+html[data-font='lexend'],
+html[data-font='lexend'] body,
+html[data-font='lexend'] button,
+html[data-font='lexend'] input,
+html[data-font='lexend'] textarea,
+html[data-font='lexend'] select,
+html[data-font='lexend'] .font-sans,
+html[data-font='lexend'] .font-display {
+  font-family: 'Lexend', -apple-system, BlinkMacSystemFont, sans-serif !important;
+}
+
+html[data-font='atkinson'],
+html[data-font='atkinson'] body,
+html[data-font='atkinson'] button,
+html[data-font='atkinson'] input,
+html[data-font='atkinson'] textarea,
+html[data-font='atkinson'] select,
+html[data-font='atkinson'] .font-sans,
+html[data-font='atkinson'] .font-display {
+  font-family: 'Atkinson Hyperlegible', -apple-system, BlinkMacSystemFont, sans-serif !important;
+}
+
+html[data-font='comic-neue'],
+html[data-font='comic-neue'] body,
+html[data-font='comic-neue'] button,
+html[data-font='comic-neue'] input,
+html[data-font='comic-neue'] textarea,
+html[data-font='comic-neue'] select,
+html[data-font='comic-neue'] .font-sans,
+html[data-font='comic-neue'] .font-display {
+  font-family: 'Comic Neue', cursive, sans-serif !important;
+}
+
+/* Letter and word spacing for dyslexia */
+html[data-letter-spacing='relaxed'] body,
+html[data-letter-spacing='relaxed'] p,
+html[data-letter-spacing='relaxed'] h1,
+html[data-letter-spacing='relaxed'] h2,
+html[data-letter-spacing='relaxed'] h3,
+html[data-letter-spacing='relaxed'] span,
+html[data-letter-spacing='relaxed'] button {
+  letter-spacing: 0.05em;
+  word-spacing: 0.12em;
+}
+
+html[data-letter-spacing='wide'] body,
+html[data-letter-spacing='wide'] p,
+html[data-letter-spacing='wide'] h1,
+html[data-letter-spacing='wide'] h2,
+html[data-letter-spacing='wide'] h3,
+html[data-letter-spacing='wide'] span,
+html[data-letter-spacing='wide'] button {
+  letter-spacing: 0.12em;
+  word-spacing: 0.25em;
+}
+
+/* Line height for reading ease */
+html[data-line-height='relaxed'] p,
+html[data-line-height='relaxed'] span,
+html[data-line-height='relaxed'] div {
+  line-height: 1.75;
+}
+
+html[data-line-height='loose'] p,
+html[data-line-height='loose'] span,
+html[data-line-height='loose'] div {
+  line-height: 2;
+}
+
+/* Tint overlays for visual stress / Scotopic sensitivity */
+html[data-reading-tint='cream'] body { background-color: #fff8e8 !important; }
+html[data-reading-tint='yellow'] body { background-color: #fef8d3 !important; }
+html[data-reading-tint='peach'] body { background-color: #fff0e5 !important; }
+html[data-reading-tint='mint'] body { background-color: #eaf8f0 !important; }
+html[data-reading-tint='blue'] body { background-color: #e8f3fe !important; }
