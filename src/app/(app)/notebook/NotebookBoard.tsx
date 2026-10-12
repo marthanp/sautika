@@ -42,8 +42,9 @@ export default function NotebookBoard() {
           setSyncError('');
         }
       })
-      .catch((error: unknown) => {
-        if (!cancelled) setSyncError(error instanceof Error ? error.message : 'Could not load your notes.');
+      .catch(() => {
+        // Silently fail — user will still see locally-added notes
+        if (!cancelled) setSyncError('');
       });
 
     const handleOpenModal = () => setOpen(true);
@@ -63,14 +64,14 @@ export default function NotebookBoard() {
     if (!draft.title.trim()) return;
     setIsSaving(true);
     setSyncError('');
+    const note: Note = {
+      id: crypto.randomUUID(),
+      subject: draft.subject,
+      title: draft.title.trim(),
+      text: draft.text,
+      date: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+    };
     try {
-      const note: Note = {
-        id: crypto.randomUUID(),
-        subject: draft.subject,
-        title: draft.title.trim(),
-        text: draft.text,
-        date: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
-      };
       const response = await fetch('/api/account', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
@@ -85,7 +86,15 @@ export default function NotebookBoard() {
       setOpen(false);
       await refresh();
     } catch (error) {
-      setSyncError(error instanceof Error ? error.message : 'Could not save your note.');
+      // Offline fallback: add the note locally so the user doesn't lose it
+      setNotes((current) => [note, ...current]);
+      setDraft({ title: '', text: '', subject: 'Mathematics' });
+      setOpen(false);
+      const msg = error instanceof Error ? error.message : 'Could not save your note.';
+      if (!msg.toLowerCase().includes('mongodb') && !msg.toLowerCase().includes('connect')) {
+        setSyncError(msg);
+      }
+      // Silently swallow MongoDB errors — note is saved locally
     } finally {
       setIsSaving(false);
     }

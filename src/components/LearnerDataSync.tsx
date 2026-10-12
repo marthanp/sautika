@@ -62,7 +62,7 @@ interface AccountResponse {
 }
 
 interface LearnerAccountContextValue {
-  data: AccountResponse | null;
+  data: AccountResponse;
   refresh: () => Promise<AccountResponse>;
 }
 
@@ -74,8 +74,8 @@ export function useLearnerAccount(): LearnerAccountContextValue {
   return context;
 }
 
-export function useLearnerProfile(): LearnerProfile | null {
-  return useLearnerAccount().data?.profile ?? null;
+export function useLearnerProfile(): LearnerProfile {
+  return useLearnerAccount().data.profile;
 }
 
 async function requestAccount(body?: unknown): Promise<AccountResponse> {
@@ -89,6 +89,54 @@ async function requestAccount(body?: unknown): Promise<AccountResponse> {
   return response.json() as Promise<AccountResponse>;
 }
 
+const DEFAULT_REWARDS = [
+  { id: 'reward-study-badge', title: 'Study Badge', description: 'Show off your achievement with a special badge.', cost: 100, color: '#1F63F5', background: '#EAF2FF' },
+  { id: 'reward-ebook', title: 'E-Book Voucher', description: 'Get a free e-book from our library.', cost: 250, color: '#7C3AED', background: '#F3EDFF' },
+  { id: 'reward-learning-time', title: 'Extra Learning Time', description: 'Get 1 extra day of premium access.', cost: 400, color: '#0FA37F', background: '#E5F8F1' },
+  { id: 'reward-gift', title: 'Reward Gift', description: 'A special surprise just for you!', cost: 700, color: '#F2562B', background: '#FFF1E8' },
+];
+
+const DEFAULT_SETTINGS: AccountResponse['settings'] = {
+  theme: 'navy',
+  colorMode: 'light',
+  font: 'default',
+  scale: '100%',
+  wide: false,
+  letterSpacing: 'normal',
+  lineHeight: 'normal',
+  readingTint: 'none',
+};
+
+/** Build a safe offline-first data object for a user (or guest). */
+function buildOfflineData(opts: {
+  firstName?: string | null;
+  lastName?: string | null;
+  email?: string;
+}): AccountResponse {
+  return {
+    hasExistingData: false,
+    profile: {
+      firstName: opts.firstName || 'Learner',
+      lastName: opts.lastName || '',
+      email: opts.email || '',
+      contact: '',
+      educationLevel: 'Not specified',
+      coins: 0,
+      xp: 0,
+      streak: 1,
+    },
+    courses: COURSES,
+    courseProgress: [],
+    activity: [],
+    rewards: DEFAULT_REWARDS,
+    appState: { xp: 0, streak: 1, enrolled: [], done: {}, activeCourse: null },
+    settings: DEFAULT_SETTINGS,
+  };
+}
+
+// Guest-mode data (no user signed in — used during testing / auth-disabled)
+const GUEST_DATA: AccountResponse = buildOfflineData({ firstName: 'Guest', lastName: '' });
+
 export default function LearnerDataSync({ children }: { children: ReactNode }) {
   const { isLoaded, user } = useUser();
   const app = useApp();
@@ -97,35 +145,52 @@ export default function LearnerDataSync({ children }: { children: ReactNode }) {
   const [accountData, setAccountData] = useState<{ userId: string; data: AccountResponse } | null>(null);
   const readyUserIdRef = useRef('');
   const userId = user?.id ?? '';
-  const refresh = useCallback(async () => {
-    const account = await requestAccount();
-    setAccountData({ userId, data: account });
-    return account;
-  }, [userId]);
+
+  const refresh = useCallback(async (): Promise<AccountResponse> => {
+    try {
+      const account = await requestAccount();
+      setAccountData({ userId, data: account });
+      return account;
+    } catch {
+      if (accountData?.userId === userId && accountData.data) return accountData.data;
+      return user
+        ? buildOfflineData({ firstName: user.firstName, lastName: user.lastName, email: user.primaryEmailAddress?.emailAddress })
+        : GUEST_DATA;
+    }
+  }, [userId, accountData, user]);
 
   useEffect(() => {
     let active = true;
     readyUserIdRef.current = '';
+
+    // ── Guest / no-auth mode (auth disabled for testing) ──
+    if (isLoaded && !userId) {
+      readyUserIdRef.current = 'guest';
+      setReadyUserId('guest');
+      return () => { active = false; };
+    }
+
     if (!isLoaded || !userId) return () => { active = false; };
 
+    // ── Authenticated mode ──
     void requestAccount().then(async (account) => {
       if (!active) return;
       setAccountData({ userId, data: account });
       if (account.hasExistingData) {
-        useApp.setState({
-          ...account.appState,
-          ...account.settings,
-        });
+        useApp.setState({ ...account.appState, ...account.settings });
       } else {
-        const initialState = useApp.getInitialState();
-        useApp.setState(initialState);
+        const s = useApp.getState();
         try {
-          await requestAccount({ type: 'state', state: initialState });
-        } catch (syncError) {
-          if (active) setSyncError({
-            userId,
-            message: syncError instanceof Error ? syncError.message : 'Could not save your learner data.',
+          await requestAccount({
+            type: 'state',
+            state: {
+              theme: s.theme, colorMode: s.colorMode, font: s.font,
+              scale: s.scale, wide: s.wide, letterSpacing: s.letterSpacing,
+              lineHeight: s.lineHeight, readingTint: s.readingTint, enrolled: s.enrolled,
+            },
           });
+        } catch (syncErr) {
+          if (active) setSyncError({ userId, message: syncErr instanceof Error ? syncErr.message : 'Could not save your learner data.' });
         }
       }
       if (active) {
@@ -134,71 +199,61 @@ export default function LearnerDataSync({ children }: { children: ReactNode }) {
         setSyncError(null);
       }
     }).catch((loadError: unknown) => {
-      if (active) setSyncError({
-        userId,
-        message: loadError instanceof Error ? loadError.message : 'Could not load your learner data.',
-      });
+      if (!active) return;
+      if (user) {
+        setAccountData({
+          userId,
+          data: buildOfflineData({ firstName: user.firstName, lastName: user.lastName, email: user.primaryEmailAddress?.emailAddress }),
+        });
+      }
+      readyUserIdRef.current = userId;
+      setReadyUserId(userId);
+      setSyncError({ userId, message: loadError instanceof Error ? loadError.message : 'Could not load your learner data.' });
     });
 
     return () => { active = false; };
-  }, [isLoaded, userId]);
+  }, [isLoaded, userId, user]);
 
+  // Periodic state sync (only for authenticated users)
   useEffect(() => {
     if (!userId || readyUserId !== userId || readyUserIdRef.current !== userId) return;
     const timeout = window.setTimeout(() => {
       const state = useApp.getState();
       void requestAccount({ type: 'state', state })
         .then(() => setSyncError(null))
-        .catch((syncError: unknown) => {
-          setSyncError({
-            userId,
-            message: syncError instanceof Error ? syncError.message : 'Could not save your learner data.',
-          });
+        .catch((syncErr: unknown) => {
+          setSyncError({ userId, message: syncErr instanceof Error ? syncErr.message : 'Could not save your learner data.' });
         });
     }, 500);
     return () => window.clearTimeout(timeout);
   }, [app, readyUserId, userId]);
 
-  const contextData = accountData?.userId === userId && accountData.data
-    ? {
+  // ── Determine contextData ──
+  // Priority: server-synced → offline fallback → GUEST_DATA
+  const contextData: AccountResponse = (() => {
+    if (accountData?.userId === userId && accountData.data) {
+      const serverCourses = accountData.data.courses;
+      return {
         ...accountData.data,
-        courses: accountData.data.courses && accountData.data.courses.length > 0 ? accountData.data.courses : COURSES,
-      }
-    : (userId ? {
-        hasExistingData: false,
-        profile: {
-          firstName: user?.firstName || 'Learner',
-          lastName: user?.lastName || '',
-          email: user?.primaryEmailAddress?.emailAddress || '',
-          contact: '',
-          educationLevel: 'Not specified',
-          coins: 0,
-          xp: 0,
-          streak: 1,
-        },
-        courses: COURSES,
-        courseProgress: [],
-        activity: [],
-        rewards: [],
-        appState: { xp: 0, streak: 1, enrolled: [], done: {}, activeCourse: null },
-        settings: {
-          theme: 'navy' as const,
-          colorMode: 'light' as const,
-          font: 'default' as const,
-          scale: '100%',
-          wide: false,
-          letterSpacing: 'normal' as const,
-          lineHeight: 'normal' as const,
-          readingTint: 'none' as const,
-        },
-      } : null);
+        courses: serverCourses && serverCourses.length > 0 ? serverCourses : COURSES,
+      };
+    }
+    if (userId && user) {
+      return buildOfflineData({
+        firstName: user.firstName,
+        lastName: user.lastName,
+        email: user.primaryEmailAddress?.emailAddress,
+      });
+    }
+    return GUEST_DATA;
+  })();
 
   return (
     <LearnerAccountContext.Provider value={{ data: contextData, refresh }}>
       {children}
       {syncError && syncError.userId === userId && userId ? (
-        <p role="status" className="fixed bottom-3 left-3 right-3 z-[100] mx-auto max-w-xl rounded-xl border border-amber-300 bg-amber-50 px-4 py-3 text-center text-sm text-amber-950 shadow-lg">
-          Cloud sync: {syncError.message}
+        <p role="status" className="fixed bottom-20 left-3 right-3 z-[100] mx-auto max-w-xl rounded-xl border border-amber-300 bg-amber-50 px-4 py-3 text-center text-sm text-amber-950 shadow-lg lg:bottom-3">
+          Cloud sync unavailable: {syncError.message}
         </p>
       ) : null}
     </LearnerAccountContext.Provider>

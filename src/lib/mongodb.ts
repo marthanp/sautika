@@ -11,7 +11,12 @@ export async function getMongoClient(): Promise<MongoClient> {
   if (!uri) throw new Error('MONGODB_URI is not configured. Add it to .env.local.');
 
   if (!clientPromise) {
-    clientPromise = new MongoClient(uri, { appName: 'sautika' }).connect();
+    clientPromise = new MongoClient(uri, {
+      appName: 'sautika',
+      serverSelectionTimeoutMS: 5000,  // Fail fast — 5s instead of 30s default
+      connectTimeoutMS: 5000,
+      socketTimeoutMS: 8000,
+    }).connect();
     if (process.env.NODE_ENV !== 'production') globalForMongo.mongoClientPromise = clientPromise;
   }
 

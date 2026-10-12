@@ -2,7 +2,8 @@
 
 import Image from 'next/image';
 import Link from 'next/link';
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useEffect } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { ArrowRight, BookOpen, ExternalLink, GraduationCap, RotateCcw, Search } from 'lucide-react';
 import { Card, SubjectChip } from '@/components/ui';
 import { SUBJECTS } from '@/lib/data';
@@ -37,10 +38,17 @@ const SUB_CLASSES_BY_GROUP: Record<LevelGroup, string[]> = {
 };
 
 export default function CoursesExplorer() {
+  const searchParams = useSearchParams();
   const [levelGroup, setLevelGroup] = useState<'All' | LevelGroup>('All');
   const [subClass, setSubClass] = useState<string>('All');
   const [subject, setSubject] = useState<'All' | Category>('All');
-  const [searchQuery, setSearchQuery] = useState('');
+  const [searchQuery, setSearchQuery] = useState(() => searchParams?.get('q') ?? '');
+
+  // Sync URL ?q= param whenever it changes (e.g. from Topbar search)
+  useEffect(() => {
+    const q = searchParams?.get('q') ?? '';
+    if (q) setSearchQuery(q);
+  }, [searchParams]);
 
   const { data } = useLearnerAccount();
   const courses = data?.courses ?? [];

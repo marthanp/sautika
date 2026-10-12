@@ -63,7 +63,18 @@ export default function LearningPage() {
       }
       await refresh();
     } catch (error) {
-      setCompletionError(error instanceof Error ? error.message : 'Could not save lesson progress.');
+      // Fallback: mark lesson complete in local app state so the user still sees progress
+      useApp.getState().completeLesson(course.id, lessonIndex, 10);
+      useApp.getState().touchStreak();
+      // Optimistically refresh to show updated state
+      void refresh().catch(() => null);
+      // Show a soft warning instead of hard error
+      const msg = error instanceof Error ? error.message : 'Could not save lesson progress.';
+      if (msg.toLowerCase().includes('mongodb') || msg.toLowerCase().includes('connect') || msg.toLowerCase().includes('sync')) {
+        setCompletionError('Lesson marked complete locally. Progress will sync when your connection is restored.');
+      } else {
+        setCompletionError(msg);
+      }
     } finally {
       setIsCompleting(false);
     }

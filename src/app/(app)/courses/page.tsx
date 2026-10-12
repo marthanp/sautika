@@ -2,6 +2,7 @@
 
 import Image from 'next/image';
 import Link from 'next/link';
+import { Suspense } from 'react';
 import { ArrowRight, BookOpen, ChartNoAxesColumn, GraduationCap, Star } from 'lucide-react';
 import { Bar, Card, Ring } from '@/components/ui';
 import { SUBJECTS } from '@/lib/data';
@@ -44,7 +45,9 @@ export default function CoursesPage() {
             <Image src="/images/promo-plant.png" alt="" width={70} height={70} className="absolute bottom-0 right-1 hidden h-auto w-[70px] sm:block" />
           </div>
         </div>
-        <CoursesExplorer />
+        <Suspense fallback={<p className="py-8 text-center text-slate-500">Loading courses…</p>}>
+          <CoursesExplorer />
+        </Suspense>
       </div>
       <aside className="min-w-0 space-y-4 xl:col-span-3 xl:mt-1">
         <Card className="p-6">
