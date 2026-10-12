@@ -120,12 +120,17 @@ async function seedCatalog(database: Awaited<ReturnType<typeof getDatabase>>, no
   ]);
 }
 
+let hasSeeded = false;
+
 export async function GET(request: Request): Promise<Response> {
   try {
     const userId = await requireUserId();
     const database = await getDatabase();
     const now = new Date();
-    await seedCatalog(database, now);
+    if (!hasSeeded) {
+      seedCatalog(database, now).catch((err) => console.error('Background seed error:', err));
+      hasSeeded = true;
+    }
     const resource = new URL(request.url).searchParams.get('resource');
     const sourcesCollection = database.collection('sources');
     const notesCollection = database.collection('notes');

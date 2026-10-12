@@ -13,9 +13,9 @@ export async function getMongoClient(): Promise<MongoClient> {
   if (!clientPromise) {
     clientPromise = new MongoClient(uri, {
       appName: 'sautika',
-      serverSelectionTimeoutMS: 5000,  // Fail fast — 5s instead of 30s default
-      connectTimeoutMS: 5000,
-      socketTimeoutMS: 8000,
+      serverSelectionTimeoutMS: 12000,
+      connectTimeoutMS: 12000,
+      socketTimeoutMS: 20000,
     }).connect();
     if (process.env.NODE_ENV !== 'production') globalForMongo.mongoClientPromise = clientPromise;
   }

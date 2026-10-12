@@ -252,9 +252,20 @@ export default function LearnerDataSync({ children }: { children: ReactNode }) {
     <LearnerAccountContext.Provider value={{ data: contextData, refresh }}>
       {children}
       {syncError && syncError.userId === userId && userId ? (
-        <p role="status" className="fixed bottom-20 left-3 right-3 z-[100] mx-auto max-w-xl rounded-xl border border-amber-300 bg-amber-50 px-4 py-3 text-center text-sm text-amber-950 shadow-lg lg:bottom-3">
-          Cloud sync unavailable: {syncError.message}
-        </p>
+        <div role="status" className="fixed bottom-20 left-3 right-3 z-[100] mx-auto flex max-w-xl items-center justify-between gap-3 rounded-xl border border-amber-300 bg-amber-50/95 px-4 py-3 text-sm text-amber-950 shadow-lg backdrop-blur lg:bottom-3">
+          <span className="min-w-0 flex-1 truncate">
+            {syncError.message.includes('Could not')
+              ? 'Working in offline mode (local updates saved). Cloud sync will resume automatically.'
+              : `Cloud sync note: ${syncError.message}`}
+          </span>
+          <button
+            type="button"
+            onClick={() => setSyncError(null)}
+            className="shrink-0 rounded-lg px-2 py-1 text-xs font-bold text-amber-800 hover:bg-amber-100"
+          >
+            Dismiss
+          </button>
+        </div>
       ) : null}
     </LearnerAccountContext.Provider>
   );

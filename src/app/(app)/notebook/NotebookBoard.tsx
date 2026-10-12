@@ -1,6 +1,6 @@
 'use client';
 import { useEffect, useRef, useState } from 'react';
-import { Calendar, FileText, Plus, Trash2, Upload, X } from 'lucide-react';
+import { Calendar, FileText, Loader2, Plus, Trash2, Upload, Volume2, X } from 'lucide-react';
 import { Card } from '@/components/ui';
 import { useLearnerAccount } from '@/components/LearnerDataSync';
 import { SUBJECTS, type Note, type Subject } from '@/lib/data';
@@ -115,30 +115,102 @@ export default function NotebookBoard() {
     }
   };
 
+  const [isUploading, setIsUploading] = useState(false);
+  const [uploadStatus, setUploadStatus] = useState('');
+
   const handleFileUpload = async (files: FileList | null): Promise<void> => {
     if (!files || !files.length) return;
     const file = files[0];
+    setIsUploading(true);
+    setUploadStatus(`Analyzing ${file.name}…`);
     try {
-      const text = await file.text();
+      const formData = new FormData();
+      formData.append('file', file);
+
+      const ocrResponse = await fetch('/api/ocr', {
+        method: 'POST',
+        body: formData,
+      });
+
+      let text = '';
+      if (ocrResponse.ok) {
+        const ocrData = (await ocrResponse.json()) as { text?: string };
+        text = ocrData.text || '';
+      } else {
+        // Text fallback
+        text = await file.text().catch(() => '');
+      }
+
       const title = file.name.replace(/\.[^/.]+$/, '');
       const note: Note = {
         id: crypto.randomUUID(),
         subject: 'Science',
-        title: title || 'Uploaded File Notes',
-        text: text.slice(0, 10000),
+        title: title || 'Uploaded Document Notes',
+        text: text.slice(0, 15000) || `Uploaded file: ${file.name}`,
         date: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
       };
+
       const response = await fetch('/api/account', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ type: 'note', note }),
       });
+
+      // Update state locally in all cases
+      setNotes((prev) => [note, ...prev]);
       if (response.ok) {
-        setNotes((prev) => [note, ...prev]);
         await refresh();
       }
+      setUploadStatus('');
     } catch (e) {
       console.error('Upload failed:', e);
+      setUploadStatus('Could not analyze file.');
+      setTimeout(() => setUploadStatus(''), 4000);
+    } finally {
+      setIsUploading(false);
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    }
+  };
+
+  const [playingId, setPlayingId] = useState<string | number | null>(null);
+  const [activeAudioLang, setActiveAudioLang] = useState<string>('lug');
+
+  const playVoiceNote = async (id: string | number, text: string) => {
+    if (playingId === id) {
+      setPlayingId(null);
+      return;
+    }
+    setPlayingId(id);
+    try {
+      const res = await fetch('/api/tts', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          text: text.slice(0, 500),
+          language: activeAudioLang,
+        }),
+      });
+      if (res.ok) {
+        const data = (await res.json()) as { audioUrl?: string };
+        if (data.audioUrl) {
+          const audio = new Audio(data.audioUrl);
+          audio.onended = () => setPlayingId(null);
+          audio.onerror = () => setPlayingId(null);
+          await audio.play();
+          return;
+        }
+      }
+      // Browser SpeechSynthesis fallback
+      if ('speechSynthesis' in window) {
+        const utterance = new SpeechSynthesisUtterance(text.slice(0, 500));
+        utterance.onend = () => setPlayingId(null);
+        utterance.onerror = () => setPlayingId(null);
+        window.speechSynthesis.speak(utterance);
+      } else {
+        setPlayingId(null);
+      }
+    } catch {
+      setPlayingId(null);
     }
   };
 
@@ -147,10 +219,17 @@ export default function NotebookBoard() {
       <input
         ref={fileInputRef}
         type="file"
-        accept=".txt,.md,.text"
+        accept=".pdf,.doc,.docx,.txt,.md,.text,.csv,.xlsx,.xls,.ppt,.pptx,.png,.jpg,.jpeg,.webp,.gif,image/*,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
         className="hidden"
         onChange={(e) => void handleFileUpload(e.target.files)}
       />
+
+      {isUploading && (
+        <div className="mt-4 flex items-center gap-3 rounded-2xl border border-sun/40 bg-sun/10 px-4 py-3 text-sm font-medium text-navy">
+          <span className="h-4 w-4 animate-spin rounded-full border-2 border-navy border-t-transparent" />
+          <span>{uploadStatus || 'Analyzing document with OCR engine…'}</span>
+        </div>
+      )}
 
       <div className="mt-6 flex flex-wrap items-center gap-3">
         <div className="-mx-1 flex min-w-0 flex-1 gap-3 overflow-x-auto px-1 pb-1 scrollbar-none">
@@ -166,6 +245,21 @@ export default function NotebookBoard() {
           ))}
         </div>
         <div className="flex w-full items-center gap-2 sm:ml-auto sm:w-auto">
+          {/* Voice Language Picker */}
+          <select
+            value={activeAudioLang}
+            onChange={(e) => setActiveAudioLang(e.target.value)}
+            className="h-11 rounded-full border border-line bg-white px-3 text-[12.5px] font-semibold text-slate-700 shadow-sm focus:border-navy focus:outline-none"
+            title="Choose Sunbird voice language"
+          >
+            <option value="lug">Luganda 🇺🇬</option>
+            <option value="ach">Acholi 🇺🇬</option>
+            <option value="ate">Ateso 🇺🇬</option>
+            <option value="lgg">Lugbara 🇺🇬</option>
+            <option value="nyn">Runyankole 🇺🇬</option>
+            <option value="eng">English</option>
+          </select>
+
           <button
             onClick={() => fileInputRef.current?.click()}
             className="flex h-11 flex-1 items-center justify-center gap-2 whitespace-nowrap rounded-full border border-line bg-white px-4 text-[13px] font-semibold text-slate-700 shadow-sm hover:bg-slate-50 sm:flex-initial"
@@ -192,6 +286,7 @@ export default function NotebookBoard() {
           .filter((n) => f === 'All Notes' || n.subject === f)
           .map((n) => {
             const { icon: I, color } = SUBJECTS[n.subject] || SUBJECTS['Science'];
+            const isPlaying = playingId === n.id;
             return (
               <Card key={n.id} className="relative flex flex-col justify-between p-5">
                 <div>
@@ -203,14 +298,29 @@ export default function NotebookBoard() {
                       <I className="h-4 w-4" />
                       {n.subject}
                     </span>
-                    <button
-                      type="button"
-                      aria-label={`Delete note ${n.title}`}
-                      onClick={() => void deleteNote(n.id)}
-                      className="rounded-lg p-1 text-slate-400 hover:bg-red-50 hover:text-red-600"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </button>
+                    <div className="flex items-center gap-1">
+                      <button
+                        type="button"
+                        aria-label={`Listen to note ${n.title}`}
+                        onClick={() => void playVoiceNote(n.id, `${n.title}. ${n.text}`)}
+                        className={`rounded-lg p-1.5 transition-colors ${
+                          isPlaying
+                            ? 'bg-sun text-navy font-bold animate-pulse'
+                            : 'text-slate-500 hover:bg-slate-100 hover:text-navy'
+                        }`}
+                        title="Listen with Sunbird Voice"
+                      >
+                        {isPlaying ? <Loader2 className="h-4 w-4 animate-spin" /> : <Volume2 className="h-4 w-4" />}
+                      </button>
+                      <button
+                        type="button"
+                        aria-label={`Delete note ${n.title}`}
+                        onClick={() => void deleteNote(n.id)}
+                        className="rounded-lg p-1 text-slate-400 hover:bg-red-50 hover:text-red-600"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </button>
+                    </div>
                   </div>
                   <h3 className="mt-4 text-[19px] font-extrabold text-navy">{n.title}</h3>
                   <p className="mt-3 min-h-[72px] text-[14.5px] leading-relaxed text-slate-600 whitespace-pre-line">
