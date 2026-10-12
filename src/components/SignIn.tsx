@@ -26,6 +26,11 @@ export default function SignIn() {
     setRequiresAdditionalVerification(false);
 
     try {
+      // If user is somehow already logged in as someone else, sign out cleanly first
+      if (isSignedIn) {
+        await signOut();
+      }
+
       const { error: signInError } = await signIn.password({
         emailAddress: email.trim(),
         password,
@@ -48,7 +53,12 @@ export default function SignIn() {
         return;
       }
 
-      window.location.href = '/home';
+      // Check redirect_url parameter if coming from protected route, otherwise go straight to /home
+      const urlParams = typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : null;
+      const redirectUrl = urlParams?.get('redirect_url');
+      const targetDestination = redirectUrl && redirectUrl.startsWith('/') ? redirectUrl : '/home';
+
+      window.location.href = targetDestination;
     } catch (signInError) {
       setError(signInError instanceof Error ? signInError.message : 'Sign in failed. Please try again.');
     }
