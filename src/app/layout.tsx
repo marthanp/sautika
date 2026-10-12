@@ -1,6 +1,7 @@
 import { ClerkProvider } from '@clerk/nextjs';
 import type { Metadata, Viewport } from 'next';
 import { Inter, Poppins } from 'next/font/google';
+import AccessibilitySync from '@/components/AccessibilitySync';
 import './globals.css';
 
 const inter = Inter({ subsets: ['latin'], variable: '--font-inter' });
@@ -18,6 +19,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="en" className={`${inter.variable} ${poppins.variable}`}>
       <body>
         <ClerkProvider>
+          <AccessibilitySync />
           {children}
         </ClerkProvider>
       </body>
