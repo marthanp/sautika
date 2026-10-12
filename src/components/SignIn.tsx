@@ -2,18 +2,21 @@
 
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useSignIn } from '@clerk/nextjs';
+import { useClerk, useSignIn, useUser } from '@clerk/nextjs';
 import { useState, type FormEvent } from 'react';
-import { ArrowRight } from 'lucide-react';
+import { ArrowRight, LogOut } from 'lucide-react';
 import { GoogleG, Logo } from './Icons';
 
 export default function SignIn() {
+  const { signOut } = useClerk();
+  const { isSignedIn, user } = useUser();
   const { signIn, fetchStatus } = useSignIn();
   const router = useRouter();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [requiresAdditionalVerification, setRequiresAdditionalVerification] = useState(false);
+  const [isSigningOut, setIsSigningOut] = useState(false);
   const isSubmitting = fetchStatus === 'fetching';
 
   async function handleEmailSignIn(event: FormEvent<HTMLFormElement>) {
@@ -50,10 +53,28 @@ export default function SignIn() {
     }
   }
 
+  async function handleSignOut() {
+    setIsSigningOut(true);
+    setError('');
+    try {
+      await signOut();
+      router.refresh();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Sign out failed');
+    } finally {
+      setIsSigningOut(false);
+    }
+  }
+
   async function handleGoogleSignIn() {
     setError('');
 
     try {
+      // If user is already logged in, sign them out first before starting Google OAuth
+      if (isSignedIn) {
+        await signOut();
+      }
+
       const { error: signInError } = await signIn.sso({
         strategy: 'oauth_google',
         redirectUrl: '/home',
@@ -72,10 +93,33 @@ export default function SignIn() {
           <div className="flex justify-center"><Logo dark size="lg" center /></div>
           <h2 className="mt-8 text-center font-display text-[26px] font-semibold tracking-tight">Welcome to Sautika!</h2>
           <p className="mt-3 text-center text-[15px] leading-relaxed text-slate-500">Learn in your language and grow your confidence, one lesson at a time.</p>
+
+          {isSignedIn && (
+            <div className="mt-6 flex flex-col items-center justify-between gap-3 rounded-2xl border border-amber-200 bg-amber-50/80 p-4 sm:flex-row">
+              <div className="text-left">
+                <p className="text-[13px] font-semibold text-amber-900">
+                  You are currently signed in {user?.primaryEmailAddress?.emailAddress ? `as ${user.primaryEmailAddress.emailAddress}` : ''}
+                </p>
+                <p className="text-[12px] text-amber-700">
+                  To sign in with a different account or Google, sign out first.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={handleSignOut}
+                disabled={isSigningOut}
+                className="inline-flex shrink-0 items-center gap-2 rounded-xl bg-amber-800 px-4 py-2 text-xs font-semibold text-white transition-colors hover:bg-amber-900 disabled:opacity-60"
+              >
+                <LogOut className="h-3.5 w-3.5" />
+                {isSigningOut ? 'Signing out…' : 'Sign out now'}
+              </button>
+            </div>
+          )}
+
           <button
             type="button"
             onClick={handleGoogleSignIn}
-            disabled={isSubmitting}
+            disabled={isSubmitting || isSigningOut}
             className="mt-8 flex min-h-[60px] w-full items-center justify-center gap-3 rounded-2xl border border-slate-300 bg-slate-50 px-4 text-[16px] font-semibold text-ink shadow-sm transition-colors hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-60"
           >
             <GoogleG className="h-5 w-5" />
@@ -87,12 +131,24 @@ export default function SignIn() {
             <span className="h-px flex-1 bg-slate-200" />
           </div>
           {error ? (
-            <p role="alert" className="mb-4 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-[12px] text-red-700">
-              {error}{' '}
-              {requiresAdditionalVerification ? (
-                <Link href="/sign-in" className="font-semibold underline">Continue</Link>
-              ) : null}
-            </p>
+            <div role="alert" className="mb-4 flex items-center justify-between gap-3 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-[12px] text-red-700">
+              <span>
+                {error}{' '}
+                {requiresAdditionalVerification ? (
+                  <Link href="/sign-in" className="font-semibold underline">Continue</Link>
+                ) : null}
+              </span>
+              {error.toLowerCase().includes('already signed in') && (
+                <button
+                  type="button"
+                  onClick={handleSignOut}
+                  disabled={isSigningOut}
+                  className="shrink-0 font-semibold underline hover:text-red-900"
+                >
+                  Sign out
+                </button>
+              )}
+            </div>
           ) : null}
           <form onSubmit={handleEmailSignIn} className="space-y-4">
             <label className="block text-[13px] font-semibold uppercase tracking-[0.12em] text-slate-600">
