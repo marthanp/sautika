@@ -47,7 +47,7 @@ export default function SignIn() {
         return;
       }
 
-      router.replace('/home');
+      window.location.href = '/home';
     } catch (signInError) {
       setError(signInError instanceof Error ? signInError.message : 'Sign in failed. Please try again.');
     }
