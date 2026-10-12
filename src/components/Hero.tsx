@@ -1,5 +1,6 @@
 'use client';
 import Image from 'next/image';
+import Link from 'next/link';
 import { useState } from 'react';
 import { ArrowRight, ChevronDown, GraduationCap, Globe } from 'lucide-react';
 import { Logo } from './Icons';
@@ -45,10 +46,9 @@ export default function Hero() {
                 className="min-h-9 rounded-full border border-white/15 bg-navy-2/80 px-4 text-[12px] font-medium backdrop-blur hover:border-sun aria-pressed:border-sun aria-pressed:bg-navy-2 aria-pressed:shadow-[inset_3px_0_0_var(--color-sun)]">{l}</button>
             ))}
           </div>
-          <a href="#signin" className="mt-6 inline-flex min-h-[52px] items-center gap-3 rounded-full bg-sun px-6 py-2 text-[14px] font-semibold text-ink shadow-lg shadow-black/20 hover:bg-sun-dark">
+          <Link href="/register" className="mt-6 inline-flex min-h-[52px] items-center gap-3 rounded-full bg-sun px-6 py-2 text-[14px] font-semibold text-ink shadow-lg shadow-black/20 transition-colors hover:bg-sun-dark">
             Join the Platform <ArrowRight className="h-4 w-4" />
-          </a>
-          <p className="mt-3.5 text-[12px]">New to Sautika? <a href="#signin" className="inline-flex items-center gap-1 font-medium text-sun">Create an Account <ArrowRight className="h-3 w-3" /></a></p>
+          </Link>
         </div>
       </div>
     </section>

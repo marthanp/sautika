@@ -2,7 +2,7 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { ChartNoAxesColumn, BookOpen, CirclePlay, House, LogOut, NotepadText, Settings, Star } from 'lucide-react';
-import { signOut } from '@/lib/auth';
+import { SignOutButton } from '@clerk/nextjs';
 import { Logo } from './Logo';
 
 const NAV = [
@@ -32,10 +32,12 @@ export default function Sidebar() {
           })}
         </nav>
         <svg aria-hidden viewBox="0 0 280 320" className="pointer-events-none absolute -left-4 bottom-24 w-72 opacity-[0.05]" fill="#fff"><path d="M20 300C-10 200 40 80 130 40c30 90 10 210-110 260z" /><path d="M150 220c20-80 80-130 140-140-5 80-50 150-140 160z" /><path d="M60 320c30-60 90-100 160-110-10 70-60 110-160 110z" /></svg>
-        <button type="button" onClick={signOut} className="relative mt-auto mb-6 flex items-center justify-center gap-3 rounded-2xl border border-white/20 bg-white/5 px-4 py-3 text-[15px] font-semibold text-white transition hover:bg-white/10">
-          <LogOut className="h-5 w-5" strokeWidth={2} />
-          Sign out
-        </button>
+        <SignOutButton redirectUrl="/">
+          <button type="button" className="relative mt-auto mb-6 flex items-center justify-center gap-3 rounded-2xl border border-white/20 bg-white/5 px-4 py-3 text-[15px] font-semibold text-white transition hover:bg-white/10">
+            <LogOut className="h-5 w-5" strokeWidth={2} />
+            Sign out
+          </button>
+        </SignOutButton>
       </aside>
       <nav aria-label="Main" className="fixed inset-x-0 bottom-0 z-30 grid min-h-16 grid-cols-7 border-t border-line bg-white pb-[env(safe-area-inset-bottom)] lg:hidden">
         {NAV.map(({ href, label, icon: Icon }) => (

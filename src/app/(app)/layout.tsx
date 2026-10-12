@@ -1,7 +1,10 @@
+import { auth } from '@clerk/nextjs/server';
 import Sidebar from '@/components/Sidebar';
 import Topbar from '@/components/Topbar';
 
-export default function AppLayout({ children }: { children: React.ReactNode }) {
+export default async function AppLayout({ children }: { children: React.ReactNode }) {
+  await auth.protect();
+
   return (
     <div className="min-h-screen lg:pl-72">
       <Sidebar />

@@ -1,9 +1,8 @@
 'use client';
 import { useEffect } from 'react';
 import { usePathname } from 'next/navigation';
-import Image from 'next/image';
-import { Bell, ChevronDown, Moon, Search, Sun } from 'lucide-react';
-import { USER } from '@/lib/data';
+import { UserButton } from '@clerk/nextjs';
+import { Bell, Moon, Search, Sun } from 'lucide-react';
 import { useApp } from '@/store/useApp';
 import { Logo } from './Logo';
 
@@ -39,11 +38,7 @@ export default function Topbar() {
             : <Sun className="h-5 w-5 text-navy sm:h-6 sm:w-6" />}
         </button>
         <button aria-label="Notifications" className="relative grid h-10 w-10 place-items-center sm:h-11 sm:w-11"><Bell className="h-5 w-5 text-navy sm:h-6 sm:w-6" /><i className="absolute right-2 top-1.5 h-2.5 w-2.5 rounded-full bg-red-500" /></button>
-        <button className="flex min-w-0 items-center gap-2 sm:gap-3" aria-label="Account menu">
-          <Image src="/images/aisha.jpg" alt="" width={54} height={54} className="h-10 w-10 rounded-full object-cover sm:h-[54px] sm:w-[54px]" />
-          <span className="hidden text-left leading-tight sm:block"><b className="block text-[15px]">{USER.name}</b><span className="text-[14px] text-slate-500">{USER.grade}</span></span>
-          <ChevronDown className="hidden h-5 w-5 text-navy sm:block" />
-        </button>
+        <UserButton />
       </div>
     </header>
   );
