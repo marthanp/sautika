@@ -1,8 +1,8 @@
 @import 'tailwindcss';
-@import '@fontsource/opendyslexic/index.css';
-@import '@fontsource/lexend/index.css';
-@import '@fontsource/atkinson-hyperlegible/index.css';
-@import '@fontsource/comic-neue/index.css';
+@import '@fontsource/opendyslexic';
+@import '@fontsource/lexend';
+@import '@fontsource/atkinson-hyperlegible';
+@import '@fontsource/comic-neue';
 
 @theme {
   --color-navy: #001731;
