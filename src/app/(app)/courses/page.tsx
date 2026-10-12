@@ -1,11 +1,33 @@
+'use client';
+
 import Image from 'next/image';
 import Link from 'next/link';
 import { ArrowRight, BookOpen, ChartNoAxesColumn, GraduationCap, Star } from 'lucide-react';
 import { Bar, Card, Ring } from '@/components/ui';
-import { COURSE_RAIL, SUBJECTS } from '@/lib/data';
+import { SUBJECTS } from '@/lib/data';
+import { useLearnerAccount } from '@/components/LearnerDataSync';
+import { SUBJECT_BY_CATEGORY } from '@/lib/course-display';
+import type { Category } from '@/types';
 import CoursesExplorer from './CoursesExplorer';
 
 export default function CoursesPage() {
+  const { data } = useLearnerAccount();
+  const courses = data?.courses ?? [];
+  const progressByCourse = new Map((data?.courseProgress ?? []).map((item) => [item.courseId, item]));
+  const totalLessons = courses.reduce((total, course) => total + course.lessons.length, 0);
+  const completedLessons = courses.reduce(
+    (total, course) => total + (progressByCourse.get(course.id)?.completedLessonIndexes.length ?? 0),
+    0,
+  );
+  const completion = totalLessons ? Math.round((completedLessons / totalLessons) * 100) : 0;
+  const categoryProgress = new Map<Category, { done: number; total: number }>();
+  for (const course of courses) {
+    const current = categoryProgress.get(course.cat) ?? { done: 0, total: 0 };
+    current.total += course.lessons.length;
+    current.done += progressByCourse.get(course.id)?.completedLessonIndexes.length ?? 0;
+    categoryProgress.set(course.cat, current);
+  }
+
   return (
     <div className="mx-auto grid max-w-[1330px] gap-6 xl:grid-cols-12">
       <div className="min-w-0 xl:col-span-9">
@@ -27,11 +49,17 @@ export default function CoursesPage() {
       <aside className="min-w-0 space-y-4 xl:col-span-3 xl:mt-1">
         <Card className="p-6">
           <h2 className="flex items-center gap-3 text-[18px] font-extrabold"><ChartNoAxesColumn className="h-8 w-8 text-blue-600" /><span>Your Learning Progress<span className="block text-[12px] font-medium text-slate-500">Keep going! You&apos;re making great progress.</span></span></h2>
-          <div className="mt-5 flex items-center gap-5 border-b border-line pb-5"><Ring v={68} size={104} stroke={9}><span className="text-[26px]">68%</span></Ring><div><b className="text-[16px]">Overall Progress</b><p className="mt-1 text-[12px] text-slate-500">11 of 16 courses completed</p></div></div>
+          <div className="mt-5 flex items-center gap-5 border-b border-line pb-5"><Ring v={completion} size={104} stroke={9}><span className="text-[26px]">{completion}%</span></Ring><div><b className="text-[16px]">Overall Progress</b><p className="mt-1 text-[12px] text-slate-500">{completedLessons} of {totalLessons} lessons completed</p></div></div>
           <ul className="mt-5 space-y-5">
-            {COURSE_RAIL.map(([s, n, v]) => { const { icon: I, color } = SUBJECTS[s]; return (
-              <li key={s} className="flex items-center gap-3"><span className="grid h-10 w-10 place-items-center rounded-full text-white" style={{ background: color }}><I className="h-5 w-5" /></span>
-                <div className="flex-1"><p className="flex justify-between text-[13px] font-bold">{s}<span className="font-medium text-slate-500">{n}</span></p><Bar v={v} color={color} className="mt-1.5 h-1.5" /></div></li>); })}
+            {Array.from(categoryProgress, ([category, values]) => {
+              const subject = SUBJECT_BY_CATEGORY[category];
+              const { icon: Icon, color } = SUBJECTS[subject];
+              const percent = values.total ? Math.round((values.done / values.total) * 100) : 0;
+              return (
+                <li key={category} className="flex items-center gap-3"><span className="grid h-10 w-10 place-items-center rounded-full text-white" style={{ background: color }}><Icon className="h-5 w-5" /></span>
+                  <div className="flex-1"><p className="flex justify-between text-[13px] font-bold">{category}<span className="font-medium text-slate-500">{values.done}/{values.total}</span></p><Bar v={percent} color={color} className="mt-1.5 h-1.5" /></div></li>
+              );
+            })}
           </ul>
           <Link href="/progress" className="mt-6 flex items-center gap-3 rounded-xl bg-[#EAF4FE] p-4 text-[12.5px]"><Star className="h-6 w-6 shrink-0 text-blue-600" /><span><b className="block text-[14px] text-blue-700">You&apos;re doing great!</b>Complete more lessons to earn coins and keep your streak alive.</span><ArrowRight className="h-4 w-4 shrink-0 text-blue-600" /></Link>
         </Card>

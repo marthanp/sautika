@@ -1,15 +1,21 @@
 'use client';
 import { useEffect } from 'react';
 import { usePathname } from 'next/navigation';
-import { UserButton } from '@clerk/nextjs';
-import { Bell, Moon, Search, Sun } from 'lucide-react';
+import { SignOutButton, useUser } from '@clerk/nextjs';
+import { Bell, ChevronDown, LogOut, Moon, Search, Sun } from 'lucide-react';
 import { useApp } from '@/store/useApp';
+import { useLearnerProfile } from './LearnerDataSync';
 import { Logo } from './Logo';
 
 export default function Topbar() {
+  const { user } = useUser();
+  const profile = useLearnerProfile();
   const colorMode = useApp((state) => state.colorMode);
   const setPrefs = useApp((state) => state.setPrefs);
   const placeholder = usePathname() === '/notebook' ? 'Search notes, topics or ask Sautika...' : 'Search courses, topics or ask Sautika...';
+  const fullName = [profile?.firstName, profile?.lastName].filter(Boolean).join(' ') || user?.fullName || 'Learner';
+  const email = profile?.email || user?.primaryEmailAddress?.emailAddress || '';
+  const initials = fullName.split(/\s+/).map((part) => part[0]).slice(0, 2).join('').toUpperCase();
 
   useEffect(() => {
     document.documentElement.dataset.colorMode = colorMode;
@@ -38,7 +44,39 @@ export default function Topbar() {
             : <Sun className="h-5 w-5 text-navy sm:h-6 sm:w-6" />}
         </button>
         <button aria-label="Notifications" className="relative grid h-10 w-10 place-items-center sm:h-11 sm:w-11"><Bell className="h-5 w-5 text-navy sm:h-6 sm:w-6" /><i className="absolute right-2 top-1.5 h-2.5 w-2.5 rounded-full bg-red-500" /></button>
-        <UserButton />
+        <details className="group relative">
+          <summary aria-label="Show learner profile" className="flex cursor-pointer list-none items-center gap-1 rounded-full p-1 hover:bg-slate-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-navy">
+            <span
+              aria-hidden="true"
+              className="grid h-10 w-10 place-items-center rounded-full bg-navy text-sm font-bold text-white sm:h-11 sm:w-11"
+              style={user?.imageUrl ? { backgroundImage: `url("${user.imageUrl}")`, backgroundPosition: 'center', backgroundSize: 'cover' } : undefined}
+            >
+              {user?.imageUrl ? <span className="sr-only">{initials}</span> : initials}
+            </span>
+            <ChevronDown className="hidden h-4 w-4 text-slate-500 sm:block" />
+          </summary>
+          <div className="absolute right-0 top-full z-50 mt-2 w-[min(22rem,calc(100vw-1rem))] overflow-hidden rounded-2xl border border-line bg-white shadow-xl">
+            <div className="flex items-center gap-3 border-b border-line p-4">
+              <span
+                aria-hidden="true"
+                className="grid h-12 w-12 shrink-0 place-items-center rounded-full bg-navy text-sm font-bold text-white"
+                style={user?.imageUrl ? { backgroundImage: `url("${user.imageUrl}")`, backgroundPosition: 'center', backgroundSize: 'cover' } : undefined}
+              >
+                {user?.imageUrl ? null : initials}
+              </span>
+              <span className="min-w-0">
+                <b className="block truncate text-[14px] font-semibold text-ink">{fullName}</b>
+                <span className="block truncate text-[13px] text-slate-500">{email}</span>
+                <span className="mt-1 block text-[11px] font-medium text-slate-500">Profile managed by your administrator</span>
+              </span>
+            </div>
+            <SignOutButton redirectUrl="/">
+              <button type="button" className="flex min-h-12 w-full items-center gap-3 px-4 text-left text-[14px] font-medium text-slate-600 hover:bg-slate-50">
+                <LogOut className="h-4 w-4" /> Sign out
+              </button>
+            </SignOutButton>
+          </div>
+        </details>
       </div>
     </header>
   );

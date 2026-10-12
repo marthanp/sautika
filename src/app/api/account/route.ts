@@ -1,6 +1,8 @@
 import { auth, currentUser } from '@clerk/nextjs/server';
 import { ObjectId, type Document } from 'mongodb';
-import { getDatabase } from '@/lib/mongodb';
+import { getDatabase, getMongoClient } from '@/lib/mongodb';
+import { COURSES as CURRICULUM } from '@/data/courses';
+import { REWARDS as REWARD_CATALOG } from '@/lib/data';
 
 export const runtime = 'nodejs';
 
@@ -63,10 +65,55 @@ function serializeNote(note: Record<string, unknown>) {
   };
 }
 
+async function seedCatalog(database: Awaited<ReturnType<typeof getDatabase>>, now: Date): Promise<void> {
+  const courses = database.collection<Document & { _id: string }>('courses');
+  const rewards = database.collection<Document & { _id: string }>('rewards');
+
+  await Promise.all([
+    ...CURRICULUM.map((course) => courses.updateOne(
+      { _id: course.id },
+      {
+        $set: {
+          slug: course.id,
+          title: course.title,
+          category: course.cat,
+          level: course.level,
+          lessons: course.lessons,
+          published: true,
+          language: course.ttsLang ?? 'en',
+          emoji: course.emoji,
+          color: course.color,
+          updatedAt: now,
+        },
+        $setOnInsert: { createdAt: now },
+      },
+      { upsert: true },
+    )),
+    ...REWARD_CATALOG.map((reward) => rewards.updateOne(
+      { _id: `reward:${reward.title.toLowerCase().replace(/[^a-z0-9]+/g, '-')}` },
+      {
+        $set: {
+          title: reward.title,
+          description: reward.text,
+          cost: reward.cost,
+          color: reward.color,
+          background: reward.bg,
+          active: true,
+          updatedAt: now,
+        },
+        $setOnInsert: { createdAt: now },
+      },
+      { upsert: true },
+    )),
+  ]);
+}
+
 export async function GET(request: Request): Promise<Response> {
   try {
     const userId = await requireUserId();
     const database = await getDatabase();
+    const now = new Date();
+    await seedCatalog(database, now);
     const resource = new URL(request.url).searchParams.get('resource');
     const sourcesCollection = database.collection('sources');
     const notesCollection = database.collection('notes');
@@ -82,13 +129,17 @@ export async function GET(request: Request): Promise<Response> {
       return Response.json({ notes: notes.map(serializeNote) });
     }
 
-    const [clerkUser, profile, settings, progress, sources, notes] = await Promise.all([
+    const [clerkUser, profile, settings, progress, sources, notes, courses, transactions, sessions, rewards] = await Promise.all([
       currentUser(),
       profilesCollection.findOne({ _id: userId }),
       database.collection('user_settings').findOne({ userId }),
       database.collection('course_progress').find({ userId }).toArray(),
       sourcesCollection.find({ userId }).sort({ updatedAt: -1 }).toArray(),
       notesCollection.find({ userId }).sort({ updatedAt: -1 }).toArray(),
+      database.collection('courses').find({ published: true }).sort({ category: 1, title: 1 }).toArray(),
+      database.collection('coin_transactions').find({ userId }).sort({ createdAt: -1 }).limit(20).toArray(),
+      database.collection('learning_sessions').find({ userId }).sort({ startedAt: -1 }).limit(20).toArray(),
+      database.collection('rewards').find({ active: true }).sort({ cost: 1 }).toArray(),
     ]);
 
     if (!clerkUser) return Response.json({ error: 'Clerk user not found.' }, { status: 401 });
@@ -101,7 +152,16 @@ export async function GET(request: Request): Promise<Response> {
       typeof requestedEducation === 'string' && EDUCATION_LEVELS.has(requestedEducation)
         ? requestedEducation
         : 'Not specified';
-    const now = new Date();
+    const today = now.toISOString().slice(0, 10);
+    const yesterday = new Date(now.getTime() - 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+    const previousActiveDay = profile?.lastActiveAt instanceof Date
+      ? profile.lastActiveAt.toISOString().slice(0, 10)
+      : '';
+    const streak = previousActiveDay === today
+      ? Number(profile?.streak ?? 0)
+      : previousActiveDay === yesterday
+        ? Number(profile?.streak ?? 0) + 1
+        : 1;
 
     await profilesCollection.updateOne(
       { _id: userId },
@@ -112,6 +172,8 @@ export async function GET(request: Request): Promise<Response> {
           email,
           contact: typeof metadata.contact === 'string' ? metadata.contact.slice(0, 40) : '',
           educationLevel,
+          streak,
+          lastActiveAt: now,
           updatedAt: now,
         },
         $setOnInsert: { coins: 0, xp: 0, streak: 0, createdAt: now },
@@ -153,6 +215,46 @@ export async function GET(request: Request): Promise<Response> {
         activeCourse: enrolled[0] ?? null,
       },
       settings: savedSettings,
+      courses: courses.map((course) => ({
+        id: String(course._id),
+        cat: course.category,
+        title: course.title,
+        emoji: course.emoji ?? '',
+        color: course.color ?? '#1769E8',
+        level: course.level,
+        lessons: course.lessons,
+        ...(typeof course.language === 'string' && course.language !== 'en' ? { ttsLang: course.language } : {}),
+      })),
+      courseProgress: progress.map((item) => ({
+        courseId: String(item.courseId),
+        currentLessonIndex: Number(item.currentLessonIndex),
+        completedLessonIndexes: item.completedLessonIndexes.map(Number),
+        xpEarned: Number(item.xpEarned),
+      })),
+      activity: [
+        ...sessions.map((session) => ({
+          id: String(session._id),
+          title: `${session.status === 'completed' ? 'Completed' : 'Started'} a lesson`,
+          date: (session.completedAt ?? session.startedAt).toISOString(),
+          amount: Number(session.xpEarned ?? 0),
+          type: 'lesson' as const,
+        })),
+        ...transactions.map((transaction) => ({
+          id: String(transaction._id),
+          title: transaction.reason,
+          date: transaction.createdAt.toISOString(),
+          amount: Number(transaction.amount) * (transaction.type === 'spend' ? -1 : 1),
+          type: 'coin' as const,
+        })),
+      ].sort((a, b) => b.date.localeCompare(a.date)).slice(0, 10),
+      rewards: rewards.map((reward) => ({
+        id: String(reward._id),
+        title: reward.title,
+        description: reward.description,
+        cost: Number(reward.cost),
+        color: reward.color ?? '#1769E8',
+        background: reward.background ?? '#EAF2FF',
+      })),
       sources: sources.map((source) => serializeSource(source, userId)),
       notes: notes.map(serializeNote),
     });
@@ -179,22 +281,11 @@ export async function PUT(request: Request): Promise<Response> {
       const state = body.state;
       if (
         !isRecord(state) ||
-        !Number.isSafeInteger(state.xp) || Number(state.xp) < 0 ||
-        !Number.isSafeInteger(state.streak) || Number(state.streak) < 0 ||
         !Array.isArray(state.enrolled) ||
         !state.enrolled.every((id) => boundedString(id, 100)) ||
-        !isRecord(state.done) ||
         !SETTINGS_KEYS.every((key) => key in state)
       ) {
         return Response.json({ error: 'Invalid learner state.' }, { status: 400 });
-      }
-
-      const done = state.done as Record<string, unknown>;
-      const doneEntries = Object.entries(done);
-      if (doneEntries.some(([courseId, count]) =>
-        !boundedString(courseId, 100) || !Number.isSafeInteger(count) || Number(count) < 0,
-      )) {
-        return Response.json({ error: 'Invalid course progress.' }, { status: 400 });
       }
 
       const validSettings: Record<string, unknown> = {};
@@ -217,32 +308,30 @@ export async function PUT(request: Request): Promise<Response> {
         return Response.json({ error: 'One or more settings are invalid.' }, { status: 400 });
       }
 
-      const courseIds = new Set<string>([
-        ...(state.enrolled as string[]),
-        ...doneEntries.map(([id]) => id),
-      ]);
+      const courseIds = new Set<string>(state.enrolled as string[]);
+      const validCourses = await database.collection<Document & { _id: string }>('courses')
+        .find({ _id: { $in: [...courseIds] }, published: true }, { projection: { _id: 1 } })
+        .toArray();
+      if (validCourses.length !== courseIds.size) {
+        return Response.json({ error: 'One or more courses are unavailable.' }, { status: 400 });
+      }
       await Promise.all([
-        profilesCollection.updateOne(
-          { _id: userId },
-          { $set: { xp: state.xp, streak: state.streak, updatedAt: now } },
-        ),
         database.collection('user_settings').updateOne(
           { userId },
           { $set: { ...validSettings, updatedAt: now } },
           { upsert: true },
         ),
         ...Array.from(courseIds, (courseId) => {
-          const currentLessonIndex = Number(done[courseId] ?? 0);
           return database.collection('course_progress').updateOne(
             { userId, courseId },
             {
-              $set: {
-                currentLessonIndex,
-                completedLessonIndexes: Array.from({ length: currentLessonIndex }, (_, index) => index),
-                xpEarned: state.xp,
+              $setOnInsert: {
+                currentLessonIndex: 0,
+                completedLessonIndexes: [],
+                xpEarned: 0,
+                enrolledAt: now,
                 updatedAt: now,
               },
-              $setOnInsert: { enrolledAt: now },
             },
             { upsert: true },
           );
@@ -303,18 +392,206 @@ export async function PUT(request: Request): Promise<Response> {
       }
 
       const noteId = ObjectId.isValid(note.id) ? new ObjectId(note.id) : note.id;
-      await notesCollection.updateOne(
-        { _id: noteId, userId },
-        {
-          $set: { subject: note.subject, title: note.title.trim(), text: note.text, updatedAt: now },
-          $setOnInsert: { createdAt: now },
-        },
-        { upsert: true },
-      );
-      return Response.json({ ok: true });
+      const noteTitle = note.title.trim();
+      const client = await getMongoClient();
+      let created = false;
+      await client.withSession(async (session) => {
+        await session.withTransaction(async () => {
+          created = false;
+          const existing = await notesCollection.findOne({ _id: noteId, userId }, { session });
+          if (existing) {
+            await notesCollection.updateOne(
+              { _id: noteId, userId },
+              { $set: { subject: note.subject, title: noteTitle, text: note.text, updatedAt: now } },
+              { session },
+            );
+            return;
+          }
+
+          await notesCollection.insertOne(
+            {
+              _id: noteId,
+              userId,
+              subject: note.subject,
+              title: noteTitle,
+              text: note.text,
+              createdAt: now,
+              updatedAt: now,
+            },
+            { session },
+          );
+          const profileUpdate = await profilesCollection.updateOne(
+            { _id: userId },
+            { $inc: { coins: 5 }, $set: { updatedAt: now, lastActiveAt: now } },
+            { session },
+          );
+          if (profileUpdate.matchedCount !== 1) throw new Error('Learner profile was not initialized.');
+          await database.collection('coin_transactions').insertOne(
+            {
+              userId,
+              amount: 5,
+              type: 'earn',
+              reason: `Added note: ${noteTitle}`,
+              referenceId: noteId,
+              idempotencyKey: `note:${String(noteId)}`,
+              createdAt: now,
+            },
+            { session },
+          );
+          created = true;
+        });
+      });
+      return Response.json({ ok: true, earnedCoins: created ? 5 : 0 });
     }
 
     return Response.json({ error: 'Unsupported account update.' }, { status: 400 });
+  } catch (error) {
+    return responseError(error);
+  }
+}
+
+export async function POST(request: Request): Promise<Response> {
+  try {
+    const userId = await requireUserId();
+    const body: unknown = await request.json();
+
+    if (
+      isRecord(body) &&
+      body.type === 'rewardRedeem' &&
+      boundedString(body.rewardId, 100) &&
+      boundedString(body.idempotencyKey, 100)
+    ) {
+      const database = await getDatabase();
+      const rewardId = body.rewardId;
+      const idempotencyKey = body.idempotencyKey;
+      const rewards = database.collection<Document & { _id: string }>('rewards');
+      const profiles = database.collection<Document & { _id: string }>('profiles');
+      const reward = await rewards.findOne({ _id: rewardId, active: true });
+      if (!reward) return Response.json({ error: 'This reward is not available.' }, { status: 404 });
+
+      const client = await getMongoClient();
+      let alreadyRedeemed = false;
+      let insufficientCoins = false;
+      const now = new Date();
+      await client.withSession(async (session) => {
+        await session.withTransaction(async () => {
+          alreadyRedeemed = false;
+          insufficientCoins = false;
+          const transactions = database.collection('coin_transactions');
+          const existing = await transactions.findOne({ userId, idempotencyKey }, { session });
+          if (existing) {
+            alreadyRedeemed = true;
+            return;
+          }
+
+          const profile = await profiles.findOne({ _id: userId }, { session });
+          const cost = Number(reward.cost);
+          if (!profile || !Number.isSafeInteger(cost) || cost <= 0) {
+            throw new Error('Reward or learner account data is invalid.');
+          }
+          const debit = await profiles.updateOne(
+            { _id: userId, coins: { $gte: cost } },
+            { $inc: { coins: -cost }, $set: { updatedAt: now } },
+            { session },
+          );
+          if (debit.matchedCount !== 1) {
+            insufficientCoins = true;
+            return;
+          }
+
+          await database.collection('reward_redemptions').insertOne(
+            { _id: new ObjectId(), userId, rewardId, cost, status: 'pending', createdAt: now },
+            { session },
+          );
+          await transactions.insertOne(
+            {
+              userId,
+              amount: cost,
+              type: 'spend',
+              reason: `Redeemed ${reward.title}`,
+              referenceId: rewardId,
+              idempotencyKey,
+              createdAt: now,
+            },
+            { session },
+          );
+        });
+      });
+
+      if (insufficientCoins) return Response.json({ error: 'You do not have enough coins for this reward.' }, { status: 409 });
+      return Response.json({ ok: true, alreadyRedeemed });
+    }
+
+    if (
+      !isRecord(body) ||
+      body.type !== 'lessonComplete' ||
+      !boundedString(body.courseId, 100) ||
+      !Number.isSafeInteger(body.lessonIndex) ||
+      Number(body.lessonIndex) < 0
+    ) {
+      return Response.json({ error: 'Invalid lesson completion.' }, { status: 400 });
+    }
+
+    const database = await getDatabase();
+    const courseId = body.courseId;
+    const lessonIndex = Number(body.lessonIndex);
+    const courses = database.collection<Document & { _id: string }>('courses');
+    const course = await courses.findOne({ _id: courseId, published: true });
+    if (!course || !Array.isArray(course.lessons) || lessonIndex >= course.lessons.length) {
+      return Response.json({ error: 'Course or lesson was not found.' }, { status: 404 });
+    }
+
+    const profiles = database.collection<Document & { _id: string }>('profiles');
+    const client = await getMongoClient();
+    let newlyCompleted = false;
+    const now = new Date();
+    const idempotencyKey = `lesson:${courseId}:${lessonIndex}`;
+
+    await client.withSession(async (session) => {
+      await session.withTransaction(async () => {
+        newlyCompleted = false;
+        const progressCollection = database.collection('course_progress');
+        const progress = await progressCollection.findOne({ userId, courseId }, { session });
+        if (progress?.completedLessonIndexes?.includes(lessonIndex)) return;
+
+        await progressCollection.updateOne(
+          { userId, courseId },
+          {
+            $setOnInsert: { currentLessonIndex: 0, completedLessonIndexes: [], xpEarned: 0, enrolledAt: now },
+            $set: { updatedAt: now },
+          },
+          { upsert: true, session },
+        );
+        await progressCollection.updateOne(
+          { userId, courseId },
+          {
+            $addToSet: { completedLessonIndexes: lessonIndex },
+            $max: { currentLessonIndex: lessonIndex + 1 },
+            $inc: { xpEarned: 10 },
+            $set: { updatedAt: now },
+          },
+          { session },
+        );
+        const profileUpdate = await profiles.updateOne(
+          { _id: userId },
+          { $inc: { xp: 10, coins: 10 }, $set: { updatedAt: now, lastActiveAt: now } },
+          { session },
+        );
+        if (profileUpdate.matchedCount !== 1) throw new Error('Learner profile was not initialized.');
+
+        await database.collection('coin_transactions').insertOne(
+          { userId, amount: 10, type: 'earn', reason: `Completed ${course.title}`, referenceId: courseId, idempotencyKey, createdAt: now },
+          { session },
+        );
+        await database.collection('learning_sessions').insertOne(
+          { userId, courseId, lessonIndex, status: 'completed', xpEarned: 10, startedAt: now, completedAt: now },
+          { session },
+        );
+        newlyCompleted = true;
+      });
+    });
+
+    return Response.json({ ok: true, alreadyCompleted: !newlyCompleted });
   } catch (error) {
     return responseError(error);
   }

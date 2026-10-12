@@ -2,12 +2,14 @@
 import { useEffect, useState } from 'react';
 import { Calendar, EllipsisVertical, FileText, Plus, X } from 'lucide-react';
 import { Card } from '@/components/ui';
+import { useLearnerAccount } from '@/components/LearnerDataSync';
 import { SUBJECTS, type Note, type Subject } from '@/lib/data';
 
 const FILTERS = ['All Notes', 'Mathematics', 'Science', 'English', 'Social Studies', 'Agriculture'];
 const TINT: Record<Subject, string> = { Mathematics: '#E5EFFE', Science: '#DDF7EC', English: '#EFE7FE', 'Social Studies': '#FFEBCC', Agriculture: '#DDF5D2', 'Life Skills': '#D9F3F3' };
 
 export default function NotebookBoard() {
+  const { refresh } = useLearnerAccount();
   const [f, setF] = useState('All Notes');
   const [notes, setNotes] = useState<Note[]>([]);
   const [open, setOpen] = useState(false);
@@ -57,6 +59,7 @@ export default function NotebookBoard() {
       setNotes((current) => [note, ...current]);
       setDraft({ title: '', text: '', subject: 'Mathematics' });
       setOpen(false);
+      await refresh();
     } catch (error) {
       setSyncError(error instanceof Error ? error.message : 'Could not save your note.');
     } finally {

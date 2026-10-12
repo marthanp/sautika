@@ -8,10 +8,11 @@ export default async function AppLayout({ children }: { children: React.ReactNod
 
   return (
     <div className="min-h-screen lg:pl-72">
-      <LearnerDataSync />
-      <Sidebar />
-      <Topbar />
-      <main className="min-w-0 px-4 pb-24 pt-6 lg:px-8 lg:pb-10">{children}</main>
+      <LearnerDataSync>
+        <Sidebar />
+        <Topbar />
+        <main className="min-w-0 px-4 pb-24 pt-6 lg:px-8 lg:pb-10">{children}</main>
+      </LearnerDataSync>
     </div>
   );
 }

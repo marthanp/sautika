@@ -1,15 +1,11 @@
 'use client';
-import Image from 'next/image';
 import { useState } from 'react';
+import { useUser } from '@clerk/nextjs';
 import {
   Bell,
-  Camera,
   Check,
-  ChevronDown,
   ChevronRight,
   CircleHelp,
-  KeyRound,
-  LogOut,
   Mail,
   Moon,
   Palette,
@@ -27,6 +23,7 @@ import {
 } from 'lucide-react';
 import { Card } from '@/components/ui';
 import { useApp } from '@/store/useApp';
+import { useLearnerProfile } from '@/components/LearnerDataSync';
 import type { DyslexiaFont, DyslexiaSpacing, DyslexiaLineHeight, ReadingTint } from '@/types';
 
 const SECTIONS = [
@@ -480,8 +477,11 @@ function AppearanceSection() {
 
 export default function SettingsPanel() {
   const [sec, setSec] = useState('Account');
-  const [tfa, setTfa] = useState(false);
+  const profile = useLearnerProfile();
+  const { user } = useUser();
   const cur = SECTIONS.find((s) => s.id === sec)!;
+  const fullName = [profile?.firstName, profile?.lastName].filter(Boolean).join(' ') || 'Learner';
+  const initials = fullName.split(/\s+/).map((part) => part[0]).slice(0, 2).join('').toUpperCase();
 
   return (
     <div className="mt-6 grid min-w-0 gap-5 lg:grid-cols-[minmax(250px,0.75fr)_minmax(0,2fr)] xl:grid-cols-[minmax(250px,0.7fr)_minmax(0,2fr)]">
@@ -516,53 +516,31 @@ export default function SettingsPanel() {
       ) : sec === 'Account' ? (
         <div className="min-w-0 space-y-4">
           <Card className="p-6">
-            <h2 className="text-[19px] font-extrabold">Account Settings</h2>
-            <p className="mt-1 text-[14px] text-slate-500">Update your personal information and account details.</p>
+            <h2 className="text-[19px] font-extrabold">Account Profile</h2>
+            <p className="mt-1 text-[14px] text-slate-500">Your profile is read-only. Contact an administrator to update your account details.</p>
             <div className="mt-4 flex items-center gap-4">
-              <span className="relative">
-                <Image
-                  src="/images/aisha.jpg"
-                  alt="Aisha"
-                  width={89}
-                  height={86}
-                  className="h-[88px] w-[88px] rounded-full object-cover"
-                />
-                <span className="absolute bottom-0 right-0 grid h-7 w-7 place-items-center rounded-full bg-blue-600 text-white">
-                  <Camera className="h-4 w-4" />
-                </span>
-              </span>
-              <div>
-                <b className="text-[14px]">Profile Photo</b>
-                <p className="text-[12.5px] text-slate-500">Choose a clear photo (optional).</p>
-                <button className="mt-2 h-10 rounded-lg border border-blue-200 px-5 text-[14px] font-semibold text-blue-700">
-                  Change Photo
-                </button>
-              </div>
+              <span
+                aria-hidden="true"
+                className="grid h-[72px] w-[72px] shrink-0 place-items-center rounded-full bg-navy text-lg font-bold text-white"
+                style={user?.imageUrl ? { backgroundImage: `url("${user.imageUrl}")`, backgroundPosition: 'center', backgroundSize: 'cover' } : undefined}
+              >{user?.imageUrl ? null : initials}</span>
+              <div><b className="text-[14px]">Learner Profile</b><p className="text-[12.5px] text-slate-500">Only administrators can change your identity details.</p></div>
             </div>
             <div className="mt-5 grid gap-x-7 gap-y-4 2xl:grid-cols-2">
               <label className="min-w-0 text-[13px] font-semibold">
-                Full Name<div className={field}>Aisha N.</div>
+                Full Name<div className={field}>{fullName}</div>
               </label>
               <label className="min-w-0 text-[13px] font-semibold">
                 Grade / Class
-                <div className={`${field} justify-between`}>
-                  <span className="truncate">Primary 6</span>
-                  <ChevronDown className="h-4 w-4 shrink-0" />
-                </div>
+                <div className={field}>{profile?.educationLevel || 'Not specified'}</div>
               </label>
               <label className="min-w-0 text-[13px] font-semibold">
                 Email Address
-                <div className={`${field} justify-between`}>
-                  <span className="truncate">aisha.n@example.com</span>
-                  <Mail className="h-4 w-4 shrink-0 text-slate-500" />
-                </div>
+                <div className={`${field} justify-between`}><span className="truncate">{profile?.email || 'Loading profile…'}</span><Mail className="h-4 w-4 shrink-0 text-slate-500" /></div>
               </label>
               <label className="min-w-0 text-[13px] font-semibold">
                 Phone Number
-                <div className={`${field} justify-between`}>
-                  <span className="truncate">+256 700 123 456</span>
-                  <Phone className="h-4 w-4 shrink-0 text-slate-500" />
-                </div>
+                <div className={`${field} justify-between`}><span className="truncate">{profile?.contact || 'Not provided'}</span><Phone className="h-4 w-4 shrink-0 text-slate-500" /></div>
               </label>
             </div>
           </Card>
@@ -576,52 +554,13 @@ export default function SettingsPanel() {
                 <p className="text-[12.5px] text-slate-500">Keep your account safe and secure.</p>
               </div>
             </div>
-            <button className="mt-3 flex w-full items-center gap-4 text-left">
-              <span className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-blue-50 text-blue-700">
-                <KeyRound className="h-5 w-5" />
-              </span>
-              <span className="min-w-0 flex-1">
-                <b className="text-[15px]">Change Password</b>
-                <span className="block text-[12.5px] text-slate-500">Update your password regularly.</span>
-              </span>
-              <ChevronRight className="h-4 w-4 shrink-0" />
-            </button>
-            <div className="mt-3 flex items-center gap-4">
-              <span className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-blue-50 text-blue-700">
-                <Shield className="h-5 w-5" />
-              </span>
-              <span className="min-w-0 flex-1">
-                <b className="text-[15px]">Two-Factor Authentication</b>
-                <span className="block text-[12.5px] text-slate-500">Add an extra layer of security.</span>
-              </span>
-              <button
-                role="switch"
-                aria-checked={tfa}
-                aria-label="Two-factor authentication"
-                onClick={() => setTfa(!tfa)}
-                className={`relative h-6 w-11 rounded-full transition-colors ${
-                  tfa ? 'bg-emerald-500' : 'bg-slate-300'
-                }`}
-              >
-                <i
-                  className={`absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-all ${
-                    tfa ? 'left-[22px]' : 'left-0.5'
-                  }`}
-                />
-              </button>
-            </div>
             <div className="mt-4 flex items-center gap-4 rounded-xl bg-[#EEF5FB] p-4">
               <ShieldCheck className="h-7 w-7 shrink-0 text-emerald-600" />
               <span className="min-w-0 flex-1">
-                <b className="text-[14px] text-emerald-800">Your account is secure</b>
-                <span className="block text-[12px] text-slate-600">Last active: Today, 4:32 PM</span>
+                <b className="text-[14px] text-emerald-800">Sign-in secured by Clerk</b>
+                <span className="block text-[12px] text-slate-600">Administrators manage profile and credential changes through the Clerk Dashboard.</span>
               </span>
-              <ChevronRight className="h-4 w-4 shrink-0" />
             </div>
-            <button className="mt-5 flex h-12 items-center gap-3 rounded-xl border border-red-300 px-5 text-[15px] font-bold text-red-600">
-              <LogOut className="h-5 w-5" />
-              Log Out
-            </button>
           </Card>
         </div>
       ) : (
