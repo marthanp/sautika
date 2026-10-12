@@ -1,10 +1,17 @@
 export type Category = 'Science' | 'Math' | 'Languages' | 'Digital Literacy' | 'Social Studies';
+export type LevelGroup =
+  | 'Baby class to top class'
+  | 'P.1 to P.4'
+  | 'P.5 to P.7'
+  | 'S.1 to S.4'
+  | 'S.5 to S.6';
 export type Item =
   | { k: 'm'; q: string; a: string; d: [string, string] }
   | { k: 'b'; q: string; a: string; x: string[] };
 export interface Lesson { title: string; items: Item[] }
 export interface Course {
   id: string; cat: Category; title: string; emoji: string; color: string; level: string;
+  levelGroup?: LevelGroup; author?: string; sourceUrl?: string; description?: string;
   ttsLang?: string; lessons: Lesson[];
 }
 export interface Source { id: string; userId: string; name: string; text: string; on: boolean }

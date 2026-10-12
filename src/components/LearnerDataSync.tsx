@@ -3,6 +3,7 @@
 import { useUser } from '@clerk/nextjs';
 import { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from 'react';
 import { useApp } from '@/store/useApp';
+import { COURSES } from '@/data/courses';
 import type { Course } from '@/types';
 
 export interface LearnerProfile {
@@ -158,12 +159,46 @@ export default function LearnerDataSync({ children }: { children: ReactNode }) {
     return () => window.clearTimeout(timeout);
   }, [app, readyUserId, userId]);
 
+  const contextData = accountData?.userId === userId && accountData.data
+    ? {
+        ...accountData.data,
+        courses: accountData.data.courses && accountData.data.courses.length > 0 ? accountData.data.courses : COURSES,
+      }
+    : (userId ? {
+        hasExistingData: false,
+        profile: {
+          firstName: user?.firstName || 'Learner',
+          lastName: user?.lastName || '',
+          email: user?.primaryEmailAddress?.emailAddress || '',
+          contact: '',
+          educationLevel: 'Not specified',
+          coins: 0,
+          xp: 0,
+          streak: 1,
+        },
+        courses: COURSES,
+        courseProgress: [],
+        activity: [],
+        rewards: [],
+        appState: { xp: 0, streak: 1, enrolled: [], done: {}, activeCourse: null },
+        settings: {
+          theme: 'navy' as const,
+          colorMode: 'light' as const,
+          font: 'default' as const,
+          scale: '100%',
+          wide: false,
+          letterSpacing: 'normal' as const,
+          lineHeight: 'normal' as const,
+          readingTint: 'none' as const,
+        },
+      } : null);
+
   return (
-    <LearnerAccountContext.Provider value={{ data: accountData?.userId === userId ? accountData.data : null, refresh }}>
+    <LearnerAccountContext.Provider value={{ data: contextData, refresh }}>
       {children}
       {syncError && syncError.userId === userId && userId ? (
         <p role="status" className="fixed bottom-3 left-3 right-3 z-[100] mx-auto max-w-xl rounded-xl border border-amber-300 bg-amber-50 px-4 py-3 text-center text-sm text-amber-950 shadow-lg">
-          Cloud sync unavailable: {syncError.message}
+          Cloud sync: {syncError.message}
         </p>
       ) : null}
     </LearnerAccountContext.Provider>

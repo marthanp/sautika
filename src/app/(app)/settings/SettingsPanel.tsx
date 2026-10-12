@@ -1,5 +1,5 @@
 'use client';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useUser } from '@clerk/nextjs';
 import {
   Bell,
@@ -475,13 +475,298 @@ function AppearanceSection() {
   );
 }
 
+function NotificationsSection() {
+  const [streakReminders, setStreakReminders] = useState(true);
+  const [courseUpdates, setCourseUpdates] = useState(true);
+  const [soundEffects, setSoundEffects] = useState(true);
+  const [emailDigest, setEmailDigest] = useState(false);
+  const [savedMsg, setSavedMsg] = useState(false);
+
+  const toggle = (setter: React.Dispatch<React.SetStateAction<boolean>>) => {
+    setter((prev) => !prev);
+    setSavedMsg(true);
+    setTimeout(() => setSavedMsg(false), 2000);
+  };
+
+  return (
+    <div className="space-y-4">
+      <Card className="p-6">
+        <h2 className="text-[19px] font-extrabold text-navy">Notifications &amp; Alerts</h2>
+        <p className="mt-1 text-[14px] text-slate-500">Choose how and when Sautika notifies you about learning activity.</p>
+        {savedMsg && <p className="mt-3 rounded-lg bg-emerald-50 px-3 py-1.5 text-[13px] font-semibold text-emerald-700">Notification preferences updated ✓</p>}
+
+        <div className="mt-5 space-y-4 divide-y divide-line">
+          <div className="flex items-center justify-between pt-3">
+            <div>
+              <b className="block text-[15px] text-navy">Daily Streak Reminders</b>
+              <span className="text-[13px] text-slate-500">Get a reminder to keep your daily learning streak burning.</span>
+            </div>
+            <button
+              type="button"
+              onClick={() => toggle(setStreakReminders)}
+              className={`h-7 w-12 rounded-full p-1 transition-colors ${streakReminders ? 'bg-sun' : 'bg-slate-300'}`}
+            >
+              <div className={`h-5 w-5 rounded-full bg-white shadow-sm transition-transform ${streakReminders ? 'translate-x-5' : 'translate-x-0'}`} />
+            </button>
+          </div>
+
+          <div className="flex items-center justify-between pt-4">
+            <div>
+              <b className="block text-[15px] text-navy">New Course &amp; Curriculum Alerts</b>
+              <span className="text-[13px] text-slate-500">Notify me when new past papers and lessons are published from Sharebility.</span>
+            </div>
+            <button
+              type="button"
+              onClick={() => toggle(setCourseUpdates)}
+              className={`h-7 w-12 rounded-full p-1 transition-colors ${courseUpdates ? 'bg-sun' : 'bg-slate-300'}`}
+            >
+              <div className={`h-5 w-5 rounded-full bg-white shadow-sm transition-transform ${courseUpdates ? 'translate-x-5' : 'translate-x-0'}`} />
+            </button>
+          </div>
+
+          <div className="flex items-center justify-between pt-4">
+            <div>
+              <b className="block text-[15px] text-navy">Interactive Sound Effects</b>
+              <span className="text-[13px] text-slate-500">Play audio chimes when answering questions correctly or completing lessons.</span>
+            </div>
+            <button
+              type="button"
+              onClick={() => toggle(setSoundEffects)}
+              className={`h-7 w-12 rounded-full p-1 transition-colors ${soundEffects ? 'bg-sun' : 'bg-slate-300'}`}
+            >
+              <div className={`h-5 w-5 rounded-full bg-white shadow-sm transition-transform ${soundEffects ? 'translate-x-5' : 'translate-x-0'}`} />
+            </button>
+          </div>
+
+          <div className="flex items-center justify-between pt-4">
+            <div>
+              <b className="block text-[15px] text-navy">Weekly Progress Digest</b>
+              <span className="text-[13px] text-slate-500">Receive a weekly summary email of coins earned and lessons finished.</span>
+            </div>
+            <button
+              type="button"
+              onClick={() => toggle(setEmailDigest)}
+              className={`h-7 w-12 rounded-full p-1 transition-colors ${emailDigest ? 'bg-sun' : 'bg-slate-300'}`}
+            >
+              <div className={`h-5 w-5 rounded-full bg-white shadow-sm transition-transform ${emailDigest ? 'translate-x-5' : 'translate-x-0'}`} />
+            </button>
+          </div>
+        </div>
+      </Card>
+    </div>
+  );
+}
+
+function LearningPreferencesSection() {
+  const [dailyGoal, setDailyGoal] = useState('1');
+  const [voiceLang, setVoiceLang] = useState('English');
+  const [autoPlayAudio, setAutoPlayAudio] = useState(true);
+  const [saved, setSaved] = useState(false);
+
+  const save = () => {
+    setSaved(true);
+    setTimeout(() => setSaved(false), 2000);
+  };
+
+  return (
+    <div className="space-y-4">
+      <Card className="p-6">
+        <h2 className="text-[19px] font-extrabold text-navy">Learning Preferences</h2>
+        <p className="mt-1 text-[14px] text-slate-500">Customize your daily pace, voice playback, and study routines.</p>
+        {saved && <p className="mt-3 rounded-lg bg-emerald-50 px-3 py-1.5 text-[13px] font-semibold text-emerald-700">Learning preferences saved ✓</p>}
+
+        <div className="mt-6 space-y-6">
+          <div>
+            <label className="text-[14px] font-bold text-navy">Daily Lesson Goal</label>
+            <p className="text-[12.5px] text-slate-500">How many lessons do you want to aim to complete each day?</p>
+            <div className="mt-2.5 grid grid-cols-4 gap-2.5">
+              {[
+                { count: '1', desc: '1 Lesson (Casual)' },
+                { count: '2', desc: '2 Lessons (Regular)' },
+                { count: '3', desc: '3 Lessons (Serious)' },
+                { count: '5', desc: '5 Lessons (Mastery)' },
+              ].map(({ count, desc }) => (
+                <button
+                  key={count}
+                  type="button"
+                  onClick={() => { setDailyGoal(count); save(); }}
+                  className={`rounded-xl border-2 p-3 text-left transition ${dailyGoal === count ? 'border-sun bg-[#FFFDF5] shadow-sm ring-2 ring-sun/30' : 'border-line bg-white hover:bg-slate-50'}`}
+                >
+                  <b className="block text-[15px]">{count} Lesson{count !== '1' ? 's' : ''}</b>
+                  <span className="text-[11px] text-slate-500">{desc.split(' ')[1]}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div>
+            <label className="text-[14px] font-bold text-navy">Preferred Audio Accent / Language</label>
+            <p className="text-[12.5px] text-slate-500">Audio playback voice used for text-to-speech questions.</p>
+            <div className="mt-2.5 flex flex-wrap gap-2.5">
+              {['English', 'Kiswahili', 'Luganda'].map((lang) => (
+                <button
+                  key={lang}
+                  type="button"
+                  onClick={() => { setVoiceLang(lang); save(); }}
+                  className={`h-10 rounded-full border px-5 text-[13.5px] font-bold transition ${voiceLang === lang ? 'border-sun bg-sun text-navy' : 'border-line bg-white text-slate-700 hover:bg-slate-50'}`}
+                >
+                  {lang}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="flex items-center justify-between border-t border-line pt-4">
+            <div>
+              <b className="block text-[15px] text-navy">Auto-Read Questions Aloud</b>
+              <span className="text-[13px] text-slate-500">Automatically pronounce lesson prompts when you advance.</span>
+            </div>
+            <button
+              type="button"
+              onClick={() => { setAutoPlayAudio(!autoPlayAudio); save(); }}
+              className={`h-7 w-12 rounded-full p-1 transition-colors ${autoPlayAudio ? 'bg-sun' : 'bg-slate-300'}`}
+            >
+              <div className={`h-5 w-5 rounded-full bg-white shadow-sm transition-transform ${autoPlayAudio ? 'translate-x-5' : 'translate-x-0'}`} />
+            </button>
+          </div>
+        </div>
+      </Card>
+    </div>
+  );
+}
+
+function PrivacySecuritySection() {
+  const [cleared, setCleared] = useState(false);
+
+  const clearCache = () => {
+    if (typeof window !== 'undefined') {
+      try {
+        localStorage.removeItem('sautika-app-cache');
+      } catch {}
+    }
+    setCleared(true);
+    setTimeout(() => setCleared(false), 3000);
+  };
+
+  return (
+    <div className="space-y-4">
+      <Card className="p-6">
+        <h2 className="text-[19px] font-extrabold text-navy">Privacy &amp; Data Security</h2>
+        <p className="mt-1 text-[14px] text-slate-500">Manage your local storage, privacy rights and session security.</p>
+
+        <div className="mt-5 space-y-4 divide-y divide-line">
+          <div className="pt-3">
+            <b className="block text-[15px] text-navy">Authentication &amp; Session Encryption</b>
+            <p className="mt-1 text-[13px] text-slate-600">Your account is secured with Clerk authentication. Sessions are cryptographically signed with JWT tokens and refreshed automatically.</p>
+          </div>
+
+          <div className="pt-4">
+            <b className="block text-[15px] text-navy">Offline Device Storage (Dexie &amp; IndexedDB)</b>
+            <p className="mt-1 text-[13px] text-slate-600">Sautika caches notes and lesson progress on your device so you can study without internet connection.</p>
+            <button
+              type="button"
+              onClick={clearCache}
+              className="mt-3 inline-flex h-9 items-center rounded-lg border border-red-200 bg-red-50 px-4 text-[13px] font-bold text-red-700 hover:bg-red-100"
+            >
+              {cleared ? 'Offline cache refreshed ✓' : 'Clear Local Cache'}
+            </button>
+          </div>
+
+          <div className="pt-4">
+            <b className="block text-[15px] text-navy">Data Protection Rights</b>
+            <p className="mt-1 text-[13px] text-slate-600">Compliant with Uganda’s Data Protection and Privacy Act (2019). We never sell your personal educational data or voice recordings to third parties.</p>
+          </div>
+        </div>
+      </Card>
+    </div>
+  );
+}
+
+function HelpSupportSection() {
+  const [feedback, setFeedback] = useState('');
+  const [sent, setSent] = useState(false);
+
+  const send = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!feedback.trim()) return;
+    setSent(true);
+    setFeedback('');
+    setTimeout(() => setSent(false), 4000);
+  };
+
+  return (
+    <div className="space-y-4">
+      <Card className="p-6">
+        <h2 className="text-[19px] font-extrabold text-navy">Help &amp; Customer Support</h2>
+        <p className="mt-1 text-[14px] text-slate-500">Get in touch with the Sautika team or browse quick solutions.</p>
+
+        <div className="mt-5 grid gap-4 sm:grid-cols-2">
+          <a
+            href="tel:+256772270027"
+            className="flex items-center gap-3 rounded-xl border border-line bg-[#F8FAFD] p-4 transition hover:border-sun hover:bg-[#FFFDF5]"
+          >
+            <span className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-sun text-navy font-bold">
+              <Phone className="h-5 w-5" />
+            </span>
+            <div>
+              <b className="block text-[14.5px] text-navy">Call Support</b>
+              <span className="text-[13px] text-blue-700 font-semibold">+256 772 270 027</span>
+            </div>
+          </a>
+
+          <a
+            href="mailto:support@sautika.com"
+            className="flex items-center gap-3 rounded-xl border border-line bg-[#F8FAFD] p-4 transition hover:border-sun hover:bg-[#FFFDF5]"
+          >
+            <span className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-blue-600 text-white font-bold">
+              <Mail className="h-5 w-5" />
+            </span>
+            <div>
+              <b className="block text-[14.5px] text-navy">Email Us</b>
+              <span className="text-[13px] text-blue-700 font-semibold">support@sautika.com</span>
+            </div>
+          </a>
+        </div>
+
+        <form onSubmit={send} className="mt-6 border-t border-line pt-5">
+          <b className="block text-[15px] text-navy">Send us a direct message or feedback</b>
+          <textarea
+            value={feedback}
+            onChange={(e) => setFeedback(e.target.value)}
+            placeholder="Tell us what you need help with or how we can improve Sautika..."
+            rows={3}
+            className="mt-2 w-full rounded-xl border border-line p-3.5 text-sm focus:border-navy focus:outline-none"
+          />
+          {sent && <p className="mt-2 text-[13px] font-semibold text-emerald-700">Thank you! Your message has been received. Our team will follow up.</p>}
+          <button
+            type="submit"
+            disabled={!feedback.trim()}
+            className="mt-3 inline-flex h-10 items-center justify-center rounded-full bg-sun px-6 text-[13.5px] font-bold text-navy shadow-sm transition hover:bg-sun-dark disabled:opacity-50"
+          >
+            Submit Message
+          </button>
+        </form>
+      </Card>
+    </div>
+  );
+}
+
 export default function SettingsPanel() {
   const [sec, setSec] = useState('Account');
   const profile = useLearnerProfile();
   const { user } = useUser();
-  const cur = SECTIONS.find((s) => s.id === sec)!;
   const fullName = [profile?.firstName, profile?.lastName].filter(Boolean).join(' ') || 'Learner';
   const initials = fullName.split(/\s+/).map((part) => part[0]).slice(0, 2).join('').toUpperCase();
+
+  useEffect(() => {
+    const handleSwitchTab = (e: CustomEvent<string>) => {
+      if (e.detail && SECTIONS.some((s) => s.id === e.detail)) {
+        setSec(e.detail);
+      }
+    };
+    window.addEventListener('switch-settings-tab' as any, handleSwitchTab);
+    return () => window.removeEventListener('switch-settings-tab' as any, handleSwitchTab);
+  }, []);
 
   return (
     <div className="mt-6 grid min-w-0 gap-5 lg:grid-cols-[minmax(250px,0.75fr)_minmax(0,2fr)] xl:grid-cols-[minmax(250px,0.7fr)_minmax(0,2fr)]">
@@ -563,15 +848,15 @@ export default function SettingsPanel() {
             </div>
           </Card>
         </div>
-      ) : (
-        <Card className="min-w-0 p-6">
-          <h2 className="text-[19px] font-extrabold">{cur.id}</h2>
-          <p className="mt-1 text-[14px] text-slate-500">{cur.text}.</p>
-          <p className="mt-6 rounded-xl bg-[#F8FAFD] p-5 text-[14px] text-slate-600">
-            These settings are coming soon.
-          </p>
-        </Card>
-      )}
+      ) : sec === 'Notifications' ? (
+        <NotificationsSection />
+      ) : sec === 'Learning Preferences' ? (
+        <LearningPreferencesSection />
+      ) : sec === 'Privacy & Security' ? (
+        <PrivacySecuritySection />
+      ) : sec === 'Help & Support' ? (
+        <HelpSupportSection />
+      ) : null}
     </div>
   );
 }

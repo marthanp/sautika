@@ -10,6 +10,8 @@ const LANGS = ['Swahili', 'Luganda', 'Acholi', 'Ateso', 'Runyankole', 'Many more
 
 export default function Hero() {
   const [lang, setLang] = useState<(typeof LANGS)[number]>('Luganda');
+  const [headerLang, setHeaderLang] = useState('English');
+  const [showLangMenu, setShowLangMenu] = useState(false);
   return (
     <section id="home" className="relative overflow-hidden bg-navy text-white">
       <div className="pointer-events-none absolute inset-y-0 right-0 w-full md:w-[58%]">
@@ -24,9 +26,35 @@ export default function Hero() {
             <a key={l} href={h} aria-current={i === 0 ? 'page' : undefined} className="relative pb-1.5 hover:text-sun aria-[current=page]:after:absolute aria-[current=page]:after:inset-x-0 aria-[current=page]:after:-bottom-0.5 aria-[current=page]:after:h-0.5 aria-[current=page]:after:rounded aria-[current=page]:after:bg-sun">{l}</a>
           ))}
         </nav>
-        <button type="button" className="flex min-h-11 items-center gap-2 text-[13px] font-medium" aria-label="Change language, currently English">
-          <Globe className="h-[18px] w-[18px]" /> EN <ChevronDown className="h-4 w-4" />
-        </button>
+        <div className="relative">
+          <button
+            type="button"
+            onClick={() => setShowLangMenu((prev) => !prev)}
+            className="flex min-h-11 items-center gap-2 rounded-full border border-white/20 bg-white/5 px-3.5 text-[13px] font-medium transition hover:bg-white/10"
+            aria-label={`Change language, currently ${headerLang}`}
+          >
+            <Globe className="h-[18px] w-[18px] text-sun" /> {headerLang} <ChevronDown className="h-4 w-4" />
+          </button>
+          {showLangMenu && (
+            <div className="absolute right-0 top-full z-50 mt-2 w-44 overflow-hidden rounded-2xl border border-white/20 bg-navy-2 p-1.5 shadow-2xl backdrop-blur">
+              {['English', 'Swahili', 'Luganda', 'Acholi', 'Ateso', 'Runyankole'].map((l) => (
+                <button
+                  key={l}
+                  type="button"
+                  onClick={() => {
+                    setHeaderLang(l);
+                    setShowLangMenu(false);
+                  }}
+                  className={`flex w-full items-center justify-between rounded-xl px-3 py-2 text-left text-[13px] font-medium transition ${
+                    headerLang === l ? 'bg-sun text-navy font-bold' : 'text-white hover:bg-white/10'
+                  }`}
+                >
+                  {l}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
       </header>
 
       <div className="relative z-10 mx-auto max-w-[1280px] px-6 pb-14 pt-12 md:px-16 md:pb-[52px] md:pt-[52px]">

@@ -7,8 +7,11 @@ import { REWARDS as REWARD_CATALOG } from '@/lib/data';
 export const runtime = 'nodejs';
 
 const EDUCATION_LEVELS = new Set([
-  'Baby Class', 'Middle Class', 'Top Class', 'P.1', 'P.2', 'P.3', 'P.4',
-  'P.5', 'P.6', 'P.7', 'S.1', 'S.2', 'S.3', 'S.4', 'S.5', 'S.6',
+  'Baby Class', 'Middle Class', 'Top Class',
+  'P.1', 'P.2', 'P.3', 'P.4', 'P.5', 'P.6', 'P.7',
+  'Primary 1', 'Primary 2', 'Primary 3', 'Primary 4', 'Primary 5', 'Primary 6', 'Primary 7',
+  'S.1', 'S.2', 'S.3', 'S.4', 'S.5', 'S.6',
+  'Senior 1', 'Senior 2', 'Senior 3', 'Senior 4', 'Senior 5', 'Senior 6',
   'Not specified',
 ]);
 const SUBJECTS = new Set(['Mathematics', 'Science', 'English', 'Social Studies', 'Agriculture', 'Life Skills']);
@@ -83,6 +86,10 @@ async function seedCatalog(database: Awaited<ReturnType<typeof getDatabase>>, no
           title: course.title,
           category: course.cat,
           level: course.level,
+          levelGroup: course.levelGroup,
+          author: course.author,
+          sourceUrl: course.sourceUrl,
+          description: course.description,
           lessons: course.lessons,
           published: true,
           language: course.ttsLang ?? 'en',
@@ -227,6 +234,10 @@ export async function GET(request: Request): Promise<Response> {
         emoji: course.emoji ?? '',
         color: course.color ?? '#1769E8',
         level: course.level,
+        levelGroup: course.levelGroup,
+        author: course.author,
+        sourceUrl: course.sourceUrl,
+        description: course.description,
         lessons: course.lessons,
         ...(typeof course.language === 'string' && course.language !== 'en' ? { ttsLang: course.language } : {}),
       })),

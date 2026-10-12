@@ -1,6 +1,7 @@
 'use client';
 
 import Image from 'next/image';
+import Link from 'next/link';
 import { ArrowRight, BookOpen, Calendar, Clock, Flame, Sprout, Star, Target, Trophy } from 'lucide-react';
 import { Bar, Card, Coin, ViewAll } from '@/components/ui';
 import { SUBJECTS } from '@/lib/data';
@@ -37,7 +38,7 @@ export default function ProgressPage() {
         </div>
         <div className="mt-6 grid gap-5 lg:grid-cols-2">
           <Card className="p-5">
-            <div className="flex items-center justify-between"><h2 className="flex items-center gap-3 text-[19px] font-extrabold"><BookOpen className="h-6 w-6 text-blue-600" />Course Progress</h2><ViewAll>View Courses</ViewAll></div>
+            <div className="flex items-center justify-between"><h2 className="flex items-center gap-3 text-[19px] font-extrabold"><BookOpen className="h-6 w-6 text-blue-600" />Course Progress</h2><ViewAll href="/courses">View Courses</ViewAll></div>
             <ul className="mt-5 space-y-5">{courses.map((course) => {
               const subject = SUBJECT_BY_CATEGORY[course.cat];
               const { icon: Icon, color } = SUBJECTS[subject];
@@ -50,7 +51,7 @@ export default function ProgressPage() {
             })}{!courses.length ? <li className="text-sm text-slate-500">Course progress will appear here as you learn.</li> : null}</ul>
           </Card>
           <Card className="p-5">
-            <div className="flex items-center justify-between"><h2 className="flex items-center gap-3 text-[19px] font-extrabold"><Clock className="h-6 w-6" />Recent Activity</h2><ViewAll /></div>
+            <div className="flex items-center justify-between"><h2 className="flex items-center gap-3 text-[19px] font-extrabold"><Clock className="h-6 w-6" />Recent Activity</h2><ViewAll href="/rewards">View Activity</ViewAll></div>
             <ul className="mt-3 divide-y divide-line">{(data?.activity ?? []).map((activity) => (
               <li key={activity.id} className="flex items-center gap-3 py-3.5"><span className="grid h-12 w-12 shrink-0 place-items-center rounded-full bg-blue-600 text-white">{activity.type === 'lesson' ? <BookOpen className="h-5 w-5" /> : <Star className="h-5 w-5" />}</span><span className="flex-1 text-[14px] font-semibold leading-tight">{activity.title}<span className="mt-1 block text-[12px] font-normal text-slate-500">{new Date(activity.date).toLocaleDateString()}</span></span>
                 <span className={`rounded-full px-3 py-1 text-[12px] font-bold ${activity.amount < 0 ? 'bg-slate-100 text-slate-700' : 'bg-emerald-50 text-emerald-700'}`}>{activity.type === 'lesson' ? `+${activity.amount} XP` : `${activity.amount > 0 ? '+' : ''}${activity.amount} coins`}</span></li>
@@ -62,9 +63,9 @@ export default function ProgressPage() {
         <div className="relative aspect-[392/256] overflow-hidden rounded-2xl">
           <Image src="/images/progress-banner.jpg" alt="Aisha looking at the mountains at sunset. Small steps today, big dreams tomorrow." fill sizes="(min-width: 1280px) 30vw, 100vw" priority className="object-cover" />
         </div>
-        <div className="rounded-2xl bg-[#FEF6DC] p-5"><div className="flex items-center justify-between"><h2 className="flex items-center gap-3 text-[18px] font-extrabold"><Trophy className="h-7 w-7 text-sun" />Your Achievements</h2><ViewAll /></div>
+        <div className="rounded-2xl bg-[#FEF6DC] p-5"><div className="flex items-center justify-between"><h2 className="flex items-center gap-3 text-[18px] font-extrabold"><Trophy className="h-7 w-7 text-sun" />Your Achievements</h2><ViewAll href="/rewards">View All</ViewAll></div>
           <p className="mt-4 rounded-xl bg-white p-4 text-sm text-slate-600">Achievements will appear here as you complete learning milestones.</p></div>
-        <div className="flex items-center gap-4 rounded-2xl bg-[#E9F3FD] p-5"><Sprout className="h-9 w-9 shrink-0 text-emerald-600" /><div className="flex-1"><b className="text-[16px]">You&apos;re making great progress!</b><p className="mt-1 text-[13px] leading-snug text-slate-600">Keep learning, {profile?.firstName || 'Learner'}. Your efforts are building a brighter future.</p></div><ArrowRight className="h-4 w-4 text-blue-600" /></div>
+        <Link href="/courses" className="flex items-center gap-4 rounded-2xl bg-[#E9F3FD] p-5 transition hover:bg-blue-100/70"><Sprout className="h-9 w-9 shrink-0 text-emerald-600" /><div className="flex-1"><b className="text-[16px]">You&apos;re making great progress!</b><p className="mt-1 text-[13px] leading-snug text-slate-600">Keep learning, {profile?.firstName || 'Learner'}. Your efforts are building a brighter future.</p></div><ArrowRight className="h-4 w-4 text-blue-600" /></Link>
       </aside>
     </div>
   );
