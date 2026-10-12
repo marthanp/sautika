@@ -7,7 +7,7 @@ export interface Course {
   id: string; cat: Category; title: string; emoji: string; color: string; level: string;
   ttsLang?: string; lessons: Lesson[];
 }
-export interface Source { id: string; name: string; text: string; on: boolean }
+export interface Source { id: string; userId: string; name: string; text: string; on: boolean }
 export type Theme = 'navy' | 'parchment' | 'contrast';
 export type DyslexiaFont = 'default' | 'opendyslexic' | 'lexend' | 'atkinson' | 'comic-neue';
 export type DyslexiaSpacing = 'normal' | 'relaxed' | 'wide';

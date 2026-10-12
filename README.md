@@ -31,11 +31,11 @@ Learners can explore courses, work through interactive lessons, ask questions ab
 - **Explore and practise:** Browse subject areas and work through interactive multiple-choice and word-building exercises.
 - **Learn with voice:** Record spoken questions for transcription and listen to text using connected speech services or supported browser voices.
 - **Study with your own materials:** Add or upload text sources to a notebook, then request answers, summaries, study guides, or practice questions based on those sources.
-- **Keep learning progress:** Track course activity, experience points, streaks, preferences, and other learner state in the browser.
-- **Stay organized:** Notebook sources are stored locally in IndexedDB and remain available on that device between visits.
+- **Keep learning progress:** Track course activity, experience points, streaks, and accessibility preferences locally and sync them to MongoDB for the signed-in learner.
+- **Stay organized:** Notebook sources remain available in IndexedDB and sync to the signed-in learner's MongoDB account; notes are stored in MongoDB.
 - **Learn in a responsive interface:** Use the application on mobile, tablet, or desktop screen sizes.
 
-> **Current implementation:** The application includes working UI and core learning interactions, but some dashboard figures and content are sample data. Sign-in is a local demo flow rather than production OAuth. Speech integrations are present, but their request and response fields should be verified against the current Sunbird AI API documentation before production use. Offline notebook storage is available; a complete offline application is still planned.
+> **Current implementation:** Clerk manages sign-in and user identity. MongoDB stores learner profiles, progress, settings, notebook sources, and notes when `MONGODB_URI` is configured and the schema script has been run. Some dashboard figures and catalog content are still sample data. Speech integrations are present, but their request and response fields should be verified against the current Sunbird AI API documentation before production use.
 
 ## Technology
 
@@ -49,6 +49,8 @@ Learners can explore courses, work through interactive lessons, ask questions ab
 | Icons | Lucide React | Interface iconography |
 | Local learner state | Zustand with persistence | Course activity, progress, preferences, and session state in the browser |
 | Local notebook storage | Dexie and IndexedDB | Learner-created notebook sources stored on the device |
+| Account authentication | Clerk | Authenticated learner identity and protected app/API routes |
+| Cloud learner storage | MongoDB Node.js driver | Server-side learner profile, state, settings, notes, and notebook source persistence |
 | Notebook AI | Anthropic SDK / Claude Messages API | Source-grounded answers, summaries, study guides, and generated practice lessons |
 | Speech services | Sunbird AI API routes | Speech-to-text and text-to-speech integration |
 | Speech fallback | Web Speech API | Browser text-to-speech fallback where a suitable voice is available |
@@ -57,7 +59,7 @@ Learners can explore courses, work through interactive lessons, ask questions ab
 
 These are roadmap items, not dependencies or features that are already active in the application:
 
-- **Supabase and PostgreSQL** for accounts and secure cloud synchronization between devices.
+- **Supabase and PostgreSQL** for curriculum search and pgvector-backed content retrieval.
 - **pgvector-powered curriculum search** for retrieval from approved learning materials.
 - **A service worker and full offline PWA support** for installability and broader offline access.
 - **An optional local model (such as Ollama)** to explore AI assistance without a network connection.
@@ -72,8 +74,10 @@ flowchart LR
     Learner[Learner on phone, tablet, or desktop]
     UI[Next.js and React application]
     State[Zustand persisted browser state]
-    Notebook[(Dexie and IndexedDB notebook)]
+    Notebook[(Dexie and IndexedDB notebook cache)]
+    Clerk[Clerk authentication]
     API[Next.js API routes]
+    Mongo[(MongoDB sautika database)]
     Claude[Anthropic Claude API]
     Speech[Sunbird AI speech services]
     BrowserVoice[Browser speech synthesis fallback]
@@ -81,18 +85,19 @@ flowchart LR
     Learner --> UI
     UI <--> State
     UI <--> Notebook
+    UI --> Clerk
     UI --> API
+    API --> Clerk
+    API <--> Mongo
     API --> Claude
     API --> Speech
     UI -. fallback .-> BrowserVoice
 
     subgraph Planned[Planned, not connected yet]
-        Sync[Supabase cloud sync]
         Search[PostgreSQL and pgvector curriculum search]
         Offline[Service worker and optional local AI]
     end
 
-    UI -. future .-> Sync
     API -. future .-> Search
     UI -. future .-> Offline
 ```
@@ -100,10 +105,11 @@ flowchart LR
 ### Request and data flow
 
 1. The browser renders the learning interface and manages interactive state.
-2. Zustand persists learner progress and preferences in browser storage; Dexie stores notebook sources in IndexedDB.
-3. For notebook AI tasks, the browser sends the selected sources and task to `/api/notebook`. The server calls Claude using `ANTHROPIC_API_KEY`.
-4. Voice requests go through `/api/stt` or `/api/tts`. These server routes use `SUNBIRD_API_KEY`; text-to-speech can fall back to browser speech synthesis where supported.
-5. Supabase sync, curriculum retrieval, and a full offline runtime are not connected in the current code.
+2. Clerk authenticates the learner. `/api/account` checks that identity server-side and only reads or writes records owned by that Clerk user.
+3. Learner progress and preferences sync through `/api/account` to MongoDB; notebook sources also remain cached in that learner's IndexedDB partition. Notes are stored in MongoDB.
+4. For notebook AI tasks, the browser sends the selected sources and task to `/api/notebook`. The server calls Claude using `ANTHROPIC_API_KEY`.
+5. Voice requests go through `/api/stt` or `/api/tts`. These server routes use `SUNBIRD_API_KEY`; text-to-speech can fall back to browser speech synthesis where supported.
+6. Curriculum retrieval and a full offline runtime are not connected in the current code.
 
 ## Who Sautika is for
 
@@ -140,7 +146,21 @@ cp .env.example .env.local
 Copy-Item .env.example .env.local
 ```
 
-Add the credentials for the integrations you want to run, then start the development server:
+Configure Clerk, MongoDB, and any optional AI or speech keys in `.env.local`. To enable MongoDB:
+
+1. Create a MongoDB Atlas cluster and database user. Add your current IP address to Atlas **Network Access**.
+2. Copy the Atlas connection string and set `MONGODB_URI` in `.env.local`. Replace the username, password, and cluster host; URL-encode special characters in the password. Keep this URI private and never prefix it with `NEXT_PUBLIC_`.
+3. Install MongoDB Shell (`mongosh`) if it is not installed. In PowerShell, set the URI for that terminal session and run the schema:
+
+   ```powershell
+   $env:MONGODB_URI = "mongodb+srv://<username>:<password>@<cluster-host>/?retryWrites=true&w=majority"
+   mongosh "$env:MONGODB_URI" --file .\database\sautika.mongodb.js
+   ```
+
+   The script creates the `sautika` database's collections, validators, and indexes. It is safe to rerun. Do not paste a real database URI into source control or chat.
+4. Restart the Next.js server after changing `.env.local`. The app will create or update the signed-in learner's profile and sync app data when they open a protected page.
+
+Then start the development server:
 
 ```bash
 npm run dev
@@ -152,6 +172,9 @@ Open [http://localhost:3000](http://localhost:3000).
 
 | Variable | Required for | Notes |
 | --- | --- | --- |
+| `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` | Sign-in and Clerk UI | Public Clerk instance key from the Clerk Dashboard. |
+| `CLERK_SECRET_KEY` | Server-side authentication | Secret Clerk key. Keep it server-only. |
+| `MONGODB_URI` or `MONGO_URI` | Cloud learner storage | Private MongoDB URI used only by server routes. Run the schema script after creating the database. `MONGODB_URI` is preferred; `MONGO_URI` is accepted for compatibility. |
 | `ANTHROPIC_API_KEY` | Notebook AI | Server-side key used by `/api/notebook`. |
 | `ANTHROPIC_MODEL` | Notebook AI | Optional model override; defaults to `claude-sonnet-5-5` in the current route. |
 | `SUNBIRD_API_KEY` | Speech-to-text and text-to-speech | Server-side key used by `/api/stt` and `/api/tts`. |
@@ -160,7 +183,7 @@ Open [http://localhost:3000](http://localhost:3000).
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Future cloud sync | Reserved; not read by the current application. |
 | `SUPABASE_SERVICE_ROLE_KEY` | Future server-side sync | Reserved; not read by the current application. Never expose a service-role key to the browser. |
 
-The Supabase values in `.env.example` are placeholders for planned work; they are not needed to run the current app. Keep real credentials in `.env.local`, which is ignored by Git. Do not add secrets to `NEXT_PUBLIC_*` variables.
+The Supabase values in `.env.example` are placeholders for planned work; they are not needed to run the current app. Clerk and MongoDB credentials are required for authenticated cloud sync. Keep real credentials in `.env.local`, which is ignored by Git. Do not add secrets to `NEXT_PUBLIC_*` variables.
 
 ### Available scripts
 

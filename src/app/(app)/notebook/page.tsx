@@ -1,8 +1,8 @@
 import Image from 'next/image';
 import { ArrowRight, Cloud, FolderOpen, Lightbulb, NotebookText, Plus, Sparkles, Upload, BookOpen } from 'lucide-react';
-import { Card, ViewAll } from '@/components/ui';
-import { NOTES, SUBJECTS } from '@/lib/data';
+import { Card } from '@/components/ui';
 import NotebookBoard from './NotebookBoard';
+import RecentNotes from './RecentNotes';
 
 const FEATURES = [{ icon: Cloud, a: 'Save Notes', b: 'Anytime', c: '#2F6BFF' }, { icon: BookOpen, a: 'Organize by', b: 'Subject', c: '#1F63F5' }, { icon: Sparkles, a: 'Quick Review', b: 'Later', c: '#2F6BFF' }];
 
@@ -25,11 +25,7 @@ export default function NotebookPage() {
           <button className="mt-3 flex h-[46px] w-full items-center justify-center gap-2 rounded-xl border border-line bg-white text-[16px] font-bold"><Upload className="h-5 w-5" />Upload File</button></div>
         <div className="rounded-2xl bg-[#EAF3FE] p-5"><div className="flex items-start gap-3"><span className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-blue-600 text-white"><NotebookText className="h-6 w-6" /></span><div><b className="text-[17px]">Study Smarter</b><p className="mt-1 text-[13.5px] leading-snug text-slate-600">Turn your notes into quizzes and practise what you&apos;ve learned.</p></div></div>
           <a href="/learning" className="mt-4 inline-flex items-center gap-2 text-[13.5px] font-bold text-blue-600">Create Quiz <ArrowRight className="h-4 w-4" /></a></div>
-        <Card className="p-5">
-          <div className="flex items-center justify-between"><h2 className="flex items-center gap-2 text-[17px] font-extrabold"><NotebookText className="h-5 w-5" />Recent Notes</h2><ViewAll /></div>
-          <ul className="mt-3 divide-y divide-line">{NOTES.slice(0, 5).map((n) => { const { icon: I, color } = SUBJECTS[n.subject]; return (
-            <li key={n.id} className="flex items-center gap-3 py-3"><span className="grid h-11 w-11 place-items-center rounded-full text-white" style={{ background: color }}><I className="h-5 w-5" /></span><span className="flex-1 text-[14.5px] font-semibold leading-tight">{n.title}<span className="block text-[12.5px] font-normal text-slate-500">{n.date}</span></span><span className="text-slate-400">⋮</span></li>); })}</ul>
-        </Card>
+        <RecentNotes />
       </aside>
     </div>
   );

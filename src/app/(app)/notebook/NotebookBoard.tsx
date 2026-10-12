@@ -1,21 +1,67 @@
 'use client';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Calendar, EllipsisVertical, FileText, Plus, X } from 'lucide-react';
 import { Card } from '@/components/ui';
-import { NOTES, SUBJECTS, type Note, type Subject } from '@/lib/data';
+import { SUBJECTS, type Note, type Subject } from '@/lib/data';
 
 const FILTERS = ['All Notes', 'Mathematics', 'Science', 'English', 'Social Studies', 'Agriculture'];
 const TINT: Record<Subject, string> = { Mathematics: '#E5EFFE', Science: '#DDF7EC', English: '#EFE7FE', 'Social Studies': '#FFEBCC', Agriculture: '#DDF5D2', 'Life Skills': '#D9F3F3' };
 
 export default function NotebookBoard() {
   const [f, setF] = useState('All Notes');
-  const [notes, setNotes] = useState<Note[]>(NOTES);
+  const [notes, setNotes] = useState<Note[]>([]);
   const [open, setOpen] = useState(false);
+  const [syncError, setSyncError] = useState('');
+  const [isSaving, setIsSaving] = useState(false);
   const [draft, setDraft] = useState<{ title: string; text: string; subject: Subject }>({ title: '', text: '', subject: 'Mathematics' });
-  const add = (): void => {
+  useEffect(() => {
+    let cancelled = false;
+    void fetch('/api/account?resource=notes')
+      .then(async (response) => {
+        if (!response.ok) throw new Error('Could not load your notes from MongoDB.');
+        return response.json() as Promise<{ notes: Note[] }>;
+      })
+      .then((result) => {
+        if (!cancelled) {
+          setNotes(result.notes);
+          setSyncError('');
+        }
+      })
+      .catch((error: unknown) => {
+        if (!cancelled) setSyncError(error instanceof Error ? error.message : 'Could not load your notes.');
+      });
+    return () => { cancelled = true; };
+  }, []);
+
+  const add = async (): Promise<void> => {
     if (!draft.title.trim()) return;
-    setNotes([{ id: Date.now(), subject: draft.subject, title: draft.title, text: draft.text, date: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) }, ...notes]);
-    setDraft({ title: '', text: '', subject: 'Mathematics' }); setOpen(false);
+    setIsSaving(true);
+    setSyncError('');
+    try {
+      const note: Note = {
+        id: crypto.randomUUID(),
+        subject: draft.subject,
+        title: draft.title.trim(),
+        text: draft.text,
+        date: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+      };
+      const response = await fetch('/api/account', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ type: 'note', note }),
+      });
+      if (!response.ok) {
+        const result = await response.json().catch(() => null) as { error?: string } | null;
+        throw new Error(result?.error ?? 'Could not save your note.');
+      }
+      setNotes((current) => [note, ...current]);
+      setDraft({ title: '', text: '', subject: 'Mathematics' });
+      setOpen(false);
+    } catch (error) {
+      setSyncError(error instanceof Error ? error.message : 'Could not save your note.');
+    } finally {
+      setIsSaving(false);
+    }
   };
   return (
     <>
@@ -25,6 +71,7 @@ export default function NotebookBoard() {
         </div>
         <button onClick={() => setOpen(true)} className="flex h-11 w-full items-center justify-center gap-2 whitespace-nowrap rounded-full bg-navy px-5 text-[14px] font-semibold text-white sm:ml-auto sm:w-auto"><Plus className="h-4 w-4" />New Note</button>
       </div>
+      {syncError ? <p role="status" className="mt-4 rounded-xl border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-950">{syncError}</p> : null}
       <div className="mt-5 grid gap-5 md:grid-cols-2 xl:grid-cols-3">
         {notes.filter((n) => f === 'All Notes' || n.subject === f).map((n) => { const { icon: I, color } = SUBJECTS[n.subject]; return (
           <Card key={n.id} className="p-5">
@@ -41,7 +88,7 @@ export default function NotebookBoard() {
             <input value={draft.title} onChange={(e) => setDraft({ ...draft, title: e.target.value })} placeholder="Title" aria-label="Title" className="mt-4 h-12 w-full rounded-xl border border-line px-4" />
             <select value={draft.subject} onChange={(e) => setDraft({ ...draft, subject: e.target.value as Subject })} aria-label="Subject" className="mt-3 h-12 w-full rounded-xl border border-line px-3">{(Object.keys(SUBJECTS) as Subject[]).map((s) => <option key={s}>{s}</option>)}</select>
             <textarea value={draft.text} onChange={(e) => setDraft({ ...draft, text: e.target.value })} placeholder="Write your note..." aria-label="Note" rows={4} className="mt-3 w-full rounded-xl border border-line p-4" />
-            <button onClick={add} className="mt-4 h-12 w-full rounded-xl bg-sun font-bold">Save Note</button>
+            <button onClick={() => void add()} disabled={isSaving} className="mt-4 h-12 w-full rounded-xl bg-sun font-bold disabled:cursor-not-allowed disabled:opacity-60">{isSaving ? 'Saving…' : 'Save Note'}</button>
           </div>
         </div>
       )}
