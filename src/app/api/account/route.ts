@@ -35,7 +35,12 @@ function boundedString(value: unknown, maxLength: number): value is string {
 function responseError(error: unknown): Response {
   if (error instanceof Response) return error;
   console.error('Account API error:', error);
-  return Response.json({ error: 'Account data is temporarily unavailable.' }, { status: 503 });
+  const message = error instanceof Error && error.message.includes('MONGODB_URI is not configured')
+    ? 'MongoDB is not configured. Add MONGODB_URI to .env.local and restart the app.'
+    : error instanceof Error && error.name === 'MongoServerSelectionError'
+      ? 'Could not connect to MongoDB. Verify MONGODB_URI and Atlas network access.'
+      : 'Account data is temporarily unavailable. Please try again.';
+  return Response.json({ error: message }, { status: 503 });
 }
 
 async function requireUserId(): Promise<string> {
@@ -176,7 +181,7 @@ export async function GET(request: Request): Promise<Response> {
           lastActiveAt: now,
           updatedAt: now,
         },
-        $setOnInsert: { coins: 0, xp: 0, streak: 0, createdAt: now },
+        $setOnInsert: { coins: 0, xp: 0, createdAt: now },
       },
       { upsert: true },
     );

@@ -163,7 +163,7 @@ export default function LearnerDataSync({ children }: { children: ReactNode }) {
       {children}
       {syncError && syncError.userId === userId && userId ? (
         <p role="status" className="fixed bottom-3 left-3 right-3 z-[100] mx-auto max-w-xl rounded-xl border border-amber-300 bg-amber-50 px-4 py-3 text-center text-sm text-amber-950 shadow-lg">
-          Cloud sync unavailable: {syncError.message} Configure MONGODB_URI in .env.local and run the MongoDB setup script.
+          Cloud sync unavailable: {syncError.message}
         </p>
       ) : null}
     </LearnerAccountContext.Provider>
