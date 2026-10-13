@@ -107,7 +107,7 @@ flowchart LR
 1. The browser renders the learning interface and manages interactive state.
 2. Clerk authenticates the learner. `/api/account` checks that identity server-side and only reads or writes records owned by that Clerk user.
 3. Learner progress and preferences sync through `/api/account` to MongoDB; notebook sources also remain cached in that learner's IndexedDB partition. Notes are stored in MongoDB.
-4. For notebook AI tasks, the browser sends the selected sources and task to `/api/notebook`. The server calls Claude using `ANTHROPIC_API_KEY`.
+4. For notebook AI tasks, the browser sends the selected sources and task to `/api/notebook`. The server calls the multi-provider LLM engine with automatic fallback (Google Gemini, Groq, OpenRouter, Mistral, SambaNova, Fireworks, Cohere, etc.).
 5. Voice requests go through `/api/stt` or `/api/tts`. These server routes use `SUNBIRD_API_KEY`; text-to-speech can fall back to browser speech synthesis where supported.
 6. Curriculum retrieval and a full offline runtime are not connected in the current code.
 
@@ -175,13 +175,11 @@ Open [http://localhost:3000](http://localhost:3000).
 | `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` | Sign-in and Clerk UI | Public Clerk instance key from the Clerk Dashboard. |
 | `CLERK_SECRET_KEY` | Server-side authentication | Secret Clerk key. Keep it server-only. |
 | `MONGODB_URI` or `MONGO_URI` | Cloud learner storage | Private MongoDB URI used only by server routes. Run the schema script after creating the database. `MONGODB_URI` is preferred; `MONGO_URI` is accepted for compatibility. |
-| `ANTHROPIC_API_KEY` | Notebook AI | Server-side key used by `/api/notebook`. |
-| `ANTHROPIC_MODEL` | Notebook AI | Optional model override; defaults to `claude-sonnet-5-5` in the current route. |
+| `OCR_SPACE_API_KEY` | Document & Image OCR | Server-side key for OCR.Space cloud extraction with local fallback. |
+| `OCR_SPACE_API_KEY_FALLBACK` | Secondary OCR Key | Backup key for OCR.Space cloud extraction. |
+| `GEMINI_API_KEY` / `GROQ_API_KEY` / etc. | Notebook AI & Summaries | Multi-provider LLM failover keys (Google Gemini, Groq, OpenRouter, Mistral, etc.). |
 | `SUNBIRD_API_KEY` | Speech-to-text and text-to-speech | Server-side key used by `/api/stt` and `/api/tts`. |
-| `SUNBIRD_API_URL` | Sunbird AI | Optional base URL; defaults to `https://api.sunbird.ai`. Verify the route contracts against current provider documentation. |
-| `NEXT_PUBLIC_SUPABASE_URL` | Future cloud sync | Reserved; not read by the current application. |
-| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Future cloud sync | Reserved; not read by the current application. |
-| `SUPABASE_SERVICE_ROLE_KEY` | Future server-side sync | Reserved; not read by the current application. Never expose a service-role key to the browser. |
+| `SUNBIRD_API_URL` | Sunbird AI | Optional base URL; defaults to `https://api.sunbird.ai`. |
 
 The Supabase values in `.env.example` are placeholders for planned work; they are not needed to run the current app. Clerk and MongoDB credentials are required for authenticated cloud sync. Keep real credentials in `.env.local`, which is ignored by Git. Do not add secrets to `NEXT_PUBLIC_*` variables.
 

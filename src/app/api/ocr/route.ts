@@ -54,32 +54,41 @@ export async function POST(req: NextRequest) {
       ['png', 'jpg', 'jpeg', 'webp', 'bmp', 'gif'].includes(ext) ||
       fileType.startsWith('image/')
     ) {
-      const ocrKey = process.env.OCR_SPACE_API_KEY || 'K88383849388957';
+      // Attempt 1: OCR.Space cloud API (read securely from environment variables)
+      const primaryKey = process.env.OCR_SPACE_API_KEY;
+      const fallbackKey = process.env.OCR_SPACE_API_KEY_FALLBACK;
+      const ocrKeys = Array.from(new Set([primaryKey, fallbackKey])).filter(Boolean) as string[];
 
-      // Attempt 1: OCR API (ocr.space cloud API)
-      try {
-        const ocrFormData = new FormData();
-        ocrFormData.append('base64Image', `data:${fileType || 'image/jpeg'};base64,${buffer.toString('base64')}`);
-        ocrFormData.append('apikey', ocrKey);
-        ocrFormData.append('language', 'eng');
-        ocrFormData.append('isOverlayRequired', 'false');
+      for (const key of ocrKeys) {
+        if (extractedText) break;
+        try {
+          const ocrFormData = new FormData();
+          ocrFormData.append('base64Image', `data:${fileType || 'image/jpeg'};base64,${buffer.toString('base64')}`);
+          ocrFormData.append('apikey', key);
+          ocrFormData.append('language', 'eng');
+          ocrFormData.append('isOverlayRequired', 'false');
 
-        const ocrRes = await fetch('https://api.ocr.space/parse/image', {
-          method: 'POST',
-          body: ocrFormData,
-        });
+          const ocrRes = await fetch('https://api.ocr.space/parse/image', {
+            method: 'POST',
+            body: ocrFormData,
+          });
 
-        if (ocrRes.ok) {
-          const ocrJson = (await ocrRes.json()) as {
-            ParsedResults?: { ParsedText?: string }[];
-            IsErroredOnProcessing?: boolean;
-          };
-          if (ocrJson.ParsedResults && ocrJson.ParsedResults.length > 0) {
-            extractedText = ocrJson.ParsedResults.map((r) => r.ParsedText || '').join('\n').trim();
+          if (ocrRes.ok) {
+            const ocrJson = (await ocrRes.json()) as {
+              ParsedResults?: { ParsedText?: string }[];
+              IsErroredOnProcessing?: boolean;
+            };
+            if (ocrJson.ParsedResults && ocrJson.ParsedResults.length > 0) {
+              const text = ocrJson.ParsedResults.map((r) => r.ParsedText || '').join('\n').trim();
+              if (text) {
+                extractedText = text;
+                break;
+              }
+            }
           }
+        } catch (ocrApiErr) {
+          console.warn('OCR.Space API attempt failed, trying next option:', ocrApiErr);
         }
-      } catch (ocrApiErr) {
-        console.warn('OCR.Space API attempt failed, trying Tesseract:', ocrApiErr);
       }
 
       // Fallback: Local Tesseract.js if OCR api was empty

@@ -10,9 +10,7 @@
  * - Cohere
  * - Nvidia NIM
  * - Moonshot Kimi
- * - MiniMax
  * - Zhipu / ZAI
- * - Anthropic Claude
  * - Local heuristic fallback
  */
 
@@ -238,31 +236,6 @@ export async function generateAIResponse(options: LLMRequestOptions): Promise<{ 
     }
   }
 
-  // 9. MiniMax
-  const minimaxKey = process.env.MINIMAX_API_KEY;
-  if (minimaxKey) {
-    try {
-      const res = await fetch('https://api.minimax.chat/v1/text/chatcompletion_v2', {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${minimaxKey}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          model: 'abab6.5s-chat',
-          messages: [
-            ...(systemPrompt ? [{ role: 'system', content: systemPrompt }] : []),
-            { role: 'user', content: prompt },
-          ],
-          max_tokens: maxTokens,
-        }),
-      });
-      if (res.ok) {
-        const data = await res.json() as { choices?: { message?: { content?: string } }[] };
-        const text = data.choices?.[0]?.message?.content;
-        if (text) return { text, provider: 'MiniMax' };
-      }
-    } catch (e) {
-      console.warn('MiniMax request failed, falling back:', e);
-    }
-  }
 
   // 10. Zhipu / ZAI
   const zaiKey = process.env.ZAI_API_KEY;

@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "ocr-space": {
+      "command": "node",
+      "args": ["../../../scripts/mcp-ocr-server.mjs"]
+    }
+  }
+}
