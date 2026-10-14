@@ -70,6 +70,8 @@ function serializeNote(note: Record<string, unknown>) {
     title: note.title,
     text: note.text,
     date: createdAt.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+    r2Url: typeof note.r2Url === 'string' ? note.r2Url : undefined,
+    r2Key: typeof note.r2Key === 'string' ? note.r2Key : undefined,
   };
 }
 
@@ -420,10 +422,20 @@ export async function PUT(request: Request): Promise<Response> {
         await session.withTransaction(async () => {
           created = false;
           const existing = await notesCollection.findOne({ _id: noteId, userId }, { session });
+          const r2Url = typeof note.r2Url === 'string' ? note.r2Url : undefined;
+          const r2Key = typeof note.r2Key === 'string' ? note.r2Key : undefined;
           if (existing) {
             await notesCollection.updateOne(
               { _id: noteId, userId },
-              { $set: { subject: note.subject, title: noteTitle, text: note.text, updatedAt: now } },
+              {
+                $set: {
+                  subject: note.subject,
+                  title: noteTitle,
+                  text: note.text,
+                  updatedAt: now,
+                  ...(r2Url ? { r2Url, r2Key } : {}),
+                },
+              },
               { session },
             );
             return;
@@ -436,6 +448,7 @@ export async function PUT(request: Request): Promise<Response> {
               subject: note.subject,
               title: noteTitle,
               text: note.text,
+              ...(r2Url ? { r2Url, r2Key } : {}),
               createdAt: now,
               updatedAt: now,
             },

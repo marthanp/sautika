@@ -133,9 +133,13 @@ export default function NotebookBoard() {
       });
 
       let text = '';
+      let r2Url: string | undefined;
+      let r2Key: string | undefined;
       if (ocrResponse.ok) {
-        const ocrData = (await ocrResponse.json()) as { text?: string };
+        const ocrData = (await ocrResponse.json()) as { text?: string; r2Url?: string; r2Key?: string };
         text = ocrData.text || '';
+        r2Url = ocrData.r2Url;
+        r2Key = ocrData.r2Key;
       } else {
         // Text fallback
         text = await file.text().catch(() => '');
@@ -148,6 +152,8 @@ export default function NotebookBoard() {
         title: title || 'Uploaded Document Notes',
         text: text.slice(0, 15000) || `Uploaded file: ${file.name}`,
         date: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+        r2Url,
+        r2Key,
       };
 
       const response = await fetch('/api/account', {

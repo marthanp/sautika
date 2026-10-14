@@ -40,7 +40,7 @@ export const ACHIEVEMENTS = [
   { title: 'Math Pro', text: 'Completed 5 math lessons', date: 'Apr 18, 2025', emoji: '📘' },
   { title: 'Top Learner', text: 'In your class', date: 'Apr 20, 2025', emoji: '🌱' },
 ];
-export interface Note { id: number | string; subject: Subject; title: string; text: string; date: string }
+export interface Note { id: number | string; subject: Subject; title: string; text: string; date: string; r2Url?: string; r2Key?: string }
 export const NOTES: Note[] = [
   { id: 1, subject: 'Mathematics', title: 'Fractions and Their Uses', text: 'Fractions help us share, divide and compare quantities. For example, 1/2 means half...', date: 'Apr 26, 2025' },
   { id: 2, subject: 'Science', title: 'The Water Cycle', text: 'The water cycle is the continuous movement of water on, above and below the Earth’s surface...', date: 'Apr 24, 2025' },

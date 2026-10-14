@@ -166,7 +166,6 @@ export default function LearnerDataSync({ children }: { children: ReactNode }) {
     // ── Guest / no-auth mode (auth disabled for testing) ──
     if (isLoaded && !userId) {
       readyUserIdRef.current = 'guest';
-      setReadyUserId('guest');
       return () => { active = false; };
     }
 

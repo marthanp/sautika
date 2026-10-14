@@ -25,7 +25,7 @@ export async function generateAIResponse(options: LLMRequestOptions): Promise<{ 
   const { prompt, systemPrompt, maxTokens = 1200, temperature = 0.5 } = options;
 
   // 1. Google Gemini
-  const geminiKey = process.env.GEMINI_API_KEY;
+  const geminiKey = process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY || process.env.GOOGLE_AI_API_KEY;
   if (geminiKey) {
     try {
       const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${geminiKey}`, {
@@ -183,7 +183,7 @@ export async function generateAIResponse(options: LLMRequestOptions): Promise<{ 
   }
 
   // 7. Nvidia NIM
-  const nvidiaKey = process.env.NVIDIA_NIM_API_KEY;
+  const nvidiaKey = process.env.NVIDIA_NIM_API_KEY || process.env.NVIDIA_API_KEY;
   if (nvidiaKey) {
     try {
       const res = await fetch('https://integrate.api.nvidia.com/v1/chat/completions', {
@@ -210,7 +210,7 @@ export async function generateAIResponse(options: LLMRequestOptions): Promise<{ 
   }
 
   // 8. Moonshot Kimi
-  const kimiKey = process.env.KIMI_API_KEY;
+  const kimiKey = process.env.KIMI_API_KEY || process.env.MOONSHOT_API_KEY;
   if (kimiKey) {
     try {
       const res = await fetch('https://api.moonshot.cn/v1/chat/completions', {
@@ -238,7 +238,7 @@ export async function generateAIResponse(options: LLMRequestOptions): Promise<{ 
 
 
   // 10. Zhipu / ZAI
-  const zaiKey = process.env.ZAI_API_KEY;
+  const zaiKey = process.env.ZAI_API_KEY || process.env.ZHIPU_API_KEY;
   if (zaiKey) {
     try {
       const res = await fetch('https://open.bigmodel.cn/api/paas/v4/chat/completions', {

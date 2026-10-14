@@ -18,7 +18,7 @@ export default function LessonPlayer({ items, ttsLang, onFinish, onQuit }: Props
   const { speak } = useVoice();
   const it: Item | undefined = queue[i];
   const finished = !it || hearts < 1;
-  const opts = useMemo(() => (!it ? [] : it.k === 'm' ? shuffle([it.a, ...it.d]) : shuffle([...it.a.split(' '), ...it.x])), [it, i]);
+  const opts = useMemo(() => (!it ? [] : it.k === 'm' ? shuffle([it.a, ...it.d]) : shuffle([...it.a.split(' '), ...it.x])), [it]);
   const xp = hearts > 0 ? 10 + hearts * 2 : 0;
 
   function check(): void {

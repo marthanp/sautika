@@ -42,16 +42,18 @@ export default function CoursesExplorer() {
   const [levelGroup, setLevelGroup] = useState<'All' | LevelGroup>('All');
   const [subClass, setSubClass] = useState<string>('All');
   const [subject, setSubject] = useState<'All' | Category>('All');
-  const [searchQuery, setSearchQuery] = useState(() => searchParams?.get('q') ?? '');
 
-  // Sync URL ?q= param whenever it changes (e.g. from Topbar search)
-  useEffect(() => {
-    const q = searchParams?.get('q') ?? '';
-    if (q) setSearchQuery(q);
-  }, [searchParams]);
+  const paramQ = searchParams?.get('q') ?? '';
+  const [prevParamQ, setPrevParamQ] = useState(paramQ);
+  const [searchQuery, setSearchQuery] = useState(paramQ);
+
+  if (paramQ !== prevParamQ) {
+    setPrevParamQ(paramQ);
+    setSearchQuery(paramQ);
+  }
 
   const { data } = useLearnerAccount();
-  const courses = data?.courses ?? [];
+  const courses = useMemo(() => data?.courses ?? [], [data?.courses]);
   const progressByCourse = useMemo(
     () => new Map((data?.courseProgress ?? []).map((item) => [item.courseId, item])),
     [data?.courseProgress],

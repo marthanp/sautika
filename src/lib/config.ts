@@ -46,15 +46,15 @@ export const serverConfig = {
 
   // 6. Multi-Provider AI LLM Engines
   llm: {
-    geminiKey: process.env.GEMINI_API_KEY,
+    geminiKey: process.env.GEMINI_API_KEY ?? process.env.GOOGLE_API_KEY ?? process.env.GOOGLE_AI_API_KEY,
     groqKey: process.env.GROQ_API_KEY,
     openrouterKey: process.env.OPENROUTER_API_KEY,
     mistralKey: process.env.MISTRAL_API_KEY,
     sambanovaKey: process.env.SAMBANOVA_API_KEY,
     fireworksKey: process.env.FIREWORKS_API_KEY,
-    nvidiaKey: process.env.NVIDIA_NIM_API_KEY,
-    kimiKey: process.env.KIMI_API_KEY,
-    zaiKey: process.env.ZAI_API_KEY,
+    nvidiaKey: process.env.NVIDIA_NIM_API_KEY ?? process.env.NVIDIA_API_KEY,
+    kimiKey: process.env.KIMI_API_KEY ?? process.env.MOONSHOT_API_KEY,
+    zaiKey: process.env.ZAI_API_KEY ?? process.env.ZHIPU_API_KEY,
     cohereKey: process.env.COHERE_API_KEY,
   },
 };

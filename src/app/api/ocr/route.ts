@@ -41,7 +41,6 @@ export async function POST(req: NextRequest) {
     else if (ext === 'pdf' || fileType === 'application/pdf') {
       try {
         // dynamic import of pdf-parse
-        // eslint-disable-next-line @typescript-eslint/no-require-imports
         const pdfParse = require('pdf-parse');
         const pdfData = await pdfParse(buffer);
         extractedText = pdfData.text;
@@ -133,6 +132,25 @@ export async function POST(req: NextRequest) {
       }
     }
 
+    // Sync / Backup raw document to Cloudflare R2 if configured
+    let r2Url: string | undefined;
+    let r2Key: string | undefined;
+    try {
+      const { uploadToR2 } = await import('@/lib/r2');
+      const safeName = fileName.replace(/[^a-zA-Z0-9._-]/g, '_');
+      const key = `uploads/${Date.now()}_${safeName}`;
+      const uploadResult = await uploadToR2({
+        key,
+        body: buffer,
+        contentType: fileType || 'application/octet-stream',
+        metadata: { originalName: fileName },
+      });
+      r2Url = uploadResult.url;
+      r2Key = uploadResult.key;
+    } catch (r2Err) {
+      console.warn('R2 document upload skipped/failed:', r2Err);
+    }
+
     return NextResponse.json({
       success: true,
       fileName,
@@ -140,6 +158,8 @@ export async function POST(req: NextRequest) {
       summary: summary || undefined,
       aiProvider: aiProvider || undefined,
       characterCount: extractedText.length,
+      r2Url,
+      r2Key,
     });
   } catch (error) {
     console.error('Document analysis error:', error);
