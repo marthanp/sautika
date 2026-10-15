@@ -25,6 +25,7 @@ export default function Notebook({ onLesson }: { onLesson: (items: Item[]) => vo
   const [q, setQ] = useState('');
   const [note, setNote] = useState('');
   const [busy, setBusy] = useState(false);
+  const [voiceError, setVoiceError] = useState('');
   const { recording, toggleMic, speak } = useVoice();
   const sourceList = sources ?? [];
   const active = sourceList.filter((s) => s.on);
@@ -161,11 +162,12 @@ export default function Notebook({ onLesson }: { onLesson: (items: Item[]) => vo
         ))}
       </div>
       <div className="flex items-center gap-2.5">
-        <button aria-label="Speak your question" onClick={() => void toggleMic(VOICE[lang], setQ)}
+        <button aria-label={recording ? 'Stop recording' : 'Speak your question'} aria-pressed={recording} onClick={() => { setVoiceError(''); void toggleMic(VOICE[lang], setQ, setVoiceError); }}
           className={`grid h-14 w-14 flex-none place-items-center rounded-full bg-ac text-ink ${recording ? 'animate-[pulse-ring_1s_infinite]' : ''}`}>🎤</button>
         <input value={q} onChange={(e) => setQ(e.target.value)} aria-label="Ask your notebook" placeholder="Ask about your sources" className="min-h-[52px] w-full rounded-2xl border-2 border-ln bg-card px-3.5" />
         <button className="btn" disabled={!q.trim() || !active.length || busy} onClick={() => { void run('ask', q.trim()); setQ(''); }}>Ask</button>
       </div>
+      {voiceError ? <p role="alert" className="mt-2 text-sm text-red-700">{voiceError}</p> : null}
       {!sourceList.length && <p className="mt-3 text-mu">Add at least one source to begin.</p>}
     </section>
   );

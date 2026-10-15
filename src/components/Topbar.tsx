@@ -85,7 +85,7 @@ export default function Topbar() {
 
   return (
     <header className="sticky top-0 z-30 flex min-h-[76px] flex-wrap items-center gap-1 border-b border-line bg-white/90 px-2 py-3 backdrop-blur sm:gap-3 sm:px-4 lg:min-h-[86px] lg:flex-nowrap lg:gap-4 lg:px-10 lg:py-0">
-      <a href="/home" aria-label="Sautika home" className="order-1 mr-auto lg:hidden">
+      <a href="/home" aria-label="Sautika Study Hub" className="order-1 mr-auto lg:hidden">
         <Logo dark compact />
       </a>
 

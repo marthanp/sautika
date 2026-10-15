@@ -1,12 +1,12 @@
 'use client';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { ChartNoAxesColumn, BookOpen, CirclePlay, House, LogOut, NotepadText, Settings, Star } from 'lucide-react';
+import { ChartNoAxesColumn, BookOpen, CirclePlay, LayoutDashboard, LogOut, NotepadText, Settings, Star } from 'lucide-react';
 import { SignOutButton } from '@clerk/nextjs';
 import { Logo } from './Logo';
 
 const NAV = [
-  { href: '/home', label: 'Home', icon: House }, { href: '/courses', label: 'Courses', icon: BookOpen },
+  { href: '/home', label: 'Study Hub', icon: LayoutDashboard }, { href: '/courses', label: 'Courses', icon: BookOpen },
   { href: '/learning', label: 'Learning', icon: CirclePlay }, { href: '/notebook', label: 'Notebook', icon: NotepadText },
   { href: '/progress', label: 'Progress', icon: ChartNoAxesColumn }, { href: '/rewards', label: 'Coins & Rewards', icon: Star },
   { href: '/settings', label: 'Settings', icon: Settings },
@@ -17,7 +17,7 @@ export default function Sidebar() {
   return (
     <>
       <aside className="fixed inset-y-0 left-0 z-20 hidden w-72 flex-col overflow-hidden bg-navy px-4 lg:flex">
-        <div className="px-3 pb-6 pt-5"><Link href="/home" aria-label="Sautika home"><Logo /></Link></div>
+        <div className="px-3 pb-6 pt-5"><Link href="/home" aria-label="Sautika Study Hub"><Logo /></Link></div>
         <nav aria-label="Main" className="flex flex-col gap-1.5">
           {NAV.map(({ href, label, icon: Icon }, i) => {
             const on = path.startsWith(href);
