@@ -4,23 +4,53 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Mic } from 'lucide-react';
 import { useVoice } from '@/lib/useVoice';
+import { isSunbirdLanguage, SUNBIRD_LANGUAGES, type VoiceLang } from '@/lib/sunbird-languages';
 
 export default function VoiceCourseSearch() {
   const router = useRouter();
   const { recording, toggleMic } = useVoice();
   const [error, setError] = useState('');
+  const [language, setLanguage] = useState<VoiceLang>('eng');
+
+  async function searchCourses(text: string): Promise<void> {
+    try {
+      const response = await fetch('/api/translate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text, sourceLanguage: language, targetLanguage: 'eng' }),
+      });
+      const result = await response.json() as { text?: string; error?: string };
+      if (!response.ok || !result.text) {
+        throw new Error(result.error ?? 'Could not translate your course search.');
+      }
+      router.push(`/courses?q=${encodeURIComponent(result.text)}`);
+    } catch (searchError) {
+      setError(searchError instanceof Error ? searchError.message : 'Could not translate your course search.');
+    }
+  }
 
   function handleMicClick(): void {
     setError('');
     void toggleMic(
-      'en',
-      (text) => router.push(`/courses?q=${encodeURIComponent(text)}`),
+      language,
+      (text) => { void searchCourses(text); },
       setError,
     );
   }
 
   return (
     <div className="mt-4">
+      <label htmlFor="voice-search-language" className="mr-2 text-sm font-semibold">Speak in</label>
+      <select
+        id="voice-search-language"
+        value={language}
+        onChange={(event) => {
+          if (isSunbirdLanguage(event.target.value)) setLanguage(event.target.value);
+        }}
+        className="mb-3 min-h-10 max-w-full rounded-xl border-2 border-ln bg-card px-3 text-sm"
+      >
+        {SUNBIRD_LANGUAGES.map(({ code, name }) => <option key={code} value={code}>{name}</option>)}
+      </select>
       <button
         type="button"
         aria-label={recording ? 'Stop voice search' : 'Search courses by voice'}

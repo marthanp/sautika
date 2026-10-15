@@ -1,8 +1,9 @@
 'use client';
 import { useRef, useState } from 'react';
 import type { VoiceLang } from '@/types';
+import { normalizeSunbirdLanguage } from '@/lib/sunbird-languages';
 
-const BROWSER_LANG: Record<VoiceLang, string> = { en: 'en-GB', swa: 'sw-KE', lug: 'sw-KE' };
+const BROWSER_LANG: Partial<Record<VoiceLang, string>> = { eng: 'en-GB', swa: 'sw-KE' };
 
 export function useVoice() {
   const [recording, setRecording] = useState(false);
@@ -30,7 +31,7 @@ export function useVoice() {
       rec.current = null; setRecording(false);
       const form = new FormData();
       form.append('audio', new Blob(chunks, { type: r.mimeType }), 'speech.webm');
-      form.append('language', lang);
+      form.append('language', normalizeSunbirdLanguage(lang));
       try {
         const res = await fetch('/api/stt', { method: 'POST', body: form });
         const j = (await res.json()) as { text?: string; error?: string };
@@ -49,13 +50,14 @@ export function useVoice() {
   /** Sunbird TTS first; falls back to the browser voice (no Luganda voice offline). */
   async function speak(text: string, lang: VoiceLang): Promise<void> {
     try {
-      const res = await fetch('/api/tts', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ text, language: lang }) });
+      const res = await fetch('/api/tts', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ text, language: normalizeSunbirdLanguage(lang) }) });
       const j = (await res.json()) as { audioUrl?: string };
       if (j.audioUrl) { await new Audio(j.audioUrl).play(); return; }
     } catch { /* fall through */ }
-    if (lang === 'lug') return;
+    const browserLanguage = BROWSER_LANG[lang];
+    if (!browserLanguage) return;
     const u = new SpeechSynthesisUtterance(text);
-    u.lang = BROWSER_LANG[lang]; u.rate = 0.9;
+    u.lang = browserLanguage; u.rate = 0.9;
     speechSynthesis.cancel(); speechSynthesis.speak(u);
   }
   return { recording, toggleMic, speak };

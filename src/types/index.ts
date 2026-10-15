@@ -21,5 +21,5 @@ export type DyslexiaSpacing = 'normal' | 'relaxed' | 'wide';
 export type DyslexiaLineHeight = 'normal' | 'relaxed' | 'loose';
 export type ReadingTint = 'none' | 'cream' | 'yellow' | 'peach' | 'mint' | 'blue';
 export type Tab = 'courses' | 'learn' | 'notebook';
-export type VoiceLang = 'en' | 'swa' | 'lug';
+export type VoiceLang = import('@/lib/sunbird-languages').VoiceLang;
 export interface Session { title: string; items: Item[]; courseId?: string; lessonIndex?: number; ttsLang?: string }

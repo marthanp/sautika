@@ -1,4 +1,5 @@
 import type { NextRequest } from 'next/server';
+import { hasSunbirdTts, isSunbirdLanguage, normalizeSunbirdLanguage } from '@/lib/sunbird-languages';
 
 export const runtime = 'nodejs';
 
@@ -19,9 +20,9 @@ export async function POST(req: NextRequest): Promise<Response> {
   if (!isRecord(body) || typeof body.text !== 'string' || !body.text.trim()) {
     return Response.json({ error: 'Text to synthesize is required.' }, { status: 400 });
   }
-  const language = typeof body.language === 'string' ? body.language.trim() : 'lug';
-  if (!language || language.length > 20) {
-    return Response.json({ error: 'A valid language code is required.' }, { status: 400 });
+  const language = typeof body.language === 'string' ? normalizeSunbirdLanguage(body.language.trim()) : '';
+  if (!isSunbirdLanguage(language) || !hasSunbirdTts(language)) {
+    return Response.json({ error: 'Sunbird voice playback is not available for this language.' }, { status: 400 });
   }
 
   const baseUrl = (process.env.SUNBIRD_API_URL ?? 'https://api.sunbird.ai').replace(/\/+$/, '');

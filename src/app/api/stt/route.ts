@@ -1,4 +1,5 @@
 import type { NextRequest } from 'next/server';
+import { isSunbirdLanguage, normalizeSunbirdLanguage } from '@/lib/sunbird-languages';
 
 export const runtime = 'nodejs';
 
@@ -8,12 +9,14 @@ export async function POST(req: NextRequest): Promise<Response> {
   const form = await req.formData();
   const audio = form.get('audio');
   const requestedLanguage = form.get('language');
-  const language = typeof requestedLanguage === 'string' ? requestedLanguage.trim() : 'lug';
+  const language = typeof requestedLanguage === 'string'
+    ? normalizeSunbirdLanguage(requestedLanguage.trim())
+    : '';
   if (!(audio instanceof Blob) || audio.size === 0) {
     return Response.json({ error: 'A non-empty audio file is required.' }, { status: 400 });
   }
-  if (!language || language.length > 20) {
-    return Response.json({ error: 'A valid language code is required.' }, { status: 400 });
+  if (!isSunbirdLanguage(language)) {
+    return Response.json({ error: 'Choose a language supported by Sunbird speech recognition and translation.' }, { status: 400 });
   }
   const out = new FormData();
   out.append('audio', audio, audio instanceof File ? audio.name : 'speech.webm');
