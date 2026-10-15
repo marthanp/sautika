@@ -6,13 +6,14 @@ import { ArrowRight, BookOpen, CirclePlay, Sprout } from 'lucide-react';
 import { useLearnerAccount, useLearnerProfile } from '@/components/LearnerDataSync';
 import VoiceCourseSearch from '@/components/VoiceCourseSearch';
 import { SUBJECTS } from '@/lib/data';
+import { coursesForClass } from '@/lib/course-access';
 import { IMAGE_BY_CATEGORY, SUBJECT_BY_CATEGORY } from '@/lib/course-display';
 
 export default function StudyHubContent() {
   const { data } = useLearnerAccount();
   const profile = useLearnerProfile();
   const progressByCourse = new Map(data.courseProgress.map((progress) => [progress.courseId, progress]));
-  const courses = [...data.courses]
+  const courses = [...coursesForClass(data.courses, profile.educationLevel)]
     .sort((a, b) => {
       const getPriority = (courseId: string, lessonCount: number) => {
         const completed = progressByCourse.get(courseId)?.completedLessonIndexes.length ?? 0;

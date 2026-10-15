@@ -7,7 +7,8 @@ import { useSearchParams } from 'next/navigation';
 import { ArrowRight, BookOpen, ExternalLink, GraduationCap, RotateCcw, Search } from 'lucide-react';
 import { Card, SubjectChip } from '@/components/ui';
 import { SUBJECTS } from '@/lib/data';
-import { useLearnerAccount } from '@/components/LearnerDataSync';
+import { useLearnerAccount, useLearnerProfile } from '@/components/LearnerDataSync';
+import { coursesForClass } from '@/lib/course-access';
 import { IMAGE_BY_CATEGORY, SUBJECT_BY_CATEGORY } from '@/lib/course-display';
 import type { Category, LevelGroup } from '@/types';
 
@@ -53,7 +54,11 @@ export default function CoursesExplorer() {
   }
 
   const { data } = useLearnerAccount();
-  const courses = useMemo(() => data?.courses ?? [], [data?.courses]);
+  const profile = useLearnerProfile();
+  const courses = useMemo(
+    () => coursesForClass(data?.courses ?? [], profile.educationLevel),
+    [data?.courses, profile.educationLevel],
+  );
   const progressByCourse = useMemo(
     () => new Map((data?.courseProgress ?? []).map((item) => [item.courseId, item])),
     [data?.courseProgress],

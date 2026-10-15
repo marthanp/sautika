@@ -5,7 +5,8 @@ import { useSearchParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { ArrowLeft, BookOpen, ChartNoAxesColumn, Check, Clock, Trophy } from 'lucide-react';
 import { Card, Coin, Ring } from '@/components/ui';
-import { useLearnerAccount } from '@/components/LearnerDataSync';
+import { useLearnerAccount, useLearnerProfile } from '@/components/LearnerDataSync';
+import { coursesForClass } from '@/lib/course-access';
 import { useApp } from '@/store/useApp';
 import LessonView from './LessonView';
 
@@ -13,40 +14,52 @@ export default function LearningPage() {
   const searchParams = useSearchParams();
   const requestedCourseId = searchParams.get('course');
   const { data, refresh } = useLearnerAccount();
+  const profile = useLearnerProfile();
   const startCourse = useApp((state) => state.startCourse);
   const [completionError, setCompletionError] = useState('');
   const [isCompleting, setIsCompleting] = useState(false);
-  const courses = data?.courses ?? [];
-  const course = courses.find((item) => item.id === requestedCourseId) ?? courses[0];
+  const courses = coursesForClass(data?.courses ?? [], profile.educationLevel);
+  const course = courses.find((item) => item.id === requestedCourseId) ?? (requestedCourseId ? undefined : courses[0]);
 
   useEffect(() => {
     if (course) startCourse(course.id);
   }, [course, startCourse]);
 
+  if (requestedCourseId && !course) {
+    return (
+      <div className="rounded-2xl border border-line bg-white p-6">
+        <h1 className="text-2xl font-bold">This course isn&apos;t available for your class.</h1>
+        <p className="mt-2 text-slate-600">Browse courses selected for {profile.educationLevel}.</p>
+        <Link href="/courses" className="mt-4 inline-flex items-center gap-2 font-semibold text-blue-700"><ArrowLeft className="h-4 w-4" />Back to courses</Link>
+      </div>
+    );
+  }
+
   if (!course) {
     return <p className="rounded-2xl border border-line bg-white p-6 text-slate-600">Loading your learning library…</p>;
   }
+  const activeCourse = course;
 
-  if (!course.lessons.length) {
+  if (!activeCourse.lessons.length) {
     return (
       <div className="rounded-2xl border border-line bg-white p-6">
-        <h1 className="text-2xl font-bold">{course.title}</h1>
+        <h1 className="text-2xl font-bold">{activeCourse.title}</h1>
         <p className="mt-2 text-slate-600">Lessons for this course are being prepared.</p>
         <Link href="/courses" className="mt-4 inline-flex items-center gap-2 font-semibold text-blue-700"><ArrowLeft className="h-4 w-4" />Back to courses</Link>
       </div>
     );
   }
 
-  const progress = data?.courseProgress.find((item) => item.courseId === course.id);
+  const progress = data?.courseProgress.find((item) => item.courseId === activeCourse.id);
   const requestedLessonIndex = Number(searchParams.get('lesson') ?? progress?.currentLessonIndex ?? 0);
   const lessonIndex = Math.min(
     Math.max(Number.isSafeInteger(requestedLessonIndex) ? requestedLessonIndex : 0, 0),
-    course.lessons.length - 1,
+    activeCourse.lessons.length - 1,
   );
-  const lesson = course.lessons[lessonIndex];
+  const lesson = activeCourse.lessons[lessonIndex];
   const completedLessons = progress?.completedLessonIndexes ?? [];
   const isCompleted = completedLessons.includes(lessonIndex);
-  const progressPercent = Math.round((completedLessons.length / course.lessons.length) * 100);
+  const progressPercent = Math.round((completedLessons.length / activeCourse.lessons.length) * 100);
 
   async function completeLesson() {
     setIsCompleting(true);
@@ -55,7 +68,7 @@ export default function LearningPage() {
       const response = await fetch('/api/account', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ type: 'lessonComplete', courseId: course.id, lessonIndex }),
+        body: JSON.stringify({ type: 'lessonComplete', courseId: activeCourse.id, lessonIndex }),
       });
       if (!response.ok) {
         const result = await response.json().catch(() => null) as { error?: string } | null;
@@ -64,7 +77,7 @@ export default function LearningPage() {
       await refresh();
     } catch (error) {
       // Fallback: mark lesson complete in local app state so the user still sees progress
-      useApp.getState().completeLesson(course.id, lessonIndex, 10);
+      useApp.getState().completeLesson(activeCourse.id, lessonIndex, 10);
       useApp.getState().touchStreak();
       // Optimistically refresh to show updated state
       void refresh().catch(() => null);
@@ -85,20 +98,20 @@ export default function LearningPage() {
       <div className="min-w-0 xl:col-span-8">
         <nav aria-label="Breadcrumb" className="flex flex-wrap items-center gap-3 text-[14px]">
           <Link href="/courses" className="flex items-center gap-2"><ArrowLeft className="h-4 w-4" />Back to Courses</Link>
-          <span className="hidden h-4 w-px bg-slate-300 sm:block" /><span className="text-slate-600">{course.cat}</span>
+          <span className="hidden h-4 w-px bg-slate-300 sm:block" /><span className="text-slate-600">{activeCourse.cat}</span>
         </nav>
         <div className="mt-4">
-          <span className="inline-block rounded-full bg-[#E5EFFE] px-4 py-1.5 text-[14px] font-bold text-blue-700">{course.cat} · {course.level}</span>
-          <h1 className="mt-4 text-[31px] font-extrabold leading-[1.15] sm:text-[38px]">{course.title}</h1>
+          <span className="inline-block rounded-full bg-[#E5EFFE] px-4 py-1.5 text-[14px] font-bold text-blue-700">{activeCourse.cat} · {activeCourse.level}</span>
+          <h1 className="mt-4 text-[31px] font-extrabold leading-[1.15] sm:text-[38px]">{activeCourse.title}</h1>
           <p className="mt-4 max-w-[650px] text-[15px] leading-relaxed text-slate-500 sm:text-[16px]">Work through the lesson activities, practise what you learn, and complete the quiz to save your progress.</p>
           <div className="mt-5 flex flex-wrap items-center gap-x-4 gap-y-2 text-[14px] text-slate-600">
-            <span className="flex items-center gap-2"><BookOpen className="h-5 w-5" />Lesson {lessonIndex + 1} of {course.lessons.length}</span>
+            <span className="flex items-center gap-2"><BookOpen className="h-5 w-5" />Lesson {lessonIndex + 1} of {activeCourse.lessons.length}</span>
             <span className="hidden h-5 w-px bg-slate-300 sm:block" /><span className="flex items-center gap-2"><Clock className="h-5 w-5" />Self-paced</span>
           </div>
         </div>
         {completionError ? <p role="alert" className="mt-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">{completionError}</p> : null}
         <LessonView
-          courseId={course.id}
+          courseId={activeCourse.id}
           lesson={lesson}
           lessonIndex={lessonIndex}
           isCompleted={isCompleted}
@@ -111,15 +124,15 @@ export default function LearningPage() {
           <h2 className="flex items-center gap-3 text-[18px] font-extrabold"><ChartNoAxesColumn className="h-7 w-7 text-blue-600" />Course Progress</h2>
           <div className="mt-4 flex items-center gap-4">
             <Ring v={progressPercent} size={104} stroke={9}><span className="text-[22px]">{progressPercent}%</span></Ring>
-            <div className="flex-1"><p className="text-[17px] font-semibold">{completedLessons.length} of {course.lessons.length} lessons completed</p><p className="mt-2 text-sm text-slate-500">Progress is saved to your account.</p></div>
+            <div className="flex-1"><p className="text-[17px] font-semibold">{completedLessons.length} of {activeCourse.lessons.length} lessons completed</p><p className="mt-2 text-sm text-slate-500">Progress is saved to your account.</p></div>
           </div>
           <ul className="mt-5 space-y-1">
-            {course.lessons.map((item, index) => {
+            {activeCourse.lessons.map((item, index) => {
               const complete = completedLessons.includes(index);
               return (
-                <li key={`${course.id}-${index}`}>
+                <li key={`${activeCourse.id}-${index}`}>
                   <Link
-                    href={`/learning?course=${encodeURIComponent(course.id)}&lesson=${index}`}
+                    href={`/learning?course=${encodeURIComponent(activeCourse.id)}&lesson=${index}`}
                     aria-current={index === lessonIndex ? 'step' : undefined}
                     className={`flex min-h-[50px] items-center gap-3 rounded-lg px-2 text-[14px] font-medium ${index === lessonIndex ? 'bg-[#FFF3D0]' : 'hover:bg-slate-50'}`}
                   >

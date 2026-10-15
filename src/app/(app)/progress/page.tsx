@@ -7,11 +7,12 @@ import { Bar, Card, Coin, ViewAll } from '@/components/ui';
 import { SUBJECTS } from '@/lib/data';
 import { useLearnerAccount, useLearnerProfile } from '@/components/LearnerDataSync';
 import { SUBJECT_BY_CATEGORY } from '@/lib/course-display';
+import { coursesForClass } from '@/lib/course-access';
 
 export default function ProgressPage() {
   const { data } = useLearnerAccount();
   const profile = useLearnerProfile();
-  const courses = data?.courses ?? [];
+  const courses = coursesForClass(data?.courses ?? [], profile.educationLevel);
   const progressByCourse = new Map((data?.courseProgress ?? []).map((item) => [item.courseId, item]));
   const totalLessons = courses.reduce((total, course) => total + course.lessons.length, 0);
   const completedLessons = courses.reduce(

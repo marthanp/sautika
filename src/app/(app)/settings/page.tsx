@@ -20,6 +20,7 @@ import {
 } from 'lucide-react';
 import { Bar, Card, Ring, ViewAll } from '@/components/ui';
 import { useLearnerAccount, useLearnerProfile } from '@/components/LearnerDataSync';
+import { coursesForClass } from '@/lib/course-access';
 import SettingsPanel from './SettingsPanel';
 
 const ACTIONS = [
@@ -34,8 +35,12 @@ export default function SettingsPage() {
   const profile = useLearnerProfile();
   const [modalType, setModalType] = useState<string | null>(null);
 
-  const totalLessons = data?.courses.reduce((total, course) => total + course.lessons.length, 0) ?? 0;
-  const completedLessons = data?.courseProgress.reduce((total, progress) => total + progress.completedLessonIndexes.length, 0) ?? 0;
+  const courses = coursesForClass(data?.courses ?? [], profile.educationLevel);
+  const courseIds = new Set(courses.map((course) => course.id));
+  const totalLessons = courses.reduce((total, course) => total + course.lessons.length, 0);
+  const completedLessons = (data?.courseProgress ?? [])
+    .filter((progress) => courseIds.has(progress.courseId))
+    .reduce((total, progress) => total + progress.completedLessonIndexes.length, 0);
   const progressPercent = totalLessons ? Math.round((completedLessons / totalLessons) * 100) : 0;
 
   const handleAction = (title: string) => {

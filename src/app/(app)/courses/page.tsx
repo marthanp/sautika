@@ -6,14 +6,16 @@ import { Suspense } from 'react';
 import { ArrowRight, BookOpen, ChartNoAxesColumn, GraduationCap, Star } from 'lucide-react';
 import { Bar, Card, Ring } from '@/components/ui';
 import { SUBJECTS } from '@/lib/data';
-import { useLearnerAccount } from '@/components/LearnerDataSync';
+import { useLearnerAccount, useLearnerProfile } from '@/components/LearnerDataSync';
 import { SUBJECT_BY_CATEGORY } from '@/lib/course-display';
+import { coursesForClass } from '@/lib/course-access';
 import type { Category } from '@/types';
 import CoursesExplorer from './CoursesExplorer';
 
 export default function CoursesPage() {
   const { data } = useLearnerAccount();
-  const courses = data?.courses ?? [];
+  const profile = useLearnerProfile();
+  const courses = coursesForClass(data?.courses ?? [], profile.educationLevel);
   const progressByCourse = new Map((data?.courseProgress ?? []).map((item) => [item.courseId, item]));
   const totalLessons = courses.reduce((total, course) => total + course.lessons.length, 0);
   const completedLessons = courses.reduce(

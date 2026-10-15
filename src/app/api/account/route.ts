@@ -2,6 +2,7 @@ import { auth, currentUser } from '@clerk/nextjs/server';
 import { ObjectId, type Document } from 'mongodb';
 import { getDatabase, getMongoClient } from '@/lib/mongodb';
 import { COURSES as CURRICULUM } from '@/data/courses';
+import { isCourseAvailableForClass } from '@/lib/course-access';
 import { REWARDS as REWARD_CATALOG } from '@/lib/data';
 
 export const runtime = 'nodejs';
@@ -167,10 +168,12 @@ export async function GET(request: Request): Promise<Response> {
     const fallbackName = email.split('@')[0] || 'Learner';
     const metadata = isRecord(clerkUser.unsafeMetadata) ? clerkUser.unsafeMetadata : {};
     const requestedEducation = metadata.education;
-    const educationLevel =
-      typeof requestedEducation === 'string' && EDUCATION_LEVELS.has(requestedEducation)
-        ? requestedEducation
-        : 'Not specified';
+    const metadataEducation = typeof requestedEducation === 'string' && EDUCATION_LEVELS.has(requestedEducation)
+      ? requestedEducation
+      : 'Not specified';
+    const educationLevel = typeof profile?.educationLevel === 'string' && EDUCATION_LEVELS.has(profile.educationLevel)
+      ? profile.educationLevel
+      : metadataEducation;
     const today = now.toISOString().slice(0, 10);
     const yesterday = new Date(now.getTime() - 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
     const previousActiveDay = profile?.lastActiveAt instanceof Date
@@ -201,10 +204,21 @@ export async function GET(request: Request): Promise<Response> {
     );
 
     const savedProfile = await profilesCollection.findOne({ _id: userId });
+    const selectedEducationLevel = typeof savedProfile?.educationLevel === 'string' &&
+      EDUCATION_LEVELS.has(savedProfile.educationLevel)
+      ? savedProfile.educationLevel
+      : educationLevel;
+    const accessibleCourses = courses.filter((course) =>
+      isCourseAvailableForClass(
+        { level: course.level, levelGroup: course.levelGroup },
+        selectedEducationLevel,
+      ),
+    );
+    const accessibleCourseIds = new Set(accessibleCourses.map((course) => String(course._id)));
     const done: Record<string, number> = {};
     const enrolled: string[] = [];
 
-    for (const item of progress) {
+    for (const item of progress.filter((record) => accessibleCourseIds.has(String(record.courseId)))) {
       const courseId = String(item.courseId);
       enrolled.push(courseId);
       done[courseId] = Number(item.currentLessonIndex);
@@ -221,7 +235,7 @@ export async function GET(request: Request): Promise<Response> {
         lastName: savedProfile?.lastName ?? 'Learner',
         email,
         contact: savedProfile?.contact ?? '',
-        educationLevel: savedProfile?.educationLevel ?? educationLevel,
+        educationLevel: selectedEducationLevel,
         coins: savedProfile?.coins ?? 0,
         xp: savedProfile?.xp ?? 0,
         streak: savedProfile?.streak ?? 0,
@@ -234,7 +248,7 @@ export async function GET(request: Request): Promise<Response> {
         activeCourse: enrolled[0] ?? null,
       },
       settings: savedSettings,
-      courses: courses.map((course) => ({
+      courses: accessibleCourses.map((course) => ({
         id: String(course._id),
         cat: course.category,
         title: course.title,
@@ -248,7 +262,7 @@ export async function GET(request: Request): Promise<Response> {
         lessons: course.lessons,
         ...(typeof course.language === 'string' && course.language !== 'en' ? { ttsLang: course.language } : {}),
       })),
-      courseProgress: progress.map((item) => ({
+      courseProgress: progress.filter((item) => accessibleCourseIds.has(String(item.courseId))).map((item) => ({
         courseId: String(item.courseId),
         currentLessonIndex: Number(item.currentLessonIndex),
         completedLessonIndexes: item.completedLessonIndexes.map(Number),
@@ -576,6 +590,19 @@ export async function POST(request: Request): Promise<Response> {
     }
 
     const profiles = database.collection<Document & { _id: string }>('profiles');
+    const profile = await profiles.findOne({ _id: userId }, { projection: { educationLevel: 1 } });
+    const clerkUser = await currentUser();
+    const metadata = clerkUser && isRecord(clerkUser.unsafeMetadata) ? clerkUser.unsafeMetadata : {};
+    const metadataEducation = metadata.education;
+    const educationLevel = typeof profile?.educationLevel === 'string' && EDUCATION_LEVELS.has(profile.educationLevel)
+      ? profile.educationLevel
+      : typeof metadataEducation === 'string' && EDUCATION_LEVELS.has(metadataEducation)
+        ? metadataEducation
+        : 'Not specified';
+    if (!isCourseAvailableForClass({ level: course.level, levelGroup: course.levelGroup }, educationLevel)) {
+      return Response.json({ error: 'This course is not available for your class.' }, { status: 403 });
+    }
+
     const client = await getMongoClient();
     let newlyCompleted = false;
     const now = new Date();
