@@ -1,10 +1,9 @@
 'use client';
 
-import { useState } from 'react';
-import { ArrowLeft, ArrowRight, Check, ClipboardList, Headphones, Pencil, Volume2 } from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
+import { ArrowLeft, ArrowRight, Check, ClipboardList, Headphones, Pencil, Square, Volume2 } from 'lucide-react';
 import { Card } from '@/components/ui';
-import { useVoice } from '@/lib/useVoice';
-import type { Item, Lesson, VoiceLang } from '@/types';
+import type { Item, Lesson } from '@/types';
 
 const TABS = [
   { label: 'Listen & Learn', icon: Headphones },
@@ -12,7 +11,7 @@ const TABS = [
   { label: 'Quiz', icon: ClipboardList },
   { label: 'Complete', icon: Check },
 ] as const;
-const VOICE_LANGUAGE: Record<string, VoiceLang> = { luganda: 'lug', swahili: 'swa' };
+const BROWSER_VOICE_LANGUAGE: Record<string, string> = { luganda: 'lg-UG', swahili: 'sw-KE' };
 
 interface LessonViewProps {
   courseId: string;
@@ -37,11 +36,77 @@ export default function LessonView({
 }: LessonViewProps) {
   const [tab, setTab] = useState(0);
   const [answers, setAnswers] = useState<Record<number, string>>({});
-  const { speak } = useVoice();
+  const [isReading, setIsReading] = useState(false);
+  const [activeWord, setActiveWord] = useState<{ question: number; word: number } | null>(null);
+  const [speechError, setSpeechError] = useState('');
+  const playbackId = useRef(0);
   const correctAnswers = lesson.items.filter((item, index) => answers[index] === item.a).length;
   const allAnswered = lesson.items.length > 0 && lesson.items.every((_, index) => answers[index] !== undefined);
-  const voiceLanguage = VOICE_LANGUAGE[courseId] ?? 'en';
+  const voiceLanguage = BROWSER_VOICE_LANGUAGE[courseId] ?? 'en-GB';
   const nextLabel = TABS[Math.min(TABS.length - 1, tab + 1)].label;
+
+  function stopReading(): void {
+    playbackId.current += 1;
+    window.speechSynthesis.cancel();
+    setIsReading(false);
+    setActiveWord(null);
+  }
+
+  function readLesson(): void {
+    if (!('speechSynthesis' in window)) {
+      setSpeechError('Speech playback is not available in this browser.');
+      return;
+    }
+    if (isReading) {
+      stopReading();
+      return;
+    }
+
+    setSpeechError('');
+    window.speechSynthesis.cancel();
+    const currentPlayback = ++playbackId.current;
+    setIsReading(true);
+    setActiveWord(null);
+
+    const utterances = lesson.items.map((item, questionIndex) => {
+      const utterance = new SpeechSynthesisUtterance(item.q);
+      utterance.lang = voiceLanguage;
+      utterance.rate = 0.9;
+      utterance.onboundary = (event) => {
+        if (currentPlayback !== playbackId.current || event.name !== 'word') return;
+        const words = [...item.q.matchAll(/\S+/g)];
+        const wordIndex = words.findIndex(([word], index) => {
+          const start = words[index].index ?? 0;
+          return event.charIndex >= start && event.charIndex < start + word.length;
+        });
+        if (wordIndex >= 0) setActiveWord({ question: questionIndex, word: wordIndex });
+      };
+      utterance.onerror = () => {
+        if (currentPlayback !== playbackId.current) return;
+        setIsReading(false);
+        setActiveWord(null);
+        setSpeechError('Could not play this lesson. Please try again.');
+      };
+      return utterance;
+    });
+
+    const lastUtterance = utterances.at(-1);
+    if (!lastUtterance) {
+      setIsReading(false);
+      return;
+    }
+    lastUtterance.onend = () => {
+      if (currentPlayback !== playbackId.current) return;
+      setIsReading(false);
+      setActiveWord(null);
+    };
+    utterances.forEach((utterance) => window.speechSynthesis.speak(utterance));
+  }
+
+  useEffect(() => () => {
+    playbackId.current += 1;
+    window.speechSynthesis.cancel();
+  }, []);
 
   return (
     <Card className="mt-6 p-4 sm:p-5">
@@ -66,17 +131,37 @@ export default function LessonView({
           <p className="mt-2 text-sm text-slate-600">Listen to the lesson prompts, then use Practice and Quiz to check what you learned.</p>
           <button
             type="button"
-            onClick={() => void speak(lesson.items.map((item) => item.q).join('. '), voiceLanguage)}
+            onClick={readLesson}
+            aria-pressed={isReading}
             className="mt-4 inline-flex min-h-11 items-center gap-2 rounded-full bg-sun px-5 text-sm font-bold"
           >
-            <Headphones className="h-4 w-4" /> Listen to lesson
+            {isReading ? <Square className="h-4 w-4" /> : <Headphones className="h-4 w-4" />}
+            {isReading ? 'Stop lesson' : 'Listen to lesson'}
           </button>
+          {speechError ? <p role="alert" className="mt-2 text-sm text-red-700">{speechError}</p> : null}
           <ol className="mt-5 space-y-3">
-            {lesson.items.map((item, index) => (
-              <li key={`${lessonIndex}-${index}`} className="rounded-xl bg-white p-4 text-[15px] font-medium shadow-sm">
-                <span className="mr-2 text-slate-400">{index + 1}.</span>{item.q}
-              </li>
-            ))}
+            {lesson.items.map((item, index) => {
+              let wordNumber = 0;
+              const tokens = Array.from(item.q.matchAll(/\S+|\s+/g));
+              return (
+                <li key={`${lessonIndex}-${index}`} className="rounded-xl bg-white p-4 text-[15px] font-medium shadow-sm">
+                <span className="mr-2 text-slate-400">{index + 1}.</span>
+                {tokens.map((match, tokenIndex) => {
+                  const isWord = /^\S+$/.test(match[0]);
+                  const currentWord = isWord ? wordNumber++ : -1;
+                  const isActive = isWord && activeWord?.question === index && activeWord.word === currentWord;
+                  return (
+                    <span
+                      key={`${index}-${tokenIndex}`}
+                      className={isActive ? 'rounded bg-yellow-300 px-0.5 text-navy' : undefined}
+                    >
+                      {match[0]}
+                    </span>
+                  );
+                })}
+                </li>
+              );
+            })}
           </ol>
         </section>
       ) : null}

@@ -3,7 +3,7 @@
 import { useUser } from '@clerk/nextjs';
 import { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from 'react';
 import { useApp } from '@/store/useApp';
-import { COURSES } from '@/data/courses';
+import { isKnownEducationLevel } from '@/lib/course-access';
 import type { Course } from '@/types';
 
 export interface LearnerProfile {
@@ -112,6 +112,7 @@ function buildOfflineData(opts: {
   firstName?: string | null;
   lastName?: string | null;
   email?: string;
+  educationLevel?: unknown;
 }): AccountResponse {
   return {
     hasExistingData: false,
@@ -120,12 +121,12 @@ function buildOfflineData(opts: {
       lastName: opts.lastName || '',
       email: opts.email || '',
       contact: '',
-      educationLevel: 'Not specified',
+      educationLevel: isKnownEducationLevel(opts.educationLevel) ? opts.educationLevel : 'Not specified',
       coins: 0,
       xp: 0,
       streak: 1,
     },
-    courses: COURSES,
+    courses: [],
     courseProgress: [],
     activity: [],
     rewards: DEFAULT_REWARDS,
@@ -154,7 +155,12 @@ export default function LearnerDataSync({ children }: { children: ReactNode }) {
     } catch {
       if (accountData?.userId === userId && accountData.data) return accountData.data;
       return user
-        ? buildOfflineData({ firstName: user.firstName, lastName: user.lastName, email: user.primaryEmailAddress?.emailAddress })
+        ? buildOfflineData({
+          firstName: user.firstName,
+          lastName: user.lastName,
+          email: user.primaryEmailAddress?.emailAddress,
+          educationLevel: user.unsafeMetadata.education,
+        })
         : GUEST_DATA;
     }
   }, [userId, accountData, user]);
@@ -202,7 +208,12 @@ export default function LearnerDataSync({ children }: { children: ReactNode }) {
       if (user) {
         setAccountData({
           userId,
-          data: buildOfflineData({ firstName: user.firstName, lastName: user.lastName, email: user.primaryEmailAddress?.emailAddress }),
+          data: buildOfflineData({
+            firstName: user.firstName,
+            lastName: user.lastName,
+            email: user.primaryEmailAddress?.emailAddress,
+            educationLevel: user.unsafeMetadata.education,
+          }),
         });
       }
       readyUserIdRef.current = userId;
@@ -231,17 +242,14 @@ export default function LearnerDataSync({ children }: { children: ReactNode }) {
   // Priority: server-synced → offline fallback → GUEST_DATA
   const contextData: AccountResponse = (() => {
     if (accountData?.userId === userId && accountData.data) {
-      const serverCourses = accountData.data.courses;
-      return {
-        ...accountData.data,
-        courses: serverCourses && serverCourses.length > 0 ? serverCourses : COURSES,
-      };
+      return accountData.data;
     }
     if (userId && user) {
       return buildOfflineData({
         firstName: user.firstName,
         lastName: user.lastName,
         email: user.primaryEmailAddress?.emailAddress,
+        educationLevel: user.unsafeMetadata.education,
       });
     }
     return GUEST_DATA;

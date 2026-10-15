@@ -20,6 +20,7 @@ import {
 } from 'lucide-react';
 import { Bar, Card, Ring, ViewAll } from '@/components/ui';
 import { useLearnerAccount, useLearnerProfile } from '@/components/LearnerDataSync';
+import { coursesForClass } from '@/lib/course-access';
 import SettingsPanel from './SettingsPanel';
 
 const ACTIONS = [
@@ -34,8 +35,12 @@ export default function SettingsPage() {
   const profile = useLearnerProfile();
   const [modalType, setModalType] = useState<string | null>(null);
 
-  const totalLessons = data?.courses.reduce((total, course) => total + course.lessons.length, 0) ?? 0;
-  const completedLessons = data?.courseProgress.reduce((total, progress) => total + progress.completedLessonIndexes.length, 0) ?? 0;
+  const courses = coursesForClass(data?.courses ?? [], profile.educationLevel);
+  const courseIds = new Set(courses.map((course) => course.id));
+  const totalLessons = courses.reduce((total, course) => total + course.lessons.length, 0);
+  const completedLessons = (data?.courseProgress ?? [])
+    .filter((progress) => courseIds.has(progress.courseId))
+    .reduce((total, progress) => total + progress.completedLessonIndexes.length, 0);
   const progressPercent = totalLessons ? Math.round((completedLessons / totalLessons) * 100) : 0;
 
   const handleAction = (title: string) => {
@@ -51,19 +56,17 @@ export default function SettingsPage() {
   };
 
   return (
-    <div className="mx-auto grid max-w-[1330px] gap-6 xl:grid-cols-12">
-      <div className="min-w-0 xl:col-span-8">
-        <div className="flex items-center gap-4">
-          <Settings className="h-12 w-12 fill-navy text-navy" />
-          <div>
-            <h1 className="text-[38px] font-extrabold leading-none text-navy">Settings</h1>
-            <p className="mt-1 text-[15px] text-slate-500">Manage your account, preferences, and learning experience.</p>
-          </div>
+    <div className="mx-auto max-w-[1600px]">
+      <div className="flex items-center gap-4">
+        <Settings className="h-12 w-12 fill-navy text-navy" />
+        <div>
+          <h1 className="text-[38px] font-extrabold leading-none text-navy">Settings</h1>
+          <p className="mt-1 text-[15px] text-slate-500">Manage your account, preferences, and learning experience.</p>
         </div>
-        <SettingsPanel />
       </div>
+      <SettingsPanel />
 
-      <aside className="min-w-0 space-y-5 xl:col-span-4">
+      <aside aria-label="Account overview and quick actions" className="mt-6 grid min-w-0 gap-5 sm:grid-cols-2 xl:grid-cols-4">
         <div className="relative flex min-h-[104px] items-center gap-4 overflow-hidden rounded-2xl bg-[#FEF1CF] p-5">
           <Sprout className="h-10 w-10 text-sun" />
           <div>
@@ -79,7 +82,7 @@ export default function SettingsPage() {
           />
         </div>
 
-        <Card className="p-5">
+        <Card className="min-w-0 p-5">
           <div className="flex items-center justify-between">
             <h2 className="flex items-center gap-3 text-[18px] font-extrabold text-navy">
               <Target className="h-7 w-7 text-blue-600" />Learning Goals
@@ -102,7 +105,7 @@ export default function SettingsPage() {
           </div>
         </Card>
 
-        <Card className="p-5">
+        <Card className="min-w-0 p-5">
           <h2 className="flex items-center gap-3 text-[18px] font-extrabold text-navy">
             <Zap className="h-6 w-6 text-blue-600" />Quick Actions
           </h2>

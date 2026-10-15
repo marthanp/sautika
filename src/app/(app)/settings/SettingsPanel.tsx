@@ -167,6 +167,7 @@ function AppearanceSection() {
             <p className="mt-1 text-[14px] leading-relaxed text-slate-600">
               Personalize fonts, letter spacing, line height, and reading tints to support dyslexic learners and make reading effortless.
             </p>
+            <p className="mt-2 text-[12px] font-semibold text-emerald-700">Your choices apply across the app and save automatically.</p>
           </div>
           <button
             onClick={resetAccessibility}
@@ -179,7 +180,7 @@ function AppearanceSection() {
       </Card>
 
       {/* Live Interactive Reading Preview */}
-      <Card className="p-6">
+      <Card className="min-w-0 p-4 sm:p-6">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             <span className="grid h-10 w-10 place-items-center rounded-full bg-amber-50 text-amber-700">
@@ -209,12 +210,20 @@ function AppearanceSection() {
           <h3 className="mt-1.5 text-[20px] font-extrabold text-ink">
             Jinsi Sayari Zinavyozunguka Jua
           </h3>
-          <p className="mt-2.5 text-[15px] text-slate-800">
+          <p
+            className={`mt-2.5 text-slate-800 ${FONTS.find((f) => f.id === activeFont)?.fontClass ?? ''}`}
+            style={{
+              fontSize: `${15 * (Number.parseInt(activeScale, 10) / 100)}px`,
+              letterSpacing: activeSpacing === 'wide' ? '0.12em' : activeSpacing === 'relaxed' ? '0.05em' : undefined,
+              wordSpacing: activeSpacing === 'wide' ? '0.25em' : activeSpacing === 'relaxed' ? '0.12em' : undefined,
+              lineHeight: activeLineHeight === 'loose' ? 2 : activeLineHeight === 'relaxed' ? 1.75 : 1.5,
+            }}
+          >
             Katika mfumo wa jua, sayari zote nane huzunguka jua kwa njia maalum inayoitwa mzingo.
             Dunia yetu inachukua takriban siku 365 kukamilisha mzunguko mmoja kamili.
             Kusoma kwa fonti sahihi huondoa uchovu wa macho na kusaidia maneno kutotembea au kubadilika wakati wa kusoma.
           </p>
-          <div className="mt-3 flex flex-wrap items-center gap-2 pt-2 border-t border-slate-200/60 text-[12px] text-slate-600">
+          <div aria-live="polite" className="mt-3 flex flex-wrap items-center gap-2 border-t border-slate-200/60 pt-2 text-[12px] text-slate-600">
             <span>Font: <strong className="text-navy">{FONTS.find((f) => f.id === activeFont)?.name}</strong></span>
             <span>•</span>
             <span>Spacing: <strong className="text-navy">{SPACING_OPTIONS.find((s) => s.id === activeSpacing)?.name}</strong></span>
@@ -225,7 +234,7 @@ function AppearanceSection() {
       </Card>
 
       {/* Font Family Selection */}
-      <Card className="p-6">
+      <Card className="min-w-0 p-4 sm:p-6">
         <div className="flex items-center gap-3">
           <span className="grid h-10 w-10 place-items-center rounded-full bg-blue-50 text-blue-700">
             <Type className="h-5 w-5" />
@@ -238,15 +247,16 @@ function AppearanceSection() {
           </div>
         </div>
 
-        <div className="mt-5 space-y-3">
+        <div className="mt-5 grid gap-3 sm:grid-cols-2 2xl:grid-cols-3">
           {FONTS.map((f) => {
             const isSelected = activeFont === f.id;
             return (
               <button
                 key={f.id}
                 type="button"
+                aria-pressed={isSelected}
                 onClick={() => setPrefs({ font: f.id })}
-                className={`relative flex w-full flex-col text-left rounded-2xl border-2 p-4 transition-all ${
+                className={`relative flex min-w-0 w-full flex-col rounded-2xl border-2 p-4 text-left transition-all ${
                   isSelected
                     ? 'border-sun bg-[#FFFDF5] shadow-sm ring-2 ring-sun/30'
                     : 'border-line bg-white hover:border-slate-300 hover:bg-slate-50/70'
@@ -292,7 +302,7 @@ function AppearanceSection() {
       </Card>
 
       {/* Letter Spacing & Line Height (Anti-Crowding) */}
-      <Card className="p-6">
+      <Card className="min-w-0 p-4 sm:p-6">
         <div className="flex items-center gap-3">
           <span className="grid h-10 w-10 place-items-center rounded-full bg-emerald-50 text-emerald-700">
             <Sliders className="h-5 w-5" />
@@ -315,6 +325,7 @@ function AppearanceSection() {
                 <button
                   key={opt.id}
                   type="button"
+                  aria-pressed={selected}
                   onClick={() =>
                     setPrefs({
                       letterSpacing: opt.id,
@@ -350,6 +361,7 @@ function AppearanceSection() {
                 <button
                   key={opt.id}
                   type="button"
+                  aria-pressed={selected}
                   onClick={() => setPrefs({ lineHeight: opt.id })}
                   className={`flex flex-col rounded-xl border-2 p-3 text-left transition ${
                     selected
@@ -380,6 +392,7 @@ function AppearanceSection() {
                 <button
                   key={sz.id}
                   type="button"
+                  aria-pressed={selected}
                   onClick={() => setPrefs({ scale: sz.id })}
                   className={`h-11 rounded-xl border-2 px-3 text-[14px] font-bold transition ${
                     selected
@@ -396,7 +409,7 @@ function AppearanceSection() {
       </Card>
 
       {/* Reading Tints / Visual Stress Relief */}
-      <Card className="p-6">
+      <Card className="min-w-0 p-4 sm:p-6">
         <div className="flex items-center gap-3">
           <span className="grid h-10 w-10 place-items-center rounded-full bg-purple-50 text-purple-700">
             <Palette className="h-5 w-5" />
@@ -416,6 +429,7 @@ function AppearanceSection() {
               <button
                 key={t.id}
                 type="button"
+                aria-pressed={selected}
                 onClick={() => setPrefs({ readingTint: t.id })}
                 className={`flex items-center gap-3 rounded-xl border-2 p-3 text-left transition ${
                   selected
@@ -439,7 +453,7 @@ function AppearanceSection() {
       </Card>
 
       {/* Theme Color Mode */}
-      <Card className="p-6">
+      <Card className="min-w-0 p-4 sm:p-6">
         <div className="flex items-center justify-between gap-4">
           <div>
             <b className="text-[16px]">Interface Color Mode</b>
@@ -448,6 +462,7 @@ function AppearanceSection() {
           <div className="flex items-center gap-2">
             <button
               type="button"
+              aria-pressed={colorMode === 'light'}
               onClick={() => setPrefs({ colorMode: 'light' })}
               className={`flex items-center gap-2 rounded-xl border px-4 py-2 text-[13.5px] font-bold transition ${
                 colorMode === 'light'
@@ -459,6 +474,7 @@ function AppearanceSection() {
             </button>
             <button
               type="button"
+              aria-pressed={colorMode === 'dark'}
               onClick={() => setPrefs({ colorMode: 'dark' })}
               className={`flex items-center gap-2 rounded-xl border px-4 py-2 text-[13.5px] font-bold transition ${
                 colorMode === 'dark'

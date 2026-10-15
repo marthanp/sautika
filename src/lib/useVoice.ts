@@ -1,17 +1,26 @@
 'use client';
 import { useRef, useState } from 'react';
 import type { VoiceLang } from '@/types';
+import { normalizeSunbirdLanguage } from '@/lib/sunbird-languages';
 
-const BROWSER_LANG: Record<VoiceLang, string> = { en: 'en-GB', swa: 'sw-KE', lug: 'sw-KE' };
+const BROWSER_LANG: Partial<Record<VoiceLang, string>> = { eng: 'en-GB', swa: 'sw-KE' };
 
 export function useVoice() {
   const [recording, setRecording] = useState(false);
   const rec = useRef<MediaRecorder | null>(null);
 
   /** Push-to-talk: first call starts recording, second call stops and transcribes via /api/stt. */
-  async function toggleMic(lang: VoiceLang, onText: (t: string) => void): Promise<void> {
+  async function toggleMic(lang: VoiceLang, onText: (t: string) => void, onError?: (message: string) => void): Promise<void> {
     if (rec.current) { rec.current.stop(); return; }
-    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    let stream: MediaStream;
+    try {
+      stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Could not access the microphone.';
+      if (onError) onError(message);
+      else console.error('Microphone access failed:', error);
+      return;
+    }
     const chunks: Blob[] = [];
     const r = new MediaRecorder(stream);
     rec.current = r;
@@ -22,12 +31,18 @@ export function useVoice() {
       rec.current = null; setRecording(false);
       const form = new FormData();
       form.append('audio', new Blob(chunks, { type: r.mimeType }), 'speech.webm');
-      form.append('language', lang);
+      form.append('language', normalizeSunbirdLanguage(lang));
       try {
         const res = await fetch('/api/stt', { method: 'POST', body: form });
-        const j = (await res.json()) as { text?: string };
-        if (j.text) onText(j.text);
-      } catch { /* offline: ignore, learner can type */ }
+        const j = (await res.json()) as { text?: string; error?: string };
+        if (!res.ok) throw new Error(j.error ?? 'Speech transcription is temporarily unavailable.');
+        if (!j.text?.trim()) throw new Error('No speech was recognized. Please try again.');
+        onText(j.text.trim());
+      } catch (error) {
+        const message = error instanceof Error ? error.message : 'Speech transcription failed.';
+        if (onError) onError(message);
+        else console.error('Speech transcription failed:', error);
+      }
     };
     r.start();
   }
@@ -35,13 +50,14 @@ export function useVoice() {
   /** Sunbird TTS first; falls back to the browser voice (no Luganda voice offline). */
   async function speak(text: string, lang: VoiceLang): Promise<void> {
     try {
-      const res = await fetch('/api/tts', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ text, language: lang }) });
+      const res = await fetch('/api/tts', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ text, language: normalizeSunbirdLanguage(lang) }) });
       const j = (await res.json()) as { audioUrl?: string };
       if (j.audioUrl) { await new Audio(j.audioUrl).play(); return; }
     } catch { /* fall through */ }
-    if (lang === 'lug') return;
+    const browserLanguage = BROWSER_LANG[lang];
+    if (!browserLanguage) return;
     const u = new SpeechSynthesisUtterance(text);
-    u.lang = BROWSER_LANG[lang]; u.rate = 0.9;
+    u.lang = browserLanguage; u.rate = 0.9;
     speechSynthesis.cancel(); speechSynthesis.speak(u);
   }
   return { recording, toggleMic, speak };
