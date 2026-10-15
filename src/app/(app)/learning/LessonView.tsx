@@ -40,6 +40,7 @@ export default function LessonView({
   const [activeWord, setActiveWord] = useState<{ question: number; word: number } | null>(null);
   const [speechError, setSpeechError] = useState('');
   const playbackId = useRef(0);
+  const boundaryTimers = useRef<number[]>([]);
   const correctAnswers = lesson.items.filter((item, index) => answers[index] === item.a).length;
   const allAnswered = lesson.items.length > 0 && lesson.items.every((_, index) => answers[index] !== undefined);
   const voiceLanguage = BROWSER_VOICE_LANGUAGE[courseId] ?? 'en-GB';
@@ -47,6 +48,8 @@ export default function LessonView({
 
   function stopReading(): void {
     playbackId.current += 1;
+    boundaryTimers.current.forEach(window.clearTimeout);
+    boundaryTimers.current = [];
     window.speechSynthesis.cancel();
     setIsReading(false);
     setActiveWord(null);
@@ -72,20 +75,45 @@ export default function LessonView({
       const utterance = new SpeechSynthesisUtterance(item.q);
       utterance.lang = voiceLanguage;
       utterance.rate = 0.9;
+      utterance.onstart = () => {
+        if (currentPlayback !== playbackId.current) return;
+        const words = [...item.q.matchAll(/\S+/g)];
+        let elapsed = 0;
+        words.forEach(([word], wordIndex) => {
+          if (wordIndex > 0) elapsed += 90;
+          const delay = elapsed;
+          boundaryTimers.current.push(window.setTimeout(() => {
+            if (currentPlayback !== playbackId.current) return;
+            setActiveWord({ question: questionIndex, word: wordIndex });
+          }, delay));
+          elapsed += Math.max(220, word.replace(/[.,!?;:]+$/, '').length * 75);
+          if (/[.!?]$/.test(word)) elapsed += 180;
+        });
+      };
       utterance.onboundary = (event) => {
-        if (currentPlayback !== playbackId.current || event.name !== 'word') return;
+        if (currentPlayback !== playbackId.current) return;
         const words = [...item.q.matchAll(/\S+/g)];
         const wordIndex = words.findIndex(([word], index) => {
           const start = words[index].index ?? 0;
           return event.charIndex >= start && event.charIndex < start + word.length;
         });
-        if (wordIndex >= 0) setActiveWord({ question: questionIndex, word: wordIndex });
+        if (wordIndex >= 0) {
+          boundaryTimers.current.forEach(window.clearTimeout);
+          boundaryTimers.current = [];
+          setActiveWord({ question: questionIndex, word: wordIndex });
+        }
       };
       utterance.onerror = () => {
         if (currentPlayback !== playbackId.current) return;
+        boundaryTimers.current.forEach(window.clearTimeout);
+        boundaryTimers.current = [];
         setIsReading(false);
         setActiveWord(null);
         setSpeechError('Could not play this lesson. Please try again.');
+      };
+      utterance.onend = () => {
+        boundaryTimers.current.forEach(window.clearTimeout);
+        boundaryTimers.current = [];
       };
       return utterance;
     });
@@ -97,6 +125,8 @@ export default function LessonView({
     }
     lastUtterance.onend = () => {
       if (currentPlayback !== playbackId.current) return;
+      boundaryTimers.current.forEach(window.clearTimeout);
+      boundaryTimers.current = [];
       setIsReading(false);
       setActiveWord(null);
     };
@@ -105,6 +135,7 @@ export default function LessonView({
 
   useEffect(() => () => {
     playbackId.current += 1;
+    boundaryTimers.current.forEach(window.clearTimeout);
     window.speechSynthesis.cancel();
   }, []);
 
@@ -117,7 +148,10 @@ export default function LessonView({
             type="button"
             role="tab"
             aria-selected={tab === index}
-            onClick={() => setTab(index)}
+            onClick={() => {
+              if (index !== 0 && isReading) stopReading();
+              setTab(index);
+            }}
             className="flex min-h-[52px] min-w-0 items-center gap-2 rounded-xl bg-[#EDF3FD] px-3 text-[14px] font-bold text-blue-700 aria-selected:border aria-selected:border-sun aria-selected:bg-[#FFF1C7] aria-selected:text-navy sm:gap-3 sm:px-4 sm:text-[16px]"
           >
             <span className="shrink-0 text-[12px] opacity-60">{index + 1}</span><Icon className="h-5 w-5 shrink-0" /><span>{label}</span>
@@ -139,12 +173,24 @@ export default function LessonView({
             {isReading ? 'Stop lesson' : 'Listen to lesson'}
           </button>
           {speechError ? <p role="alert" className="mt-2 text-sm text-red-700">{speechError}</p> : null}
+          {isReading && activeWord ? (
+            <p role="status" aria-live="polite" className="mt-3 text-sm font-semibold text-navy">
+              Now reading prompt {activeWord.question + 1} of {lesson.items.length}
+            </p>
+          ) : null}
           <ol className="mt-5 space-y-3">
             {lesson.items.map((item, index) => {
               let wordNumber = 0;
               const tokens = Array.from(item.q.matchAll(/\S+|\s+/g));
+              const isActiveQuestion = isReading && activeWord?.question === index;
               return (
-                <li key={`${lessonIndex}-${index}`} className="rounded-xl bg-white p-4 text-[15px] font-medium shadow-sm">
+                <li
+                  key={`${lessonIndex}-${index}`}
+                  aria-current={isActiveQuestion ? 'true' : undefined}
+                  className={`rounded-xl border p-4 text-[15px] font-medium shadow-sm transition-colors ${
+                    isActiveQuestion ? 'border-amber-400 bg-amber-50 ring-2 ring-amber-300' : 'border-transparent bg-white'
+                  }`}
+                >
                 <span className="mr-2 text-slate-400">{index + 1}.</span>
                 {tokens.map((match, tokenIndex) => {
                   const isWord = /^\S+$/.test(match[0]);
@@ -153,7 +199,8 @@ export default function LessonView({
                   return (
                     <span
                       key={`${index}-${tokenIndex}`}
-                      className={isActive ? 'rounded bg-yellow-300 px-0.5 text-navy' : undefined}
+                      aria-current={isActive ? 'true' : undefined}
+                      className={isActive ? 'rounded bg-amber-300 px-0.5 text-navy shadow-[0_0_0_2px_rgba(252,211,77,0.35)]' : undefined}
                     >
                       {match[0]}
                     </span>

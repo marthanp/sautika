@@ -53,7 +53,7 @@ export default function VoiceCourseSearch() {
       </select>
       <button
         type="button"
-        aria-label={recording ? 'Stop voice search' : 'Search courses by voice'}
+        aria-label={recording ? 'Stop speaking to Sautika' : 'Speak to Sautika'}
         aria-pressed={recording}
         onClick={handleMicClick}
         className={`inline-flex min-h-11 items-center gap-2 rounded-full px-4 text-sm font-bold transition ${
@@ -61,7 +61,7 @@ export default function VoiceCourseSearch() {
         }`}
       >
         <Mic className="h-4 w-4" aria-hidden="true" />
-        {recording ? 'Listening… Tap to finish' : 'Speak to find a course'}
+        {recording ? 'Listening… Tap to finish' : 'Speak to Sautika'}
       </button>
       {error ? <p role="alert" className="mt-2 text-sm text-red-700">{error}</p> : null}
       <p role="status" aria-live="polite" className="sr-only">{recording ? 'Listening for your search.' : ''}</p>
