@@ -100,7 +100,11 @@ export default function StudyHubContent() {
           ) : (
             <div className="mt-5 rounded-2xl border border-dashed border-slate-300 bg-white p-8 text-center">
               <BookOpen className="mx-auto h-9 w-9 text-slate-400" />
-              <p className="mt-3 font-bold text-navy">Your courses are getting ready.</p>
+              <p className="mt-3 font-bold text-navy">
+                {profile.educationLevel === 'Not specified'
+                  ? 'Your class is not set on your learner profile.'
+                  : `Courses for ${profile.educationLevel} are getting ready.`}
+              </p>
               <Link href="/courses" className="mt-3 inline-flex items-center gap-1 font-semibold text-blue-700 hover:underline">
                 Browse courses <ArrowRight className="h-4 w-4" />
               </Link>

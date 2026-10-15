@@ -2,19 +2,11 @@ import { auth, currentUser } from '@clerk/nextjs/server';
 import { ObjectId, type Document } from 'mongodb';
 import { getDatabase, getMongoClient } from '@/lib/mongodb';
 import { COURSES as CURRICULUM } from '@/data/courses';
-import { isCourseAvailableForClass } from '@/lib/course-access';
+import { isCourseAvailableForClass, resolveEducationLevel } from '@/lib/course-access';
 import { REWARDS as REWARD_CATALOG } from '@/lib/data';
 
 export const runtime = 'nodejs';
 
-const EDUCATION_LEVELS = new Set([
-  'Baby Class', 'Middle Class', 'Top Class',
-  'P.1', 'P.2', 'P.3', 'P.4', 'P.5', 'P.6', 'P.7',
-  'Primary 1', 'Primary 2', 'Primary 3', 'Primary 4', 'Primary 5', 'Primary 6', 'Primary 7',
-  'S.1', 'S.2', 'S.3', 'S.4', 'S.5', 'S.6',
-  'Senior 1', 'Senior 2', 'Senior 3', 'Senior 4', 'Senior 5', 'Senior 6',
-  'Not specified',
-]);
 const SUBJECTS = new Set(['Mathematics', 'Science', 'English', 'Social Studies', 'Agriculture', 'Life Skills']);
 const DEFAULT_SETTINGS = {
   theme: 'navy',
@@ -167,13 +159,7 @@ export async function GET(request: Request): Promise<Response> {
     const email = clerkUser.primaryEmailAddress?.emailAddress ?? '';
     const fallbackName = email.split('@')[0] || 'Learner';
     const metadata = isRecord(clerkUser.unsafeMetadata) ? clerkUser.unsafeMetadata : {};
-    const requestedEducation = metadata.education;
-    const metadataEducation = typeof requestedEducation === 'string' && EDUCATION_LEVELS.has(requestedEducation)
-      ? requestedEducation
-      : 'Not specified';
-    const educationLevel = typeof profile?.educationLevel === 'string' && EDUCATION_LEVELS.has(profile.educationLevel)
-      ? profile.educationLevel
-      : metadataEducation;
+    const educationLevel = resolveEducationLevel(metadata.education, profile?.educationLevel);
     const today = now.toISOString().slice(0, 10);
     const yesterday = new Date(now.getTime() - 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
     const previousActiveDay = profile?.lastActiveAt instanceof Date
@@ -204,15 +190,9 @@ export async function GET(request: Request): Promise<Response> {
     );
 
     const savedProfile = await profilesCollection.findOne({ _id: userId });
-    const selectedEducationLevel = typeof savedProfile?.educationLevel === 'string' &&
-      EDUCATION_LEVELS.has(savedProfile.educationLevel)
-      ? savedProfile.educationLevel
-      : educationLevel;
+    const selectedEducationLevel = resolveEducationLevel(metadata.education, savedProfile?.educationLevel);
     const accessibleCourses = courses.filter((course) =>
-      isCourseAvailableForClass(
-        { level: course.level, levelGroup: course.levelGroup },
-        selectedEducationLevel,
-      ),
+      isCourseAvailableForClass({ level: course.level }, selectedEducationLevel),
     );
     const accessibleCourseIds = new Set(accessibleCourses.map((course) => String(course._id)));
     const done: Record<string, number> = {};
@@ -593,13 +573,8 @@ export async function POST(request: Request): Promise<Response> {
     const profile = await profiles.findOne({ _id: userId }, { projection: { educationLevel: 1 } });
     const clerkUser = await currentUser();
     const metadata = clerkUser && isRecord(clerkUser.unsafeMetadata) ? clerkUser.unsafeMetadata : {};
-    const metadataEducation = metadata.education;
-    const educationLevel = typeof profile?.educationLevel === 'string' && EDUCATION_LEVELS.has(profile.educationLevel)
-      ? profile.educationLevel
-      : typeof metadataEducation === 'string' && EDUCATION_LEVELS.has(metadataEducation)
-        ? metadataEducation
-        : 'Not specified';
-    if (!isCourseAvailableForClass({ level: course.level, levelGroup: course.levelGroup }, educationLevel)) {
+    const educationLevel = resolveEducationLevel(metadata.education, profile?.educationLevel);
+    if (!isCourseAvailableForClass({ level: course.level }, educationLevel)) {
       return Response.json({ error: 'This course is not available for your class.' }, { status: 403 });
     }
 

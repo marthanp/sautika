@@ -124,6 +124,12 @@ export default function CoursesExplorer() {
 
   return (
     <div className="space-y-5">
+      <p className="rounded-xl border border-blue-100 bg-blue-50 px-4 py-3 text-[13px] font-medium text-blue-900">
+        {profile.educationLevel === 'Not specified'
+          ? 'Your class is not set on your learner profile, so class materials are hidden.'
+          : <>Materials are limited to your registered class: <b>{profile.educationLevel}</b>.</>}
+      </p>
+
       {/* Search Input Bar */}
       <div className="mt-5 flex flex-wrap items-center gap-3">
         <label className="relative min-w-[260px] flex-1">
@@ -350,9 +356,13 @@ export default function CoursesExplorer() {
         {filteredCourses.length === 0 && (
           <div className="col-span-full rounded-2xl border border-dashed border-slate-300 bg-white p-10 text-center">
             <p className="text-4xl">📚</p>
-            <h4 className="mt-3 text-[18px] font-bold text-navy">No courses match your criteria</h4>
+            <h4 className="mt-3 text-[18px] font-bold text-navy">
+              {profile.educationLevel === 'Not specified' ? 'Set your class to access learning materials' : 'No courses match your criteria'}
+            </h4>
             <p className="mt-1 text-sm text-slate-500">
-              Try adjusting your class level filter, subject, or search term.
+              {profile.educationLevel === 'Not specified'
+                ? 'Your learner profile needs a class before class-specific courses can be shown.'
+                : 'Try adjusting your subject or search term. Only materials for your registered class are available.'}
             </p>
             <button
               type="button"
