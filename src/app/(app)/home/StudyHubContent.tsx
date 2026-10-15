@@ -3,12 +3,14 @@
 import Image from 'next/image';
 import Link from 'next/link';
 import { ArrowRight, BookOpen, CirclePlay, Sprout } from 'lucide-react';
-import { useLearnerAccount } from '@/components/LearnerDataSync';
+import { useLearnerAccount, useLearnerProfile } from '@/components/LearnerDataSync';
+import VoiceCourseSearch from '@/components/VoiceCourseSearch';
 import { SUBJECTS } from '@/lib/data';
 import { IMAGE_BY_CATEGORY, SUBJECT_BY_CATEGORY } from '@/lib/course-display';
 
 export default function StudyHubContent() {
   const { data } = useLearnerAccount();
+  const profile = useLearnerProfile();
   const progressByCourse = new Map(data.courseProgress.map((progress) => [progress.courseId, progress]));
   const courses = [...data.courses]
     .sort((a, b) => {
@@ -32,6 +34,13 @@ export default function StudyHubContent() {
   return (
     <div className="mx-auto max-w-[1330px]">
       <h1 className="text-[32px] font-extrabold leading-tight sm:text-[40px]">Study Hub</h1>
+      <section className="mt-3 flex flex-wrap items-center justify-between gap-4 rounded-2xl bg-[#FBF7EE] p-5 sm:p-6" aria-label="Welcome">
+        <div>
+          <p className="text-[21px] font-bold sm:text-[24px]">Welcome, {profile.firstName || 'Learner'}! 👋</p>
+          <p className="mt-1 text-[15px] text-slate-600">Ready to learn something new today?</p>
+        </div>
+        <VoiceCourseSearch />
+      </section>
 
       <div className="mt-7 grid gap-6 xl:grid-cols-12">
         <section className="min-w-0 xl:col-span-9" aria-labelledby="continue-learning">
