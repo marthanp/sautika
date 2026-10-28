@@ -33,14 +33,14 @@ html[data-color-mode='dark'] {
 html[data-color-mode='dark'] body { background-color: var(--color-paper); color: var(--color-ink); }
 html[data-color-mode='dark'] .bg-white,
 html[data-color-mode='dark'] [class~='bg-white/90'] { background-color: #182433; }
-html[data-color-mode='dark'] .text-slate-500,
-html[data-color-mode='dark'] .text-slate-600 { color: #aab8c8; }
-html[data-color-mode='dark'] .text-slate-500 { color: #91a2b7; }
-html[data-color-mode='dark'] .text-slate-400 { color: #8192a6; }
-html[data-color-mode='dark'] .text-slate-700 { color: #d2dce8; }
+html[data-color-mode='dark'] .text-slate-600 { color: #b8c8d8; }
+html[data-color-mode='dark'] .text-slate-500 { color: #a2b4c6; }
+html[data-color-mode='dark'] .text-slate-400 { color: #8fa2b6; }
+html[data-color-mode='dark'] .text-slate-700 { color: #d4dfe9; }
 html[data-color-mode='dark'] .text-slate-800,
-html[data-color-mode='dark'] .text-slate-900 { color: #e6edf5; }
-html[data-color-mode='dark'] .text-navy { color: #e6edf5; }
+html[data-color-mode='dark'] .text-slate-900 { color: #eaf0f8; }
+html[data-color-mode='dark'] .text-navy { color: #eaf0f8; }
+html[data-color-mode='dark'] .text-ink { color: #eaf0f8; }
 html[data-color-mode='dark'] [class~='bg-[#F8FAFD]'],
 html[data-color-mode='dark'] [class~='bg-[#EEF5FB]'],
 html[data-color-mode='dark'] [class~='bg-[#EDF3FB]'] { background-color: #202d3d; }
@@ -101,6 +101,87 @@ html[data-color-mode='dark'] .text-blue-700 { color: #9bc2ff; }
 html[data-color-mode='dark'] .text-emerald-800 { color: #87d7b4; }
 html[data-color-mode='dark'] .text-red-600 { color: #ff9097; }
 html[data-color-mode='dark'] .border-red-300 { border-color: #79404a; }
+
+/* ── Selected / active bubble colours in dark mode ── */
+/* Non-yellow selected tabs/buttons → steel-blue slab */
+html[data-color-mode='dark'] button[aria-selected='true']:not([class*='bg-sun']):not([class*='bg-navy']) {
+  background-color: #2a3f55 !important;
+  color: #e6f0ff !important;
+  border-color: #4a6a8a !important;
+}
+html[data-color-mode='dark'] button[aria-pressed='true']:not([class*='bg-sun']):not([class*='bg-navy']) {
+  background-color: #2a3f55 !important;
+  color: #e6f0ff !important;
+  border-color: #4a6a8a !important;
+}
+/* bg-sun selected buttons — keep yellow but use dark text */
+html[data-color-mode='dark'] button[aria-selected='true'][class*='bg-sun'],
+html[data-color-mode='dark'] button[aria-pressed='true'][class*='bg-sun'] {
+  background-color: #ffc400 !important;
+  color: #001731 !important;
+  border-color: #e6b000 !important;
+}
+/* Settings panel active nav item */
+html[data-color-mode='dark'] [aria-current='true'] {
+  background-color: #2a3f55 !important;
+  color: #e6f0ff !important;
+}
+/* Level group / subject filter selected pills */
+html[data-color-mode='dark'] [class*='border-sun'][class*='bg-sun']:not([class*='text-navy']) {
+  background-color: #2a3f55 !important;
+  border-color: #7aaad0 !important;
+  color: #d8ecff !important;
+}
+/* Settings panel selected font/spacing/tint cards */
+html[data-color-mode='dark'] [class*='bg-[#FFFDF5]'],
+html[data-color-mode='dark'] [class*='bg-[#FFFDE8]'] {
+  background-color: #1e2e40 !important;
+  color: #e2edf6 !important;
+}
+/* Amber/yellow badge chips */
+html[data-color-mode='dark'] .bg-amber-100,
+html[data-color-mode='dark'] .bg-amber-50 { background-color: #2c2a1a; }
+html[data-color-mode='dark'] .text-amber-800 { color: #f5d87e; }
+html[data-color-mode='dark'] .text-amber-700 { color: #f0ce6a; }
+html[data-color-mode='dark'] .text-amber-600 { color: #e8c050; }
+html[data-color-mode='dark'] .border-amber-200 { border-color: #5a4e2a; }
+/* Purple badges */
+html[data-color-mode='dark'] .bg-purple-100 { background-color: #251e38; }
+html[data-color-mode='dark'] .text-purple-800 { color: #c4a8f8; }
+html[data-color-mode='dark'] .border-purple-200 { border-color: #4a3a6a; }
+/* Emerald / green badges */
+html[data-color-mode='dark'] .text-emerald-700 { color: #6fcfa0; }
+html[data-color-mode='dark'] .text-emerald-600 { color: #5ec295; }
+html[data-color-mode='dark'] .text-emerald-900 { color: #a8e6c8; }
+html[data-color-mode='dark'] .text-green-600 { color: #5ebd88; }
+html[data-color-mode='dark'] .border-emerald-200 { border-color: #2a4d3e; }
+html[data-color-mode='dark'] .bg-emerald-100 { background-color: #1b302b; }
+/* Reading preview inner box text legibility */
+html[data-color-mode='dark'] [class*='text-ink'],
+html[data-color-mode='dark'] .text-slate-800 { color: #dde8f2; }
+/* sun/20 icon backgrounds → muted teal */
+html[data-color-mode='dark'] [class*='bg-sun\/20'] { background-color: #253a4a !important; }
+html[data-color-mode='dark'] [class*='bg-sun\/25'] { background-color: #253a4a !important; }
+html[data-color-mode='dark'] [class*='bg-sun\/30'] { background-color: #2a3f55 !important; }
+/* Active lesson step in sidebar */
+html[data-color-mode='dark'] [aria-current='step'] { background-color: #2a3a1e !important; color: #c8e6b0 !important; }
+/* Blue/yellow tint backgrounds on learning steps */
+html[data-color-mode='dark'] [class*='bg-[#EDF3FD]'] { background-color: #192a3d; color: #d0e4f8; }
+html[data-color-mode='dark'] [class*='bg-[#FFF1C7]'] { background-color: #2a3f55 !important; color: #d8ecff !important; }
+/* Hover states on nav/sidebar links */
+html[data-color-mode='dark'] [class*='hover:bg-slate-50']:hover,
+html[data-color-mode='dark'] [class*='hover:bg-slate-100']:hover { background-color: #202d3d; }
+html[data-color-mode='dark'] .bg-slate-50 { background-color: #1a2738; }
+html[data-color-mode='dark'] .bg-slate-100 { background-color: #1e2d3d; }
+/* Progress bars track */
+html[data-color-mode='dark'] [class*='bg-slate-200\/70'] { background-color: #2b3a4a; }
+/* Violet / indigo tones */
+html[data-color-mode='dark'] [class*='bg-violet-600'] { background-color: #6d4dd6; }
+html[data-color-mode='dark'] [class*='text-violet-500'],
+html[data-color-mode='dark'] [class*='text-violet-600'] { color: #b39df8; }
+/* Notification badge */
+html[data-color-mode='dark'] .bg-red-500 { background-color: #cc3344; }
+
 @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
 :focus-visible { outline: 3px solid var(--color-sun); outline-offset: 3px; border-radius: 12px; }
 .scrollbar-none { scrollbar-width: none; }
