@@ -1,30 +1,47 @@
 'use client';
 import { useEffect, useState } from 'react';
+import Link from 'next/link';
 import { useUser } from '@clerk/nextjs';
 import {
+  ArrowRight,
   Bell,
   Check,
   ChevronRight,
   CircleHelp,
+  Compass,
+  Download,
+  Eye,
+  KeyRound,
   Mail,
   Moon,
   Palette,
+  PanelLeftClose,
+  PanelLeftOpen,
   Phone,
   RotateCcw,
   Shield,
   ShieldCheck,
+  Sliders,
   Sparkles,
+  Sprout,
   Sun,
+  Target,
   Type,
   User,
-  Compass,
-  Eye,
-  Sliders,
+  X,
+  Zap,
 } from 'lucide-react';
-import { Card } from '@/components/ui';
+import { Bar, Card, Ring } from '@/components/ui';
 import { useApp } from '@/store/useApp';
-import { useLearnerProfile } from '@/components/LearnerDataSync';
+import { useLearnerAccount, useLearnerProfile } from '@/components/LearnerDataSync';
+import { coursesForClass } from '@/lib/course-access';
 import type { DyslexiaFont, DyslexiaSpacing, DyslexiaLineHeight, ReadingTint } from '@/types';
+
+const ACTIONS = [
+  ['Change Password', KeyRound],
+  ['Manage Notifications', Bell],
+  ['Download Offline Content', Download],
+] as const;
 
 const SECTIONS = [
   { id: 'Account', text: 'Profile, personal info and security', icon: User },
@@ -394,7 +411,7 @@ function AppearanceSection() {
                   type="button"
                   aria-pressed={selected}
                   onClick={() => setPrefs({ scale: sz.id })}
-                  className={`h-11 rounded-xl border-2 px-3 text-[14px] font-bold transition ${
+                  className={`h-10 sm:h-11 min-w-0 truncate rounded-xl border-2 px-2 sm:px-3 text-xs sm:text-[13px] font-bold text-center transition ${
                     selected
                       ? 'border-sun bg-sun text-navy'
                       : 'border-line bg-white text-slate-700 hover:bg-slate-50'
@@ -512,7 +529,7 @@ function NotificationsSection() {
         {savedMsg && <p className="mt-3 rounded-lg bg-emerald-50 px-3 py-1.5 text-[13px] font-semibold text-emerald-700">Notification preferences updated ✓</p>}
 
         <div className="mt-5 space-y-4 divide-y divide-line">
-          <div className="flex items-center justify-between pt-3">
+          <div className="flex items-center justify-between gap-3 pt-3">
             <div>
               <b className="block text-[15px] text-navy">Daily Streak Reminders</b>
               <span className="text-[13px] text-slate-500">Get a reminder to keep your daily learning streak burning.</span>
@@ -526,7 +543,7 @@ function NotificationsSection() {
             </button>
           </div>
 
-          <div className="flex items-center justify-between pt-4">
+          <div className="flex items-center justify-between gap-3 pt-4">
             <div>
               <b className="block text-[15px] text-navy">New Course &amp; Curriculum Alerts</b>
               <span className="text-[13px] text-slate-500">Notify me when new past papers and lessons are published from Sharebility.</span>
@@ -595,7 +612,7 @@ function LearningPreferencesSection() {
           <div>
             <label className="text-[14px] font-bold text-navy">Daily Lesson Goal</label>
             <p className="text-[12.5px] text-slate-500">How many lessons do you want to aim to complete each day?</p>
-            <div className="mt-2.5 grid grid-cols-4 gap-2.5">
+            <div className="mt-2.5 grid grid-cols-2 sm:grid-cols-4 gap-2.5">
               {[
                 { count: '1', desc: '1 Lesson (Casual)' },
                 { count: '2', desc: '2 Lessons (Regular)' },
@@ -767,12 +784,259 @@ function HelpSupportSection() {
   );
 }
 
-export default function SettingsPanel() {
-  const [sec, setSec] = useState('Account');
+function AccountSection({ onSwitchTab }: { onSwitchTab: (tab: string) => void }) {
+  const { data } = useLearnerAccount();
   const profile = useLearnerProfile();
   const { user } = useUser();
+  const [modalType, setModalType] = useState<'password' | 'offline' | null>(null);
+
   const fullName = [profile?.firstName, profile?.lastName].filter(Boolean).join(' ') || 'Learner';
   const initials = fullName.split(/\s+/).map((part) => part[0]).slice(0, 2).join('').toUpperCase();
+
+  const courses = coursesForClass(data?.courses ?? [], profile.educationLevel);
+  const courseIds = new Set(courses.map((course) => course.id));
+  const totalLessons = courses.reduce((total, course) => total + course.lessons.length, 0);
+  const completedLessons = (data?.courseProgress ?? [])
+    .filter((progress) => courseIds.has(progress.courseId))
+    .reduce((total, progress) => total + progress.completedLessonIndexes.length, 0);
+  const progressPercent = totalLessons ? Math.round((completedLessons / totalLessons) * 100) : 0;
+
+  const handleAction = (title: string) => {
+    if (title === 'Manage Notifications') {
+      onSwitchTab('Notifications');
+    } else if (title === 'Change Password') {
+      setModalType('password');
+    } else if (title === 'Download Offline Content') {
+      setModalType('offline');
+    }
+  };
+
+  const field = 'mt-1 flex h-[40px] min-w-0 items-center rounded-lg border border-line bg-[#F8FAFD] px-3 text-[13.5px] font-medium text-slate-800';
+
+  return (
+    <div className="flex min-w-0 flex-col gap-4">
+      {/* Account Profile Card */}
+      <Card className="p-4 sm:p-5">
+        <div className="flex flex-wrap items-center justify-between gap-2 border-b border-line/60 pb-3">
+          <div>
+            <h2 className="text-base font-bold text-navy sm:text-[18px]">Account Profile</h2>
+            <p className="text-xs text-slate-500">Your profile is read-only. Contact an administrator to update personal identity.</p>
+          </div>
+          <span className="inline-flex items-center gap-1.5 rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-semibold text-slate-600">
+            <span className="h-1.5 w-1.5 rounded-full bg-slate-400" />
+            Read-Only
+          </span>
+        </div>
+
+        {/* Profile Avatar & Info Row */}
+        <div className="mt-4 flex items-center gap-3 sm:gap-4">
+          <span
+            aria-hidden="true"
+            className="grid h-12 w-12 sm:h-14 sm:w-14 shrink-0 place-items-center rounded-full bg-navy text-base font-bold text-white shadow-xs"
+            style={user?.imageUrl ? { backgroundImage: `url("${user.imageUrl}")`, backgroundPosition: 'center', backgroundSize: 'cover' } : undefined}
+          >
+            {user?.imageUrl ? null : initials}
+          </span>
+          <div className="min-w-0 flex-1">
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="text-base font-extrabold text-navy truncate">{fullName}</span>
+              <span className="rounded-md bg-sun/25 px-2 py-0.5 text-[11px] font-bold text-navy">
+                {profile?.educationLevel || 'Class: P.1'}
+              </span>
+            </div>
+            <p className="text-xs text-slate-500 mt-0.5">Learner Profile • Only administrators can modify identity details.</p>
+          </div>
+        </div>
+
+        {/* Profile Fields Grid */}
+        <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4">
+          <label className="min-w-0 text-xs font-semibold text-slate-700">
+            Full Name
+            <div className={field}><span className="truncate">{fullName}</span></div>
+          </label>
+          <label className="min-w-0 text-xs font-semibold text-slate-700">
+            Grade / Class
+            <div className={field}><span className="truncate">{profile?.educationLevel || 'Not specified'}</span></div>
+          </label>
+          <label className="min-w-0 text-xs font-semibold text-slate-700">
+            Email Address
+            <div className={`${field} justify-between`}>
+              <span className="truncate">{profile?.email || 'Loading profile…'}</span>
+              <Mail className="h-4 w-4 shrink-0 text-slate-400" />
+            </div>
+          </label>
+          <label className="min-w-0 text-xs font-semibold text-slate-700">
+            Phone Number
+            <div className={`${field} justify-between`}>
+              <span className="truncate">{profile?.contact || 'Not provided'}</span>
+              <Phone className="h-4 w-4 shrink-0 text-slate-400" />
+            </div>
+          </label>
+        </div>
+
+        {/* Integrated Clerk Security Row */}
+        <div className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-emerald-100 bg-emerald-50/70 p-3 sm:px-4">
+          <div className="flex items-center gap-2.5">
+            <span className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-emerald-100 text-emerald-700">
+              <ShieldCheck className="h-4 w-4" />
+            </span>
+            <div>
+              <p className="text-xs font-bold text-emerald-900">Sign-in secured by Clerk</p>
+              <p className="text-[11.5px] text-slate-600">Password and credentials managed securely</p>
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="inline-flex items-center gap-1 rounded-full bg-emerald-100 px-2 py-0.5 text-[11px] font-bold text-emerald-800">
+              <span className="h-1.5 w-1.5 rounded-full bg-emerald-600" />
+              Secured
+            </span>
+            <button
+              type="button"
+              onClick={() => handleAction('Change Password')}
+              className="rounded-lg border border-emerald-200 bg-white px-2.5 py-1 text-xs font-bold text-emerald-800 shadow-xs transition hover:bg-emerald-50"
+            >
+              Password Details
+            </button>
+          </div>
+        </div>
+      </Card>
+
+      {/* Account Overview, Learning Goals & Quick Actions */}
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+        {/* Keep Going Banner */}
+        <div className="relative flex min-h-[140px] flex-col justify-between overflow-hidden rounded-2xl border border-sun/30 bg-gradient-to-br from-sun/25 via-[#FEF1CF] to-sun/10 p-4 shadow-xs">
+          <div className="relative z-10 flex items-start gap-2.5">
+            <Sprout className="mt-0.5 h-6 w-6 shrink-0 text-sun-dark" />
+            <div className="min-w-0">
+              <h3 className="text-sm font-bold text-slate-900 leading-tight">Keep Going, {profile?.firstName || 'Learner'}!</h3>
+              <p className="mt-1 text-xs text-slate-600 leading-snug">Small steps every day lead to big dreams.</p>
+            </div>
+          </div>
+          <div className="relative z-10 mt-3 flex items-center justify-between text-[11.5px] font-semibold text-sun-dark">
+            <span>Sautika Learning Hub</span>
+            <span className="text-[10.5px] opacity-75">Keep it up! 🌟</span>
+          </div>
+        </div>
+
+        {/* Learning Goals */}
+        <div className="flex flex-col justify-between rounded-2xl border border-slate-100 bg-white p-4 shadow-xs">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <span className="grid h-7 w-7 place-items-center rounded-lg bg-sun/20 text-navy">
+                <Target className="h-4 w-4" />
+              </span>
+              <h3 className="text-sm font-bold text-slate-900">Learning Goals</h3>
+            </div>
+            <Link href="/progress" className="inline-flex items-center gap-1 text-[11px] font-bold text-navy hover:text-sun-dark">
+              Progress <ArrowRight className="h-3 w-3" />
+            </Link>
+          </div>
+          <div className="mt-3 flex items-center gap-3">
+            <Ring v={progressPercent} size={64} stroke={6}>
+              <span className="text-sm font-bold text-slate-900">{progressPercent}%</span>
+            </Ring>
+            <div className="min-w-0 flex-1">
+              <p className="text-xs font-bold text-slate-800">Lesson Completion</p>
+              <p className="text-[11px] text-slate-500">{completedLessons} of {totalLessons} completed</p>
+              <div className="mt-1.5"><Bar v={progressPercent} color="#12A36B" /></div>
+            </div>
+          </div>
+        </div>
+
+        {/* Quick Actions */}
+        <div className="flex flex-col justify-between rounded-2xl border border-slate-100 bg-white p-4 shadow-xs">
+          <div className="flex items-center gap-2">
+            <span className="grid h-7 w-7 place-items-center rounded-lg bg-sun/20 text-navy">
+              <Zap className="h-4 w-4" />
+            </span>
+            <h3 className="text-sm font-bold text-slate-900">Quick Actions</h3>
+          </div>
+          <div className="mt-2.5 flex flex-col gap-1.5">
+            {ACTIONS.map(([t, I]) => (
+              <button
+                key={t}
+                type="button"
+                onClick={() => handleAction(t)}
+                className="flex items-center gap-2.5 rounded-lg px-2 py-1.5 text-left text-xs font-semibold text-slate-700 transition hover:bg-slate-50"
+              >
+                <I className="h-3.5 w-3.5 text-navy shrink-0" />
+                <span className="flex-1 truncate">{t}</span>
+                <ChevronRight className="h-3.5 w-3.5 text-slate-400 shrink-0" />
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* Action Modals */}
+      {modalType === 'password' && (
+        <div role="dialog" aria-modal aria-label="Change Password" className="fixed inset-0 z-50 grid place-items-center bg-black/50 p-4">
+          <div className="w-full max-w-[440px] rounded-2xl bg-white p-6 shadow-2xl">
+            <div className="flex items-center justify-between">
+              <h3 className="flex items-center gap-2 text-xl font-bold text-navy">
+                <Shield className="h-5 w-5 text-blue-600" /> Account Password
+              </h3>
+              <button aria-label="Close" onClick={() => setModalType(null)}>
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+            <p className="mt-3 text-sm text-slate-600 leading-relaxed">
+              Your credentials and sign-in methods are managed securely through Clerk authentication. To reset your password, visit the sign-in portal or consult your administrator.
+            </p>
+            <div className="mt-4 rounded-xl bg-slate-50 p-3.5 text-[13px] text-slate-700">
+              <b>Primary Email:</b> {profile?.email || 'Learner Account'}
+            </div>
+            <div className="mt-5 flex gap-3">
+              <button
+                type="button"
+                onClick={() => setModalType(null)}
+                className="h-11 flex-1 rounded-xl border border-line font-semibold text-slate-700 hover:bg-slate-50"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {modalType === 'offline' && (
+        <div role="dialog" aria-modal aria-label="Offline Content" className="fixed inset-0 z-50 grid place-items-center bg-black/50 p-4">
+          <div className="w-full max-w-[440px] rounded-2xl bg-white p-6 shadow-2xl">
+            <div className="flex items-center justify-between">
+              <h3 className="flex items-center gap-2 text-xl font-bold text-navy">
+                <Download className="h-5 w-5 text-emerald-600" /> Offline Content
+              </h3>
+              <button aria-label="Close" onClick={() => setModalType(null)}>
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+            <p className="mt-3 text-sm text-slate-600 leading-relaxed">
+              All 37 curriculum courses across Baby Class to S.6 and 6,485 Sharebility resources are cached on your device.
+            </p>
+            <div className="mt-4 space-y-2 rounded-xl bg-emerald-50 p-4 text-[13px] text-emerald-900">
+              <p className="flex items-center gap-2 font-bold"><Check className="h-4 w-4 text-emerald-700" /> Baby class to top class: Available offline</p>
+              <p className="flex items-center gap-2 font-bold"><Check className="h-4 w-4 text-emerald-700" /> P.1 to P.4 curriculum: Available offline</p>
+              <p className="flex items-center gap-2 font-bold"><Check className="h-4 w-4 text-emerald-700" /> P.5 to P.7 curriculum: Available offline</p>
+              <p className="flex items-center gap-2 font-bold"><Check className="h-4 w-4 text-emerald-700" /> S.1 to S.4 O-Level: Available offline</p>
+              <p className="flex items-center gap-2 font-bold"><Check className="h-4 w-4 text-emerald-700" /> S.5 to S.6 A-Level: Available offline</p>
+            </div>
+            <button
+              type="button"
+              onClick={() => setModalType(null)}
+              className="mt-5 h-11 w-full rounded-xl bg-sun font-bold text-navy hover:bg-sun-dark"
+            >
+              Done
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+export default function SettingsPanel() {
+  const [sec, setSec] = useState('Account');
+  const [isNavHidden, setIsNavHidden] = useState(false);
 
   useEffect(() => {
     const handleSwitchTab = (e: CustomEvent<string>) => {
@@ -785,100 +1049,121 @@ export default function SettingsPanel() {
   }, []);
 
   return (
-    <div className="mt-6 grid min-w-0 gap-5 lg:grid-cols-[minmax(250px,0.75fr)_minmax(0,2fr)] xl:grid-cols-[minmax(250px,0.7fr)_minmax(0,2fr)]">
-      {/* Left Navigation */}
-      <Card className="min-w-0 self-start p-2.5">
-        {SECTIONS.map(({ id, text, icon: I }) => (
-          <button
-            key={id}
-            aria-current={sec === id}
-            onClick={() => setSec(id)}
-            className="flex min-w-0 w-full items-center gap-3 rounded-xl px-3 py-3.5 text-left aria-[current=true]:bg-[#FFF3D0]"
-          >
-            <span
-              className={`grid h-11 w-11 shrink-0 place-items-center rounded-full ${
-                sec === id ? 'bg-sun' : 'border border-line bg-white'
-              }`}
+    <div className={`mt-4 grid min-w-0 gap-5 transition-all duration-200 ${
+      isNavHidden
+        ? 'grid-cols-1'
+        : 'lg:grid-cols-[minmax(240px,280px)_minmax(0,1fr)]'
+    }`}>
+      {/* Left Navigation Bar */}
+      {!isNavHidden && (
+        <Card className="min-w-0 self-start p-2.5 w-full">
+          {/* Navigation Bar Header with Hide Icon */}
+          <div className="flex items-center justify-between px-2.5 py-1.5 mb-1 border-b border-line/60">
+            <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">Navigation</span>
+            <button
+              type="button"
+              onClick={() => setIsNavHidden(true)}
+              title="Hide navigation bar"
+              aria-label="Hide navigation bar"
+              className="flex h-7 w-7 items-center justify-center rounded-lg text-slate-400 transition hover:bg-slate-100 hover:text-navy"
             >
-              <I className="h-5 w-5" />
-            </span>
-            <span className="min-w-0 flex-1 break-words text-[15px] font-bold leading-tight">
-              {id}
-              <span className="block text-[12.5px] font-normal text-slate-500">{text}</span>
-            </span>
-            <ChevronRight className="h-4 w-4 shrink-0" />
-          </button>
-        ))}
-      </Card>
+              <PanelLeftClose className="h-4 w-4" />
+            </button>
+          </div>
 
-      {/* Right Content */}
-      {sec === 'Appearance' ? (
-        <AppearanceSection />
-      ) : sec === 'Account' ? (
-        <div className="flex min-w-0 h-full flex-col gap-4">
-          <Card className="p-6">
-            <h2 className="text-[19px] font-extrabold">Account Profile</h2>
-            <p className="mt-1 text-[14px] text-slate-500">Your profile is read-only. Contact an administrator to update your account details.</p>
-            <div className="mt-4 flex items-center gap-4">
-              <span
-                aria-hidden="true"
-                className="grid h-[72px] w-[72px] shrink-0 place-items-center rounded-full bg-navy text-lg font-bold text-white"
-                style={user?.imageUrl ? { backgroundImage: `url("${user.imageUrl}")`, backgroundPosition: 'center', backgroundSize: 'cover' } : undefined}
-              >{user?.imageUrl ? null : initials}</span>
-              <div><b className="text-[14px]">Learner Profile</b><p className="text-[12.5px] text-slate-500">Only administrators can change your identity details.</p></div>
-            </div>
-            <div className="mt-5 grid gap-x-7 gap-y-4 2xl:grid-cols-2">
-              <label className="min-w-0 text-[13px] font-semibold">
-                Full Name<div className={field}>{fullName}</div>
-              </label>
-              <label className="min-w-0 text-[13px] font-semibold">
-                Grade / Class
-                <div className={field}>{profile?.educationLevel || 'Not specified'}</div>
-              </label>
-              <label className="min-w-0 text-[13px] font-semibold">
-                Email Address
-                <div className={`${field} justify-between`}><span className="truncate">{profile?.email || 'Loading profile…'}</span><Mail className="h-4 w-4 shrink-0 text-slate-500" /></div>
-              </label>
-              <label className="min-w-0 text-[13px] font-semibold">
-                Phone Number
-                <div className={`${field} justify-between`}><span className="truncate">{profile?.contact || 'Not provided'}</span><Phone className="h-4 w-4 shrink-0 text-slate-500" /></div>
-              </label>
-            </div>
-          </Card>
-          <section className="mt-auto rounded-2xl border border-slate-200/60 bg-slate-50/80 p-5">
-            <div className="flex items-center gap-3">
-              <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-sun/20 text-navy">
-                <ShieldCheck aria-hidden="true" className="h-5 w-5" />
-              </span>
-              <div>
-                <h3 className="text-base font-bold tracking-tight text-slate-900">Account Security</h3>
-                <p className="text-sm leading-relaxed text-slate-600">Keep your account safe and secure.</p>
-              </div>
-            </div>
-            <div className="mt-4 flex flex-col gap-3 rounded-xl border border-emerald-100 bg-white/80 p-4 sm:flex-row sm:items-center">
-              <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-emerald-50 text-emerald-700">
-                <ShieldCheck aria-hidden="true" className="h-5 w-5" />
-              </span>
-              <div className="min-w-0 flex-1">
-                <p className="text-sm font-semibold text-emerald-800">Sign-in secured by Clerk</p>
-                <p className="mt-0.5 text-xs leading-relaxed text-slate-600">Administrators manage profile and credential changes through the Clerk Dashboard.</p>
-              </div>
-              <span className="inline-flex w-fit shrink-0 items-center gap-1.5 rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-800">
-                <span aria-hidden="true" className="h-2 w-2 rounded-full bg-emerald-600" />
-                Secured
+          {/* Section Items */}
+          <div className="flex flex-col gap-1">
+            {SECTIONS.map(({ id, text, icon: I }) => {
+              const active = sec === id;
+              return (
+                <button
+                  key={id}
+                  aria-current={active}
+                  onClick={() => setSec(id)}
+                  className={`flex min-w-0 w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left transition-colors ${
+                    active ? 'bg-sun/30 text-navy font-bold shadow-xs' : 'text-slate-600 hover:bg-slate-50'
+                  }`}
+                >
+                  <span
+                    className={`grid h-9 w-9 shrink-0 place-items-center rounded-lg transition-colors ${
+                      active ? 'bg-sun text-navy' : 'border border-line bg-white text-slate-600'
+                    }`}
+                  >
+                    <I className="h-4 w-4" />
+                  </span>
+                  <span className="min-w-0 flex-1 break-words text-[14px] leading-tight">
+                    {id}
+                    <span className="block text-[11.5px] font-normal text-slate-500">{text}</span>
+                  </span>
+                  <ChevronRight className={`h-4 w-4 shrink-0 transition-transform ${active ? 'text-navy translate-x-0.5' : 'text-slate-400'}`} />
+                </button>
+              );
+            })}
+          </div>
+        </Card>
+      )}
+
+      {/* Main Content Area */}
+      <div className="flex min-w-0 flex-col">
+        {/* Toggle to show navigation bar when hidden */}
+        {isNavHidden && (
+          <div className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-line bg-white px-3.5 py-2 shadow-xs">
+            <div className="flex items-center gap-2.5">
+              <button
+                type="button"
+                onClick={() => setIsNavHidden(false)}
+                title="Show navigation bar"
+                aria-label="Show navigation bar"
+                className="inline-flex items-center gap-2 rounded-lg bg-sun/25 px-2.5 py-1.5 text-xs font-bold text-navy transition hover:bg-sun"
+              >
+                <PanelLeftOpen className="h-4 w-4" />
+                <span>Show Navigation</span>
+              </button>
+              <span className="text-xs text-slate-300">|</span>
+              <span className="text-xs font-medium text-slate-500">
+                Viewing: <strong className="text-navy">{sec}</strong>
               </span>
             </div>
-          </section>
-        </div>
-      ) : sec === 'Notifications' ? (
-        <NotificationsSection />
-      ) : sec === 'Learning Preferences' ? (
-        <LearningPreferencesSection />
-      ) : sec === 'Privacy & Security' ? (
-        <PrivacySecuritySection />
-      ) : sec === 'Help & Support' ? (
-        <HelpSupportSection />
-      ) : null}
+
+            {/* Quick tab switcher pills when navigation is hidden */}
+            <div className="flex items-center gap-1 overflow-x-auto">
+              {SECTIONS.map(({ id, icon: I }) => {
+                const active = sec === id;
+                return (
+                  <button
+                    key={id}
+                    type="button"
+                    onClick={() => setSec(id)}
+                    title={id}
+                    aria-label={id}
+                    className={`flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-xs font-medium transition ${
+                      active ? 'bg-sun text-navy font-bold' : 'text-slate-600 hover:bg-slate-100'
+                    }`}
+                  >
+                    <I className="h-3.5 w-3.5" />
+                    <span className="hidden sm:inline">{id}</span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {/* Content sections */}
+        {sec === 'Appearance' ? (
+          <AppearanceSection />
+        ) : sec === 'Account' ? (
+          <AccountSection onSwitchTab={setSec} />
+        ) : sec === 'Notifications' ? (
+          <NotificationsSection />
+        ) : sec === 'Learning Preferences' ? (
+          <LearningPreferencesSection />
+        ) : sec === 'Privacy & Security' ? (
+          <PrivacySecuritySection />
+        ) : sec === 'Help & Support' ? (
+          <HelpSupportSection />
+        ) : null}
+      </div>
     </div>
   );
 }

@@ -34,39 +34,79 @@ export default function CoursesPage() {
   return (
     <div className="mx-auto grid max-w-[1330px] gap-6 xl:grid-cols-12">
       <div className="min-w-0 xl:col-span-9">
-        <div className="flex flex-wrap items-start justify-between gap-5">
-          <div>
-            <p className="flex items-center gap-2 text-[13px] font-bold"><GraduationCap className="h-5 w-5 text-sun" />OUR COURSES</p>
-            <h1 className="mt-1 text-[32px] font-extrabold leading-tight sm:text-[40px]">Explore Courses</h1>
-            <p className="mt-1 text-[15px] text-slate-500 sm:text-[17px]">Choose a subject and start your learning journey.</p>
+        <div className="flex flex-wrap items-start justify-between gap-4">
+          <div className="min-w-0 flex-1">
+            <p className="flex items-center gap-2 text-xs font-bold tracking-wider text-slate-500 sm:text-[13px]"><GraduationCap className="h-4 w-4 text-sun-dark" />OUR COURSES</p>
+            <h1 className="mt-1 text-2xl font-extrabold leading-tight text-slate-900 sm:text-[34px] lg:text-[38px]">Explore Courses</h1>
+            <p className="mt-0.5 text-xs text-slate-500 sm:text-[14px]">Choose a subject and start your learning journey.</p>
           </div>
-          <div className="relative flex w-full max-w-[355px] items-center gap-4 overflow-hidden rounded-2xl bg-[#FEF8DE] p-5">
-            <span className="grid h-[60px] w-[60px] shrink-0 place-items-center rounded-full bg-sun sm:h-[68px] sm:w-[68px]"><BookOpen className="h-7 w-7 text-white sm:h-8 sm:w-8" /></span>
-            <div className="min-w-0"><b className="text-[20px] sm:text-[22px]">Keep Learning!</b><p className="mt-0.5 text-[12px] text-slate-600 sm:text-[13px]">Small steps every day lead to big dreams.</p>
-              <Link href="/learning" className="mt-3 inline-flex h-9 items-center gap-1.5 whitespace-nowrap rounded-lg bg-sun px-2.5 text-[12px] font-bold sm:gap-2 sm:px-4 sm:text-[13px]">Continue Learning <ArrowRight className="h-3.5 w-3.5 shrink-0" /></Link></div>
-            <Image src="/images/promo-plant.png" alt="" width={70} height={70} className="absolute bottom-0 right-1 hidden h-auto w-[70px] sm:block" />
+          <div className="relative flex w-full max-w-[340px] items-center gap-3.5 overflow-hidden rounded-2xl bg-[#FEF8DE] p-4 sm:p-5">
+            <span className="grid h-12 w-12 shrink-0 place-items-center rounded-full bg-sun sm:h-14 sm:w-14">
+              <BookOpen className="h-6 w-6 text-navy sm:h-7 sm:w-7" />
+            </span>
+            <div className="min-w-0 flex-1">
+              <b className="block text-[17px] sm:text-[19px] leading-tight">Keep Learning!</b>
+              <p className="mt-0.5 truncate text-[11.5px] text-slate-600 sm:text-xs">Small steps lead to big dreams.</p>
+              <Link href="/learning" className="mt-2.5 inline-flex h-8 items-center gap-1.5 whitespace-nowrap rounded-lg bg-sun px-3 text-xs font-bold text-navy shadow-xs transition hover:bg-sun-dark">
+                Continue Learning <ArrowRight className="h-3 w-3 shrink-0" />
+              </Link>
+            </div>
+            <Image src="/images/promo-plant.png" alt="" width={70} height={70} className="absolute bottom-0 right-1 hidden h-auto w-16 sm:block opacity-75" />
           </div>
         </div>
         <Suspense fallback={<p className="py-8 text-center text-slate-500">Loading courses…</p>}>
-          <CoursesExplorer />
+          <div className="mt-5">
+            <CoursesExplorer />
+          </div>
         </Suspense>
       </div>
-      <aside className="min-w-0 space-y-4 xl:col-span-3 xl:mt-1">
-        <Card className="p-6">
-          <h2 className="flex items-center gap-3 text-[18px] font-extrabold"><ChartNoAxesColumn className="h-8 w-8 text-blue-600" /><span>Your Learning Progress<span className="block text-[12px] font-medium text-slate-500">Keep going! You&apos;re making great progress.</span></span></h2>
-          <div className="mt-5 flex items-center gap-5 border-b border-line pb-5"><Ring v={completion} size={104} stroke={9}><span className="text-[26px]">{completion}%</span></Ring><div><b className="text-[16px]">Overall Progress</b><p className="mt-1 text-[12px] text-slate-500">{completedLessons} of {totalLessons} lessons completed</p></div></div>
-          <ul className="mt-5 space-y-5">
+      <aside className="min-w-0 space-y-4 xl:col-span-3">
+        <Card className="p-4 sm:p-5">
+          <h2 className="flex items-center gap-2.5 text-[16px] sm:text-[17px] font-extrabold">
+            <ChartNoAxesColumn className="h-6 w-6 shrink-0 text-blue-600" />
+            <span className="min-w-0 flex-1">
+              <span className="block truncate">Your Progress</span>
+              <span className="block text-[11px] font-medium text-slate-500 truncate">Making great progress!</span>
+            </span>
+          </h2>
+          <div className="mt-4 flex items-center gap-3.5 border-b border-line pb-4 sm:gap-4 sm:pb-5">
+            <Ring v={completion} size={84} stroke={8}>
+              <span className="text-[20px] font-extrabold">{completion}%</span>
+            </Ring>
+            <div className="min-w-0 flex-1">
+              <b className="block text-sm sm:text-[15px]">Overall Progress</b>
+              <p className="mt-0.5 text-xs text-slate-500">{completedLessons} of {totalLessons} completed</p>
+            </div>
+          </div>
+          <ul className="mt-4 space-y-3.5">
             {Array.from(categoryProgress, ([category, values]) => {
               const subject = SUBJECT_BY_CATEGORY[category];
               const { icon: Icon, color } = SUBJECTS[subject];
               const percent = values.total ? Math.round((values.done / values.total) * 100) : 0;
               return (
-                <li key={category} className="flex items-center gap-3"><span className="grid h-10 w-10 place-items-center rounded-full text-white" style={{ background: color }}><Icon className="h-5 w-5" /></span>
-                  <div className="flex-1"><p className="flex justify-between text-[13px] font-bold">{category}<span className="font-medium text-slate-500">{values.done}/{values.total}</span></p><Bar v={percent} color={color} className="mt-1.5 h-1.5" /></div></li>
+                <li key={category} className="flex min-w-0 items-center gap-2.5">
+                  <span className="grid h-8 w-8 shrink-0 place-items-center rounded-full text-white shadow-xs" style={{ background: color }}>
+                    <Icon className="h-4 w-4" />
+                  </span>
+                  <div className="min-w-0 flex-1">
+                    <p className="flex items-center justify-between gap-1.5 text-xs font-bold">
+                      <span className="truncate">{category}</span>
+                      <span className="shrink-0 font-medium text-slate-500">{values.done}/{values.total}</span>
+                    </p>
+                    <Bar v={percent} color={color} className="mt-1 h-1.5" />
+                  </div>
+                </li>
               );
             })}
           </ul>
-          <Link href="/progress" className="mt-6 flex items-center gap-3 rounded-xl bg-[#EAF4FE] p-4 text-[12.5px]"><Star className="h-6 w-6 shrink-0 text-blue-600" /><span><b className="block text-[14px] text-blue-700">You&apos;re doing great!</b>Complete more lessons to earn coins and keep your streak alive.</span><ArrowRight className="h-4 w-4 shrink-0 text-blue-600" /></Link>
+          <Link href="/progress" className="mt-5 flex items-center gap-2.5 rounded-xl bg-[#EAF4FE] p-3 text-xs transition hover:bg-blue-100/80">
+            <Star className="h-5 w-5 shrink-0 text-blue-600" />
+            <span className="min-w-0 flex-1">
+              <b className="block text-[13px] text-blue-700 leading-tight">You&apos;re doing great!</b>
+              <span className="block text-[11px] text-slate-600 leading-tight">Complete lessons to earn coins.</span>
+            </span>
+            <ArrowRight className="h-3.5 w-3.5 shrink-0 text-blue-600" />
+          </Link>
         </Card>
       </aside>
     </div>

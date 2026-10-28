@@ -182,9 +182,9 @@ export default function CoursesExplorer() {
                     : 'border-line bg-white text-slate-700 hover:border-slate-300 hover:bg-slate-50'
                 }`}
               >
-                <span>{label}</span>
+                <span className="whitespace-nowrap">{label}</span>
                 <span
-                  className={`rounded-full px-2 py-0.5 text-[11px] font-semibold ${
+                  className={`whitespace-nowrap rounded-full px-2 py-0.5 text-[11px] font-semibold ${
                     isSelected ? 'bg-navy/15 text-navy' : 'bg-slate-100 text-slate-500'
                   }`}
                 >
@@ -203,7 +203,7 @@ export default function CoursesExplorer() {
           <button
             type="button"
             onClick={() => setSubClass('All')}
-            className={`h-8 rounded-full border px-3 text-[12px] font-semibold transition ${
+            className={`whitespace-nowrap h-8 rounded-full border px-3 text-[12px] font-semibold transition ${
               subClass === 'All'
                 ? 'border-navy bg-navy text-white'
                 : 'border-line bg-white text-slate-600 hover:bg-slate-50'
@@ -216,7 +216,7 @@ export default function CoursesExplorer() {
               key={sc}
               type="button"
               onClick={() => setSubClass(sc)}
-              className={`h-8 rounded-full border px-3 text-[12px] font-semibold transition ${
+              className={`whitespace-nowrap h-8 rounded-full border px-3 text-[12px] font-semibold transition ${
                 subClass === sc
                   ? 'border-navy bg-navy text-white'
                   : 'border-line bg-white text-slate-600 hover:bg-slate-50'
@@ -236,7 +236,7 @@ export default function CoursesExplorer() {
             type="button"
             aria-pressed={subject === s}
             onClick={() => setSubject(s)}
-            className={`h-8 shrink-0 rounded-lg border px-3 text-[12.5px] font-semibold transition ${
+            className={`whitespace-nowrap h-8 shrink-0 rounded-lg border px-3 text-[12.5px] font-semibold transition ${
               subject === s
                 ? 'border-blue-600 bg-blue-50 text-blue-700'
                 : 'border-line bg-white text-slate-600 hover:bg-slate-50'
@@ -289,13 +289,13 @@ export default function CoursesExplorer() {
 
               <div className="flex flex-1 flex-col p-5">
                 <div className="flex items-start justify-between gap-2">
-                  <h3 className="text-[19px] font-extrabold leading-snug text-ink">{course.title}</h3>
-                  <span className="text-2xl" role="img" aria-hidden="true">
+                  <h3 className="min-w-0 flex-1 line-clamp-2 break-words text-[17px] sm:text-[18px] font-extrabold leading-snug text-ink">{course.title}</h3>
+                  <span className="shrink-0 text-xl sm:text-2xl" role="img" aria-hidden="true">
                     {course.emoji}
                   </span>
                 </div>
 
-                <p className="mt-1.5 text-[13px] font-semibold text-blue-700">
+                <p className="mt-1.5 truncate text-[12.5px] font-semibold text-blue-700">
                   {course.level} • {course.cat}
                 </p>
 

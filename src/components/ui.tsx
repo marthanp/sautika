@@ -29,8 +29,8 @@ export const Coin = ({ size = 28 }: { size?: number }) => (
   <span aria-hidden className="inline-grid shrink-0 place-items-center rounded-full border-[3px] border-[#F5A100] bg-[#FFC400] text-[#B97A00]" style={{ width: size, height: size }}><i className="block h-[45%] w-[45%] rounded-full border-2 border-[#E39A00]" /></span>
 );
 export const ViewAll = ({ href = '#', children = 'View All' }: { href?: string; children?: ReactNode }) => (
-  <Link href={href} className="ml-auto inline-flex shrink-0 items-center gap-1 whitespace-nowrap text-[13px] font-semibold text-blue-600">{children} <ArrowRight className="h-3.5 w-3.5 shrink-0" /></Link>
+  <Link href={href} className="ml-auto inline-flex shrink-0 items-center gap-1 whitespace-nowrap text-[13px] font-semibold text-blue-600 transition hover:text-blue-700">{children} <ArrowRight className="h-3.5 w-3.5 shrink-0" /></Link>
 );
 export const SubjectChip = ({ label, color }: { label: string; color: string }) => (
-  <span className="absolute left-3 top-3 rounded-full bg-white px-3 py-1 text-[13px] font-bold shadow-sm" style={{ color }}>{label}</span>
+  <span className="absolute left-3 top-3 max-w-[calc(100%-24px)] truncate rounded-full bg-white px-3 py-1 text-[12px] sm:text-[13px] font-bold shadow-sm" style={{ color }}>{label}</span>
 );

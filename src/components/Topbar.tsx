@@ -2,7 +2,19 @@
 import { useEffect, useState } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import { SignOutButton, useUser } from '@clerk/nextjs';
-import { Bell, Check, ChevronDown, LogOut, Moon, Search, Sparkles, Sun, X } from 'lucide-react';
+import {
+  Bell,
+  Check,
+  ChevronDown,
+  LogOut,
+  Moon,
+  PanelLeftClose,
+  PanelLeftOpen,
+  Search,
+  Sparkles,
+  Sun,
+  X,
+} from 'lucide-react';
 import { useApp } from '@/store/useApp';
 import { useLearnerProfile } from './LearnerDataSync';
 import { Logo } from './Logo';
@@ -46,6 +58,8 @@ export default function Topbar() {
   const profile = useLearnerProfile();
   const colorMode = useApp((state) => state.colorMode);
   const setPrefs = useApp((state) => state.setPrefs);
+  const sidebarHidden = useApp((state) => state.sidebarHidden);
+  const toggleSidebar = useApp((state) => state.toggleSidebar);
   const [searchVal, setSearchVal] = useState('');
   const [showNotifications, setShowNotifications] = useState(false);
   const [notifications, setNotifications] = useState<NotificationItem[]>(DEFAULT_NOTIFICATIONS);
@@ -68,7 +82,6 @@ export default function Topbar() {
     e.preventDefault();
     if (!searchVal.trim()) return;
     if (pathname === '/notebook') {
-      // In notebook page, let it search notes
       router.push(`/notebook?q=${encodeURIComponent(searchVal.trim())}`);
     } else {
       router.push(`/courses?q=${encodeURIComponent(searchVal.trim())}`);
@@ -84,27 +97,39 @@ export default function Topbar() {
   };
 
   return (
-    <header className="sticky top-0 z-30 flex min-h-[76px] flex-wrap items-center gap-1 border-b border-line bg-white/90 px-2 py-3 backdrop-blur sm:gap-3 sm:px-4 lg:min-h-[86px] lg:flex-nowrap lg:gap-4 lg:px-10 lg:py-0">
+    <header className="sticky top-0 z-30 flex min-h-[70px] flex-wrap items-center gap-2 border-b border-line bg-white/95 px-3 py-2.5 backdrop-blur sm:gap-3 sm:px-6 lg:min-h-[76px] lg:flex-nowrap lg:gap-4 lg:px-8">
+      {/* Mobile Logo */}
       <a href="/home" aria-label="Sautika Study Hub" className="order-1 mr-auto lg:hidden">
         <Logo dark compact />
       </a>
 
+      {/* Desktop Sidebar Toggle Button */}
+      <button
+        type="button"
+        onClick={toggleSidebar}
+        title={sidebarHidden ? 'Show navigation bar' : 'Hide navigation bar'}
+        aria-label={sidebarHidden ? 'Show navigation bar' : 'Hide navigation bar'}
+        className="order-1 hidden lg:flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-line bg-white text-navy shadow-xs transition hover:bg-slate-50"
+      >
+        {sidebarHidden ? <PanelLeftOpen className="h-5 w-5" /> : <PanelLeftClose className="h-5 w-5" />}
+      </button>
+
       {/* Functional Search Bar */}
-      <form onSubmit={handleSearchSubmit} className="order-2 relative w-full lg:order-1 lg:max-w-[600px] lg:flex-1">
+      <form onSubmit={handleSearchSubmit} className="order-2 relative w-full lg:order-1 lg:max-w-[560px] lg:flex-1">
         <span className="sr-only">Search</span>
         <button
           type="submit"
           aria-label="Submit search"
-          className="absolute left-4 top-1/2 -translate-y-1/2 text-navy"
+          className="absolute left-3.5 top-1/2 -translate-y-1/2 text-navy"
         >
-          <Search className="h-5 w-5" />
+          <Search className="h-4 w-4" />
         </button>
         <input
           type="search"
           value={searchVal}
           onChange={(e) => setSearchVal(e.target.value)}
           placeholder={placeholder}
-          className="h-[42px] w-full rounded-full bg-[#EDF3FB] pl-12 pr-4 text-[14px] placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-navy sm:h-[44px] sm:pl-14 sm:text-[15px]"
+          className="h-10 w-full rounded-full bg-[#EDF3FB] pl-10 pr-4 text-[13.5px] placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-navy sm:h-11 sm:pl-11 sm:text-[14px]"
         />
       </form>
 
@@ -118,11 +143,11 @@ export default function Topbar() {
           aria-pressed={colorMode === 'dark'}
           title={colorMode === 'light' ? 'Switch to dark mode' : 'Switch to light mode'}
           onClick={() => setPrefs({ colorMode: colorMode === 'light' ? 'dark' : 'light' })}
-          className="grid h-10 w-10 place-items-center rounded-full transition-colors hover:bg-slate-100 sm:h-11 sm:w-11"
+          className="grid h-10 w-10 place-items-center rounded-full transition-colors hover:bg-slate-100"
         >
           {colorMode === 'light'
-            ? <Moon className="h-5 w-5 text-navy sm:h-6 sm:w-6" />
-            : <Sun className="h-5 w-5 text-navy sm:h-6 sm:w-6" />}
+            ? <Moon className="h-5 w-5 text-navy" />
+            : <Sun className="h-5 w-5 text-navy" />}
         </button>
 
         {/* Functional Notifications Dropdown */}
@@ -132,9 +157,9 @@ export default function Topbar() {
             aria-label="Notifications"
             aria-expanded={showNotifications}
             onClick={() => setShowNotifications((prev) => !prev)}
-            className="relative grid h-10 w-10 place-items-center rounded-full transition-colors hover:bg-slate-100 sm:h-11 sm:w-11"
+            className="relative grid h-10 w-10 place-items-center rounded-full transition-colors hover:bg-slate-100"
           >
-            <Bell className="h-5 w-5 text-navy sm:h-6 sm:w-6" />
+            <Bell className="h-5 w-5 text-navy" />
             {unreadCount > 0 && (
               <span className="absolute right-2 top-1.5 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[10px] font-bold text-white">
                 {unreadCount}
@@ -199,7 +224,7 @@ export default function Topbar() {
           >
             <span
               aria-hidden="true"
-              className="grid h-10 w-10 place-items-center rounded-full bg-navy text-sm font-bold text-white sm:h-11 sm:w-11"
+              className="grid h-9 w-9 sm:h-10 sm:w-10 place-items-center rounded-full bg-navy text-xs sm:text-sm font-bold text-white"
               style={
                 user?.imageUrl
                   ? { backgroundImage: `url("${user.imageUrl}")`, backgroundPosition: 'center', backgroundSize: 'cover' }
@@ -223,7 +248,7 @@ export default function Topbar() {
               >
                 {user?.imageUrl ? null : initials}
               </span>
-              <span className="min-w-0">
+              <span className="min-w-0 flex-1">
                 <b className="block truncate text-[14px] font-semibold text-ink">{fullName}</b>
                 <span className="block truncate text-[13px] text-slate-500">{email}</span>
                 <span className="mt-1 block text-[11px] font-medium text-slate-500">Profile managed by administrator</span>

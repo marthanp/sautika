@@ -6,11 +6,14 @@ interface AppState {
   xp: number; streak: number; lastDay: string; enrolled: string[]; done: Record<string, number>;
   activeCourse: string | null; tab: Tab; theme: Theme; colorMode: 'light' | 'dark'; scale: string; wide: boolean;
   font: DyslexiaFont; letterSpacing: DyslexiaSpacing; lineHeight: DyslexiaLineHeight; readingTint: ReadingTint;
+  sidebarHidden: boolean;
+  toggleSidebar: () => void;
+  setSidebarHidden: (hidden: boolean) => void;
   touchStreak: () => void;
   startCourse: (id: string) => void;
   completeLesson: (courseId: string | undefined, index: number | undefined, xp: number) => void;
   setTab: (t: Tab) => void;
-  setPrefs: (p: Partial<Pick<AppState, 'theme' | 'colorMode' | 'scale' | 'wide' | 'font' | 'letterSpacing' | 'lineHeight' | 'readingTint'>>) => void;
+  setPrefs: (p: Partial<Pick<AppState, 'theme' | 'colorMode' | 'scale' | 'wide' | 'font' | 'letterSpacing' | 'lineHeight' | 'readingTint' | 'sidebarHidden'>>) => void;
 }
 
 export const useApp = create<AppState>()(
@@ -19,6 +22,9 @@ export const useApp = create<AppState>()(
       xp: 0, streak: 1, lastDay: '', enrolled: [], done: {}, activeCourse: null, tab: 'courses',
       theme: 'navy', colorMode: 'light', scale: '100%', wide: false,
       font: 'default', letterSpacing: 'normal', lineHeight: 'normal', readingTint: 'none',
+      sidebarHidden: false,
+      toggleSidebar: () => set((s) => ({ sidebarHidden: !s.sidebarHidden })),
+      setSidebarHidden: (sidebarHidden) => set({ sidebarHidden }),
       touchStreak: () => {
         const today = new Date().toDateString();
         const { lastDay, streak } = get();

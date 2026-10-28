@@ -141,7 +141,7 @@ export default function LessonView({
 
   return (
     <Card className="mt-6 p-4 sm:p-5">
-      <div role="tablist" aria-label="Lesson steps" className="grid gap-3 sm:grid-cols-4">
+      <div role="tablist" aria-label="Lesson steps" className="grid grid-cols-2 gap-2 sm:grid-cols-4 sm:gap-3">
         {TABS.map(({ label, icon: Icon }, index) => (
           <button
             key={label}
@@ -152,9 +152,9 @@ export default function LessonView({
               if (index !== 0 && isReading) stopReading();
               setTab(index);
             }}
-            className="flex min-h-[52px] min-w-0 items-center gap-2 rounded-xl bg-[#EDF3FD] px-3 text-[14px] font-bold text-blue-700 aria-selected:border aria-selected:border-sun aria-selected:bg-[#FFF1C7] aria-selected:text-navy sm:gap-3 sm:px-4 sm:text-[16px]"
+            className="flex min-h-[46px] min-w-0 items-center justify-center gap-1.5 rounded-xl bg-[#EDF3FD] px-2 text-xs font-bold text-blue-700 aria-selected:border aria-selected:border-sun aria-selected:bg-[#FFF1C7] aria-selected:text-navy transition sm:gap-2 sm:px-3 sm:text-[13.5px]"
           >
-            <span className="shrink-0 text-[12px] opacity-60">{index + 1}</span><Icon className="h-5 w-5 shrink-0" /><span>{label}</span>
+            <span className="shrink-0 text-[11px] opacity-60">{index + 1}</span><Icon className="h-4 w-4 shrink-0" /><span className="truncate">{label}</span>
           </button>
         ))}
       </div>
@@ -232,7 +232,7 @@ export default function LessonView({
           <h3 className="text-[20px] font-extrabold">Choose the best answer</h3>
           {lesson.items.map((item, index) => (
             <fieldset key={`${lessonIndex}-${index}`} className="rounded-2xl border border-line bg-[#F8FAFD] p-4">
-              <legend className="px-1 text-[15px] font-semibold">{index + 1}. {item.q}</legend>
+              <legend className="break-words px-1 text-sm sm:text-[15px] font-semibold text-navy">{index + 1}. {item.q}</legend>
               <div className="mt-2 grid gap-2 sm:grid-cols-2">
                 {optionsFor(item).map((option) => (
                   <button
@@ -240,7 +240,7 @@ export default function LessonView({
                     type="button"
                     aria-pressed={answers[index] === option}
                     onClick={() => setAnswers((current) => ({ ...current, [index]: option }))}
-                    className="min-h-11 rounded-xl border border-line bg-white px-3 text-left text-sm aria-pressed:border-sun aria-pressed:bg-[#FFF3D0]"
+                    className="min-h-11 min-w-0 break-words rounded-xl border border-line bg-white p-3 text-left text-xs sm:text-sm aria-pressed:border-sun aria-pressed:bg-[#FFF3D0]"
                   >
                     {option}
                   </button>

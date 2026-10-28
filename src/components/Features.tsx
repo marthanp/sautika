@@ -19,11 +19,11 @@ export default function Features() {
           We combine the power of AI with local languages, inclusive design, and offline access to ensure every learner can thrive.
         </p>
         <ul className="mt-12 grid grid-cols-2 gap-x-6 gap-y-10 md:grid-cols-5">
-          {FEATURES.map(({ icon: Icon, title, text, bg, fg }) => (
-            <li key={title} className="flex flex-col items-center">
+          {FEATURES.map(({ icon: Icon, title, text, bg, fg }, idx) => (
+            <li key={title} className={`flex flex-col items-center ${idx === 4 ? 'col-span-2 md:col-span-1' : ''}`}>
               <span className={`grid h-[62px] w-[62px] place-items-center rounded-full ${bg}`}><Icon className={`h-7 w-7 ${fg}`} strokeWidth={2} /></span>
               <h3 className="mt-5 font-display text-[15px] font-semibold">{title}</h3>
-              <p className="mt-2 max-w-[170px] text-[12.5px] leading-[1.7] text-slate-500">{text}</p>
+              <p className="mt-2 max-w-[200px] text-[12.5px] leading-[1.7] text-slate-500">{text}</p>
             </li>
           ))}
         </ul>

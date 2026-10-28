@@ -186,15 +186,72 @@ export default function ProgressPage() {
     <div className="mx-auto max-w-[1330px]">
       <header>
         <p className="text-[19px] font-bold">Hello, {profile?.firstName || 'Learner'}! 👋</p>
-        <h1 className="mt-1 text-[30px] font-extrabold leading-tight sm:text-[36px] lg:text-[40px]">Your Learning Progress</h1>
-        <p className="mt-2 text-[16px] text-slate-500">Track your progress, celebrate your achievements, and keep going!</p>
+        <h1 className="mt-1 text-2xl font-extrabold leading-tight text-slate-900 sm:text-[32px] lg:text-[36px]">Your Learning Progress</h1>
+        <p className="mt-1 text-xs text-slate-500 sm:text-sm">Track your progress, celebrate your achievements, and keep going!</p>
       </header>
 
-      <section aria-label="Progress summary" className="mt-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <div className="min-w-0 rounded-2xl border border-blue-100 bg-[#EEF5FE] p-4 sm:p-5"><p className="flex items-center gap-3 text-[14px] font-bold"><span className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-blue-600 text-white"><BookOpen className="h-5 w-5" /></span><span>Courses Completed</span></p><p className="mt-4 text-[34px] font-extrabold">{completedCourses} <span className="text-[22px] font-medium text-slate-500">/ {courses.length}</span></p><div className="mt-3 flex items-center gap-3"><div className="min-w-0 flex-1"><Bar v={courses.length ? (completedCourses / courses.length) * 100 : 0} color="#2F6BFF" /></div><span className="shrink-0 text-[12px] font-bold text-blue-600">{courses.length ? Math.round((completedCourses / courses.length) * 100) : 0}%</span></div></div>
-        <div className="min-w-0 rounded-2xl border border-amber-100 bg-[#FEF8E8] p-4 sm:p-5"><p className="flex items-center gap-3 text-[14px] font-semibold"><Star className="h-9 w-9 shrink-0 fill-sun text-sun" /><span>Learner Coins</span></p><p className="mt-4 flex items-center justify-between gap-3 text-[34px] font-extrabold">{profile?.coins ?? 0}<Coin size={36} /></p><p className="mt-3 flex items-center gap-2 text-[12px] font-semibold text-emerald-600"><span>Earn coins by completing lessons</span></p></div>
-        <div className="min-w-0 rounded-2xl border border-emerald-100 bg-[#EAF8F0] p-4 sm:p-5"><p className="flex items-center gap-3 text-[14px] font-bold"><Flame className="h-9 w-9 shrink-0 fill-blue-500 text-blue-600" /><span>Current Streak</span></p><p className="mt-4 text-[34px] font-extrabold">{profile?.streak ?? 0} days</p><p className="mt-3 flex items-center gap-2 text-[12px] font-semibold text-emerald-700"><Calendar className="h-4 w-4 shrink-0" />Keep it up!</p></div>
-        <div className="min-w-0 rounded-2xl border border-violet-100 bg-[#F4EFFE] p-4 sm:p-5"><p className="flex items-center gap-3 text-[14px] font-bold"><span className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-violet-600 text-white"><Target className="h-5 w-5" /></span><span>Overall Progress</span></p><p className="mt-4 text-[34px] font-extrabold">{completion}%</p><div className="mt-3"><Bar v={completion} color="#6D4DFF" /></div><p className="mt-2 text-[12px] text-slate-600">{completedLessons} of {totalLessons} lessons</p></div>
+      <section aria-label="Progress summary" className="mt-5 grid gap-3.5 sm:grid-cols-2 xl:grid-cols-4">
+        <div className="min-w-0 rounded-2xl border border-blue-100 bg-[#EEF5FE] p-4 sm:p-5">
+          <p className="flex items-center gap-2.5 text-xs sm:text-[13.5px] font-bold text-navy">
+            <span className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-blue-600 text-white shadow-xs">
+              <BookOpen className="h-4 w-4" />
+            </span>
+            <span className="truncate">Courses Completed</span>
+          </p>
+          <p className="mt-3 text-[26px] sm:text-[30px] font-extrabold text-navy">
+            {completedCourses} <span className="text-[17px] sm:text-[19px] font-medium text-slate-500">/ {courses.length}</span>
+          </p>
+          <div className="mt-2.5 flex items-center gap-2">
+            <div className="min-w-0 flex-1">
+              <Bar v={courses.length ? (completedCourses / courses.length) * 100 : 0} color="#2F6BFF" />
+            </div>
+            <span className="shrink-0 text-[11px] font-bold text-blue-600">
+              {courses.length ? Math.round((completedCourses / courses.length) * 100) : 0}%
+            </span>
+          </div>
+        </div>
+
+        <div className="min-w-0 rounded-2xl border border-amber-100 bg-[#FEF8E8] p-4 sm:p-5">
+          <p className="flex items-center gap-2 text-xs sm:text-[13.5px] font-bold text-navy">
+            <Star className="h-7 w-7 shrink-0 fill-sun text-sun" />
+            <span className="truncate">Learner Coins</span>
+          </p>
+          <p className="mt-3 flex items-center justify-between gap-2 text-[26px] sm:text-[30px] font-extrabold text-navy">
+            <span>{profile?.coins ?? 0}</span>
+            <Coin size={28} />
+          </p>
+          <p className="mt-2.5 truncate text-[11.5px] font-semibold text-emerald-600">
+            Earn coins by completing lessons
+          </p>
+        </div>
+
+        <div className="min-w-0 rounded-2xl border border-emerald-100 bg-[#EAF8F0] p-4 sm:p-5">
+          <p className="flex items-center gap-2 text-xs sm:text-[13.5px] font-bold text-navy">
+            <Flame className="h-7 w-7 shrink-0 fill-blue-500 text-blue-600" />
+            <span className="truncate">Current Streak</span>
+          </p>
+          <p className="mt-3 text-[26px] sm:text-[30px] font-extrabold text-navy">
+            {profile?.streak ?? 0} days
+          </p>
+          <p className="mt-2.5 flex items-center gap-1.5 text-[11.5px] font-semibold text-emerald-700">
+            <Calendar className="h-3.5 w-3.5 shrink-0" />
+            <span className="truncate">Keep it up every day!</span>
+          </p>
+        </div>
+
+        <div className="min-w-0 rounded-2xl border border-violet-100 bg-[#F4EFFE] p-4 sm:p-5">
+          <p className="flex items-center gap-2.5 text-xs sm:text-[13.5px] font-bold text-navy">
+            <span className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-violet-600 text-white shadow-xs">
+              <Target className="h-4 w-4" />
+            </span>
+            <span className="truncate">Overall Progress</span>
+          </p>
+          <p className="mt-3 text-[26px] sm:text-[30px] font-extrabold text-navy">{completion}%</p>
+          <div className="mt-2.5"><Bar v={completion} color="#6D4DFF" /></div>
+          <p className="mt-1.5 truncate text-[11px] text-slate-500">
+            {completedLessons} of {totalLessons} lessons
+          </p>
+        </div>
       </section>
 
       <Card className="mt-6 min-w-0 p-4 sm:p-5">
@@ -257,7 +314,7 @@ export default function ProgressPage() {
               const percent = course.lessons.length ? Math.round((done / course.lessons.length) * 100) : 0;
               return (
                 <li key={course.id} className="grid min-w-0 grid-cols-[40px_minmax(0,1fr)_auto] items-center gap-3"><span className="grid h-10 w-10 shrink-0 place-items-center rounded-full text-white" style={{ background: color }}><Icon className="h-5 w-5" /></span>
-                  <div className="min-w-0"><p className="break-words text-[14px] font-semibold leading-snug">{course.title}</p><Bar v={percent} color={color} className="mt-2 h-2" /></div><div className="text-right"><b className="block whitespace-nowrap text-[13px]">{percent}%</b><span className="whitespace-nowrap text-[11px] text-slate-500">{done}/{course.lessons.length}</span></div></li>
+                  <div className="min-w-0"><p className="truncate text-xs sm:text-[13.5px] font-semibold leading-snug">{course.title}</p><Bar v={percent} color={color} className="mt-2 h-2" /></div><div className="text-right"><b className="block whitespace-nowrap text-[13px]">{percent}%</b><span className="whitespace-nowrap text-[11px] text-slate-500">{done}/{course.lessons.length}</span></div></li>
               );
             })}{!courses.length ? <li className="text-sm text-slate-500">Course progress will appear here as you learn.</li> : null}</ul>
         </Card>
