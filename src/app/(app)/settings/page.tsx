@@ -1,16 +1,15 @@
 'use client';
 
 import Image from 'next/image';
+import Link from 'next/link';
 import { useState } from 'react';
 import {
   ArrowRight,
   Bell,
   Check,
   ChevronRight,
-  CircleHelp,
   Download,
   KeyRound,
-  Lightbulb,
   Settings,
   Shield,
   Sprout,
@@ -18,7 +17,7 @@ import {
   X,
   Zap,
 } from 'lucide-react';
-import { Bar, Card, Ring, ViewAll } from '@/components/ui';
+import { Bar, Ring } from '@/components/ui';
 import { useLearnerAccount, useLearnerProfile } from '@/components/LearnerDataSync';
 import { coursesForClass } from '@/lib/course-access';
 import SettingsPanel from './SettingsPanel';
@@ -27,7 +26,6 @@ const ACTIONS = [
   ['Change Password', KeyRound],
   ['Manage Notifications', Bell],
   ['Download Offline Content', Download],
-  ['Contact Support', CircleHelp],
 ] as const;
 
 export default function SettingsPage() {
@@ -46,8 +44,6 @@ export default function SettingsPage() {
   const handleAction = (title: string) => {
     if (title === 'Manage Notifications') {
       window.dispatchEvent(new CustomEvent('switch-settings-tab', { detail: 'Notifications' }));
-    } else if (title === 'Contact Support') {
-      window.dispatchEvent(new CustomEvent('switch-settings-tab', { detail: 'Help & Support' }));
     } else if (title === 'Change Password') {
       setModalType('password');
     } else if (title === 'Download Offline Content') {
@@ -58,44 +54,51 @@ export default function SettingsPage() {
   return (
     <div className="mx-auto max-w-[1600px]">
       <div className="flex items-center gap-4">
-        <Settings className="h-12 w-12 fill-navy text-navy" />
+        <Settings aria-hidden="true" className="h-12 w-12 fill-navy text-navy" />
         <div>
-          <h1 className="text-[38px] font-extrabold leading-none text-navy">Settings</h1>
-          <p className="mt-1 text-[15px] text-slate-500">Manage your account, preferences, and learning experience.</p>
+          <h1 className="text-3xl font-bold leading-tight tracking-tight text-slate-900 sm:text-[38px]">Settings</h1>
+          <p className="mt-1 text-sm leading-relaxed text-slate-600">Manage your account, preferences, and learning experience.</p>
         </div>
       </div>
       <SettingsPanel />
 
-      <aside aria-label="Account overview and quick actions" className="mt-6 grid min-w-0 gap-5 sm:grid-cols-2 xl:grid-cols-4">
-        <div className="relative flex min-h-[104px] items-center gap-4 overflow-hidden rounded-2xl bg-[#FEF1CF] p-5">
-          <Sprout className="h-10 w-10 text-sun" />
-          <div>
-            <b className="text-[20px] text-navy">Keep Going, {profile?.firstName || 'Learner'}!</b>
-            <p className="text-[12.5px] text-slate-600">Small steps every day lead to big dreams.</p>
+      <aside aria-label="Account overview and quick actions" className="mt-6 grid auto-rows-fr min-w-0 grid-cols-1 gap-6 md:grid-cols-3 lg:grid-cols-3">
+        <div className="relative flex h-full min-h-[220px] flex-col justify-between overflow-hidden rounded-2xl border border-sun/25 bg-gradient-to-br from-sun/30 via-[#FEF1CF] to-sun/10 p-5 shadow-sm transition-all duration-200 hover:shadow-md lg:min-h-0">
+          <div className="relative z-10 flex items-start gap-3 pr-14 sm:pr-16">
+            <Sprout aria-hidden="true" className="mt-0.5 h-9 w-9 shrink-0 text-sun-dark" />
+            <div className="min-w-0">
+              <h2 className="text-lg font-bold leading-snug tracking-tight text-slate-900">Keep Going, {profile?.firstName || 'Learner'}!</h2>
+              <p className="mt-1 text-sm leading-relaxed text-slate-600">Small steps every day lead to big dreams.</p>
+            </div>
           </div>
           <Image
             src="/images/settings-art.png"
             alt=""
             width={102}
             height={105}
-            className="absolute bottom-0 right-0 hidden h-auto w-[100px] sm:block"
+            className="absolute bottom-0 right-0 hidden h-auto w-24 sm:block"
           />
         </div>
 
-        <Card className="min-w-0 p-5">
-          <div className="flex items-center justify-between">
-            <h2 className="flex items-center gap-3 text-[18px] font-extrabold text-navy">
-              <Target className="h-7 w-7 text-blue-600" />Learning Goals
+        <section className="flex h-full min-w-0 flex-col justify-between rounded-2xl border border-slate-100/80 bg-white p-5 shadow-sm transition-all duration-200 hover:shadow-md">
+          <div className="flex flex-wrap items-start justify-between gap-x-3 gap-y-2">
+            <h2 className="flex min-w-0 items-center gap-2 text-base font-bold tracking-tight text-slate-900">
+              <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-sun/20 text-navy">
+                <Target aria-hidden="true" className="h-5 w-5" />
+              </span>
+              <span>Learning Goals</span>
             </h2>
-            <ViewAll href="/progress">View Progress</ViewAll>
+            <Link href="/progress" className="ml-auto inline-flex shrink-0 items-center gap-1 text-xs font-semibold text-navy transition-colors hover:text-sun-dark">
+              View Progress <ArrowRight aria-hidden="true" className="h-3.5 w-3.5" />
+            </Link>
           </div>
-          <div className="mt-4 flex items-center gap-5">
-            <Ring v={progressPercent} size={96} stroke={9}>
-              <span className="text-[22px]">{progressPercent}%</span>
+          <div className="mt-5 flex min-w-0 items-center gap-4">
+            <Ring v={progressPercent} size={84} stroke={8}>
+              <span className="text-xl font-bold leading-none text-slate-900">{progressPercent}%</span>
             </Ring>
-            <div className="flex-1">
-              <b className="text-[16px] text-navy">Lesson completion</b>
-              <p className="mt-1 text-[12px] text-slate-500">
+            <div className="min-w-0 flex-1">
+              <h3 className="text-sm font-bold tracking-tight text-slate-900">Lesson completion</h3>
+              <p className="mt-1 text-xs leading-relaxed text-slate-500">
                 {completedLessons} of {totalLessons} lessons completed
               </p>
               <div className="mt-3">
@@ -103,47 +106,34 @@ export default function SettingsPage() {
               </div>
             </div>
           </div>
-        </Card>
+        </section>
 
-        <Card className="min-w-0 p-5">
-          <h2 className="flex items-center gap-3 text-[18px] font-extrabold text-navy">
-            <Zap className="h-6 w-6 text-blue-600" />Quick Actions
+        <section className="flex h-full min-w-0 flex-col justify-between rounded-2xl border border-slate-100/80 bg-white p-5 shadow-sm transition-all duration-200 hover:shadow-md">
+          <h2 className="flex items-center gap-2 text-base font-bold tracking-tight text-slate-900">
+            <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-sun/20 text-navy">
+              <Zap aria-hidden="true" className="h-5 w-5" />
+            </span>
+            Quick Actions
           </h2>
-          <ul className="mt-2 divide-y divide-line">
+          <ul className="mt-3 grid gap-1">
             {ACTIONS.map(([t, I]) => (
               <li key={t}>
                 <button
                   type="button"
                   onClick={() => handleAction(t)}
-                  className="flex w-full items-center gap-4 py-3.5 text-left transition hover:text-blue-600"
+                  className="flex w-full min-w-0 items-center gap-3 rounded-xl p-2.5 text-left transition-colors hover:bg-slate-50"
                 >
-                  <span className="grid h-10 w-10 place-items-center rounded-full bg-blue-50 text-blue-700">
-                    <I className="h-5 w-5" />
+                  <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-sun/20 text-navy">
+                    <I aria-hidden="true" className="h-4 w-4" />
                   </span>
-                  <span className="flex-1 text-[14.5px] font-medium">{t}</span>
-                  <ChevronRight className="h-4 w-4" />
+                  <span className="min-w-0 flex-1 break-words text-sm font-medium leading-relaxed text-slate-700">{t}</span>
+                  <ChevronRight aria-hidden="true" className="h-4 w-4 shrink-0 text-slate-500" />
                 </button>
               </li>
             ))}
           </ul>
-        </Card>
+        </section>
 
-        <div className="rounded-2xl bg-[#EAF3FE] p-5">
-          <div className="flex items-start gap-4">
-            <Lightbulb className="h-8 w-8 text-sun" />
-            <div>
-              <b className="text-[16px] text-navy">Need help?</b>
-              <p className="mt-1 text-[13px] text-slate-600">Our support team is here for you anytime.</p>
-            </div>
-          </div>
-          <button
-            type="button"
-            onClick={() => handleAction('Contact Support')}
-            className="mt-4 flex h-11 items-center gap-3 rounded-xl border border-blue-200 bg-white px-5 text-[14px] font-bold text-blue-700 shadow-sm transition hover:bg-blue-50"
-          >
-            Get Support <ArrowRight className="h-4 w-4" />
-          </button>
-        </div>
       </aside>
 
       {/* Action Modals */}

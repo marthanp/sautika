@@ -815,7 +815,7 @@ export default function SettingsPanel() {
       {sec === 'Appearance' ? (
         <AppearanceSection />
       ) : sec === 'Account' ? (
-        <div className="min-w-0 space-y-4">
+        <div className="flex min-w-0 h-full flex-col gap-4">
           <Card className="p-6">
             <h2 className="text-[19px] font-extrabold">Account Profile</h2>
             <p className="mt-1 text-[14px] text-slate-500">Your profile is read-only. Contact an administrator to update your account details.</p>
@@ -845,24 +845,30 @@ export default function SettingsPanel() {
               </label>
             </div>
           </Card>
-          <Card className="p-6">
-            <div className="flex items-center gap-4">
-              <span className="grid h-11 w-11 place-items-center rounded-full bg-blue-50 text-blue-700">
-                <ShieldCheck className="h-6 w-6" />
+          <section className="mt-auto rounded-2xl border border-slate-200/60 bg-slate-50/80 p-5">
+            <div className="flex items-center gap-3">
+              <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-sun/20 text-navy">
+                <ShieldCheck aria-hidden="true" className="h-5 w-5" />
               </span>
               <div>
-                <b className="text-[16px]">Account Security</b>
-                <p className="text-[12.5px] text-slate-500">Keep your account safe and secure.</p>
+                <h3 className="text-base font-bold tracking-tight text-slate-900">Account Security</h3>
+                <p className="text-sm leading-relaxed text-slate-600">Keep your account safe and secure.</p>
               </div>
             </div>
-            <div className="mt-4 flex items-center gap-4 rounded-xl bg-[#EEF5FB] p-4">
-              <ShieldCheck className="h-7 w-7 shrink-0 text-emerald-600" />
-              <span className="min-w-0 flex-1">
-                <b className="text-[14px] text-emerald-800">Sign-in secured by Clerk</b>
-                <span className="block text-[12px] text-slate-600">Administrators manage profile and credential changes through the Clerk Dashboard.</span>
+            <div className="mt-4 flex flex-col gap-3 rounded-xl border border-emerald-100 bg-white/80 p-4 sm:flex-row sm:items-center">
+              <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-emerald-50 text-emerald-700">
+                <ShieldCheck aria-hidden="true" className="h-5 w-5" />
+              </span>
+              <div className="min-w-0 flex-1">
+                <p className="text-sm font-semibold text-emerald-800">Sign-in secured by Clerk</p>
+                <p className="mt-0.5 text-xs leading-relaxed text-slate-600">Administrators manage profile and credential changes through the Clerk Dashboard.</p>
+              </div>
+              <span className="inline-flex w-fit shrink-0 items-center gap-1.5 rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-800">
+                <span aria-hidden="true" className="h-2 w-2 rounded-full bg-emerald-600" />
+                Secured
               </span>
             </div>
-          </Card>
+          </section>
         </div>
       ) : sec === 'Notifications' ? (
         <NotificationsSection />
