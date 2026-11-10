@@ -414,6 +414,15 @@ html[data-reading-tint='blue'] body { background-color: #e8f3fe !important; }
   will-change: transform, opacity, filter;
 }
 
+/* Hide scrollbar for clean swipeable chip rows */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
 .stagger-1 { animation-delay: 40ms; }
 .stagger-2 { animation-delay: 85ms; }
 .stagger-3 { animation-delay: 130ms; }

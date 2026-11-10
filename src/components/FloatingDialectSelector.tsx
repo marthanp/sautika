@@ -4,6 +4,7 @@ import { useState, useRef, useEffect, useMemo } from 'react';
 import { Globe, ChevronDown, Check, Volume2, Languages, X, Search } from 'lucide-react';
 import { useApp } from '@/store/useApp';
 import { SUNBIRD_LANGUAGES, hasSunbirdTts, type VoiceLang } from '@/lib/sunbird-languages';
+import { triggerFeedback } from '@/lib/feedback';
 
 // Primary East African dialects pinned for 1-click access
 const PINNED_DIALECTS: { code: VoiceLang; name: string; nativeName: string; region: string }[] = [
@@ -74,6 +75,7 @@ export default function FloatingDialectSelector({ className = '' }: { className?
   }, [isOpen]);
 
   const handleSelect = (code: VoiceLang): void => {
+    triggerFeedback('chip');
     setActiveDialect(code);
     setIsOpen(false);
     setSearch('');

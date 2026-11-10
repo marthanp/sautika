@@ -1,6 +1,8 @@
 'use client';
 
-import { Mic, Loader2, Volume2, Sparkles } from 'lucide-react';
+import { Mic, Loader2, Volume2 } from 'lucide-react';
+import AudioWaveformVisualizer from './AudioWaveformVisualizer';
+import { triggerFeedback } from '@/lib/feedback';
 
 interface VoiceStateOrbProps {
   isRecording: boolean;
@@ -11,6 +13,7 @@ interface VoiceStateOrbProps {
   label?: string;
   disabled?: boolean;
   activeDialectName?: string;
+  analyser?: AnalyserNode | null;
   className?: string;
 }
 
@@ -23,6 +26,7 @@ export default function VoiceStateOrb({
   label,
   disabled = false,
   activeDialectName,
+  analyser,
   className = '',
 }: VoiceStateOrbProps) {
   // Dimensions based on size
@@ -32,20 +36,29 @@ export default function VoiceStateOrb({
       icon: 'h-4 w-4',
       ripple: '-inset-2.5',
       rippleOuter: '-inset-5',
+      barCount: 4,
     },
     md: {
       btn: 'h-14 w-14',
       icon: 'h-6 w-6',
       ripple: '-inset-3',
       rippleOuter: '-inset-7',
+      barCount: 5,
     },
     lg: {
       btn: 'h-20 w-20',
       icon: 'h-8 w-8',
       ripple: '-inset-4',
       rippleOuter: '-inset-10',
+      barCount: 7,
     },
   }[size];
+
+  const handleClick = () => {
+    if (disabled || isProcessing) return;
+    triggerFeedback(isRecording ? 'record-stop' : 'record-start');
+    onClick();
+  };
 
   const getStatusText = (): string => {
     if (isRecording) return `Listening${activeDialectName ? ` in ${activeDialectName}` : ''}… Tap to finish`;
@@ -101,7 +114,7 @@ export default function VoiceStateOrb({
         {/* Primary Interactive Voice Orb Button */}
         <button
           type="button"
-          onClick={onClick}
+          onClick={handleClick}
           disabled={disabled || isProcessing}
           aria-label={getAriaLabel()}
           aria-pressed={isRecording}
@@ -118,13 +131,13 @@ export default function VoiceStateOrb({
           {isProcessing ? (
             <Loader2 className={`${sizeConfig.icon} animate-spin text-sun`} aria-hidden="true" />
           ) : isRecording ? (
-            <div className="flex items-center justify-center gap-0.5">
-              {/* Dynamic bouncing audio waveform bars */}
-              <span className="h-4 w-1 rounded-full bg-white animate-wave-bar" style={{ animationDelay: '0ms' }} />
-              <span className="h-6 w-1 rounded-full bg-white animate-wave-bar" style={{ animationDelay: '150ms' }} />
-              <span className="h-3 w-1 rounded-full bg-white animate-wave-bar" style={{ animationDelay: '300ms' }} />
-              <span className="h-5 w-1 rounded-full bg-white animate-wave-bar" style={{ animationDelay: '100ms' }} />
-            </div>
+            <AudioWaveformVisualizer
+              analyser={analyser}
+              isRecording={isRecording}
+              mode="compact-bars"
+              barCount={sizeConfig.barCount}
+              color="white"
+            />
           ) : isSpeaking ? (
             <Volume2 className={`${sizeConfig.icon} animate-bounce text-white`} aria-hidden="true" />
           ) : (
@@ -140,4 +153,3 @@ export default function VoiceStateOrb({
     </div>
   );
 }
-

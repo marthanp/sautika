@@ -1,12 +1,16 @@
 'use client';
 import { useUser } from '@clerk/nextjs';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
+import { HelpCircle, BookOpen, FileText, GraduationCap, Languages } from 'lucide-react';
 import { db } from '@/lib/db';
 import { useVoice } from '@/lib/useVoice';
 import { useApp } from '@/store/useApp';
 import { hasSunbirdTts, isSunbirdLanguage, SUNBIRD_LANGUAGES } from '@/lib/sunbird-languages';
 import VoiceStateOrb from '@/components/VoiceStateOrb';
+import AudioWaveformVisualizer from '@/components/AudioWaveformVisualizer';
+import QuickPromptChips, { type QuickPrompt } from '@/components/QuickPromptChips';
+import { triggerFeedback } from '@/lib/feedback';
 import type { Item, Source, VoiceLang } from '@/types';
 
 type Mode = 'ask' | 'summary' | 'guide' | 'lesson';
@@ -29,7 +33,8 @@ export default function Notebook({ onLesson }: { onLesson: (items: Item[]) => vo
   const [note, setNote] = useState('');
   const [busy, setBusy] = useState(false);
   const [voiceError, setVoiceError] = useState('');
-  const { recording, processing, speaking, toggleMic, speak } = useVoice();
+  const [showQuickPrompts, setShowQuickPrompts] = useState(false);
+  const { recording, processing, speaking, analyser, toggleMic, speak } = useVoice();
   const sourceList = sources ?? [];
   const active = sourceList.filter((s) => s.on);
 
@@ -113,15 +118,22 @@ export default function Notebook({ onLesson }: { onLesson: (items: Item[]) => vo
     if (!files) return;
     for (const file of Array.from(files)) await addSource(file.name, await file.text());
   }
+
   async function run(mode: Mode, question?: string): Promise<void> {
     if (!active.length || busy) return;
     setBusy(true);
+    triggerFeedback('chip');
+    setShowQuickPrompts(false);
+
     const label = question ?? (mode === 'summary' ? 'Summarize my sources' : mode === 'guide' ? 'Make a study guide' : 'Make a practice lesson');
     setLog((l) => [...l, { role: 'u', text: label }, { role: 'a', text: '' }]);
     const setLast = (text: string): void => setLog((l) => [...l.slice(0, -1), { role: 'a', text }]);
     try {
-      const res = await fetch('/api/notebook', { method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ mode, question, language: lang, sources: active.map((s) => ({ name: s.name, text: s.text })) }) });
+      const res = await fetch('/api/notebook', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ mode, question, language: lang, sources: active.map((s) => ({ name: s.name, text: s.text })) }),
+      });
       if (!res.ok) {
         let message = 'The tutor could not complete this request.';
         const detail = await res.text();
@@ -134,17 +146,72 @@ export default function Notebook({ onLesson }: { onLesson: (items: Item[]) => vo
         }
         throw new Error(message);
       }
-      if (mode === 'lesson') { const j = (await res.json()) as { items: Item[] }; setLast('Your practice lesson is ready.'); onLesson(j.items); }
-      else if (res.body) {
-        const reader = res.body.getReader(), dec = new TextDecoder(); let text = '';
-        for (;;) { const { done, value } = await reader.read(); if (done) break; text += dec.decode(value, { stream: true }); setLast(text); }
+      if (mode === 'lesson') {
+        const j = (await res.json()) as { items: Item[] };
+        setLast('Your practice lesson is ready.');
+        triggerFeedback('success');
+        onLesson(j.items);
+      } else if (res.body) {
+        const reader = res.body.getReader(), dec = new TextDecoder();
+        let text = '';
+        for (;;) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          text += dec.decode(value, { stream: true });
+          setLast(text);
+        }
         if (!text) throw new Error('empty');
+        triggerFeedback('success');
+        setShowQuickPrompts(true);
       }
     } catch (error) {
       setLast(error instanceof Error ? error.message : 'The tutor could not complete this request.');
     }
     setBusy(false);
   }
+
+  const activeLangName = SUNBIRD_LANGUAGES.find((l) => l.code === lang)?.name || 'local dialect';
+
+  // Contextual quick prompts generated after an answer or summary
+  const contextualPrompts = useMemo<QuickPrompt[]>(() => {
+    return [
+      {
+        id: 'quiz',
+        label: '3 Practice Questions',
+        sublabel: 'Quiz',
+        icon: <HelpCircle className="h-3.5 w-3.5" />,
+        action: () => void run('ask', 'Generate 3 quick quiz questions based on our discussion to test my understanding.'),
+      },
+      {
+        id: 'simplify',
+        label: 'Explain simply for P.5',
+        sublabel: 'Simplify',
+        icon: <GraduationCap className="h-3.5 w-3.5" />,
+        action: () => void run('ask', 'Please explain this concept simply with a practical Ugandan real-life example suitable for a Primary 5 pupil.'),
+      },
+      {
+        id: 'key-points',
+        label: 'Summarize key points',
+        sublabel: 'Bullet notes',
+        icon: <FileText className="h-3.5 w-3.5" />,
+        action: () => void run('ask', 'Give me 3 brief bullet points summarizing the most important takeaways.'),
+      },
+      {
+        id: 'lesson-prompt',
+        label: 'Generate practice lesson',
+        sublabel: 'Interactive',
+        icon: <BookOpen className="h-3.5 w-3.5" />,
+        action: () => void run('lesson'),
+      },
+      {
+        id: 'lang-prompt',
+        label: `Explain in ${activeLangName}`,
+        sublabel: 'Dialect',
+        icon: <Languages className="h-3.5 w-3.5" />,
+        action: () => void run('ask', `Please translate the key concept above into ${activeLangName} so I can understand it in my mother tongue.`),
+      },
+    ];
+  }, [activeLangName, lang, active.length, busy]);
 
   return (
     <section>
@@ -166,7 +233,7 @@ export default function Notebook({ onLesson }: { onLesson: (items: Item[]) => vo
         ))}
         <textarea rows={3} value={note} onChange={(e) => setNote(e.target.value)} aria-label="Paste notes" placeholder="Paste class notes here (any language)" className="w-full rounded-2xl border-2 border-ln bg-card px-3.5 py-3" />
         <div className="flex gap-2.5 overflow-x-auto">
-          <button className="btn-ghost" onClick={async () => { if (note.trim()) { await addSource(`Pasted notes ${sourceList.length + 1}`, note); setNote(''); } }}>Add notes</button>
+          <button className="btn-ghost" onClick={async () => { if (note.trim()) { await addSource(`Pasted notes ${sourceList.length + 1}`, note); setNote(''); triggerFeedback('chip'); } }}>Add notes</button>
           <label className="btn-ghost grid cursor-pointer place-items-center whitespace-nowrap">Upload .txt file<input type="file" multiple hidden accept=".txt,.md,.csv,.json,text/*" onChange={(e) => void addFiles(e.target.files)} /></label>
         </div>
       </div>
@@ -179,6 +246,7 @@ export default function Notebook({ onLesson }: { onLesson: (items: Item[]) => vo
             if (isSunbirdLanguage(event.target.value)) {
               setLang(event.target.value);
               setGlobalDialect(event.target.value);
+              triggerFeedback('chip');
             }
           }}
           className="min-h-11 max-w-full rounded-xl border-2 border-ln bg-card px-3"
@@ -234,44 +302,76 @@ export default function Notebook({ onLesson }: { onLesson: (items: Item[]) => vo
         ))}
       </div>
 
-      {/* Voice State Indicator & Question Input with Micro-Spring Physics */}
-      <div className="flex items-center gap-3">
-        <VoiceStateOrb
-          isRecording={recording}
-          isProcessing={processing}
-          isSpeaking={speaking}
-          onClick={() => {
-            setVoiceError('');
-            void toggleMic(lang, setQ, setVoiceError);
-          }}
-          size="md"
-          activeDialectName={SUNBIRD_LANGUAGES.find((l) => l.code === lang)?.name}
-          label="Voice question"
-        />
-        <input
-          value={q}
-          onChange={(e) => setQ(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter' && q.trim() && active.length && !busy) {
+      {/* Contextual Quick-Prompt Chips (Ephemeral suggestions) */}
+      {showQuickPrompts && active.length > 0 && !busy && (
+        <div className="my-2">
+          <QuickPromptChips
+            prompts={contextualPrompts}
+            title="Suggested follow-ups"
+            onDismiss={() => setShowQuickPrompts(false)}
+          />
+        </div>
+      )}
+
+      {/* Voice State Indicator, Live Audio Waveform & Question Input with Micro-Spring Physics */}
+      <div className="flex flex-col gap-2">
+        {/* Live Audio Visualizer banner while recording */}
+        {recording && (
+          <div className="animate-kinetic-entry flex items-center justify-between rounded-2xl border border-red-300 bg-red-50/90 px-4 py-2 text-xs font-semibold text-red-600 shadow-sm dark:border-red-500/30 dark:bg-red-950/40 dark:text-red-300">
+            <div className="flex items-center gap-2">
+              <span className="h-2 w-2 rounded-full bg-red-500 animate-pulse" />
+              <span>Listening live in {activeLangName}… Speak clearly</span>
+            </div>
+            <AudioWaveformVisualizer
+              analyser={analyser}
+              isRecording={recording}
+              mode="bars"
+              barCount={9}
+              color="gradient"
+            />
+          </div>
+        )}
+
+        <div className="flex items-center gap-3">
+          <VoiceStateOrb
+            isRecording={recording}
+            isProcessing={processing}
+            isSpeaking={speaking}
+            analyser={analyser}
+            onClick={() => {
+              setVoiceError('');
+              void toggleMic(lang, setQ, setVoiceError);
+            }}
+            size="md"
+            activeDialectName={SUNBIRD_LANGUAGES.find((l) => l.code === lang)?.name}
+            label="Voice question"
+          />
+          <input
+            value={q}
+            onChange={(e) => setQ(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' && q.trim() && active.length && !busy) {
+                void run('ask', q.trim());
+                setQ('');
+              }
+            }}
+            aria-label="Ask your notebook"
+            placeholder={`Ask about your sources (in ${SUNBIRD_LANGUAGES.find((l) => l.code === lang)?.name || 'any language'})…`}
+            className="min-h-[52px] w-full rounded-2xl border-2 border-ln bg-card px-4 text-sm font-medium transition focus:border-sun focus:outline-none"
+          />
+          <button
+            className="btn shrink-0"
+            disabled={!q.trim() || !active.length || busy}
+            onClick={() => {
               void run('ask', q.trim());
               setQ('');
-            }
-          }}
-          aria-label="Ask your notebook"
-          placeholder={`Ask about your sources (in ${SUNBIRD_LANGUAGES.find((l) => l.code === lang)?.name || 'any language'})…`}
-          className="min-h-[52px] w-full rounded-2xl border-2 border-ln bg-card px-4 text-sm font-medium transition focus:border-sun focus:outline-none"
-        />
-        <button
-          className="btn shrink-0"
-          disabled={!q.trim() || !active.length || busy}
-          onClick={() => {
-            void run('ask', q.trim());
-            setQ('');
-          }}
-        >
-          Ask
-        </button>
+            }}
+          >
+            Ask
+          </button>
+        </div>
       </div>
+
       {voiceError ? <p role="alert" className="mt-2 text-sm text-red-700">{voiceError}</p> : null}
       {!sourceList.length && <p className="mt-3 text-mu">Add at least one source to begin.</p>}
     </section>
