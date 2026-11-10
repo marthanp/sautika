@@ -4,15 +4,19 @@ import { useEffect, useState } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '@/lib/db';
 import { useVoice } from '@/lib/useVoice';
+import { useApp } from '@/store/useApp';
 import { hasSunbirdTts, isSunbirdLanguage, SUNBIRD_LANGUAGES } from '@/lib/sunbird-languages';
+import VoiceStateOrb from '@/components/VoiceStateOrb';
 import type { Item, Source, VoiceLang } from '@/types';
 
 type Mode = 'ask' | 'summary' | 'guide' | 'lesson';
-interface Msg { role: 'u' | 'a'; text: string }
+interface Msg { role: 'u' | 'a'; text: string; lang?: string }
 
 export default function Notebook({ onLesson }: { onLesson: (items: Item[]) => void }) {
   const { user } = useUser();
   const userId = user?.id ?? '';
+  const globalDialect = useApp((state) => state.activeDialect || 'lug');
+  const setGlobalDialect = useApp((state) => state.setActiveDialect);
   const sources = useLiveQuery<Source[], Source[]>(
     () => userId ? db.sources.where('userId').equals(userId).toArray() : Promise.resolve([] as Source[]),
     [userId],
@@ -20,14 +24,21 @@ export default function Notebook({ onLesson }: { onLesson: (items: Item[]) => vo
   );
   const [syncError, setSyncError] = useState('');
   const [log, setLog] = useState<Msg[]>([]);
-  const [lang, setLang] = useState<VoiceLang>('eng');
+  const [lang, setLang] = useState<VoiceLang>(globalDialect);
   const [q, setQ] = useState('');
   const [note, setNote] = useState('');
   const [busy, setBusy] = useState(false);
   const [voiceError, setVoiceError] = useState('');
-  const { recording, toggleMic, speak } = useVoice();
+  const { recording, processing, speaking, toggleMic, speak } = useVoice();
   const sourceList = sources ?? [];
   const active = sourceList.filter((s) => s.on);
+
+  // Sync with global dialect switcher
+  useEffect(() => {
+    if (globalDialect && isSunbirdLanguage(globalDialect)) {
+      setLang(globalDialect);
+    }
+  }, [globalDialect]);
 
   useEffect(() => {
     let cancelled = false;
@@ -165,7 +176,10 @@ export default function Notebook({ onLesson }: { onLesson: (items: Item[]) => vo
           id="notebook-language"
           value={lang}
           onChange={(event) => {
-            if (isSunbirdLanguage(event.target.value)) setLang(event.target.value);
+            if (isSunbirdLanguage(event.target.value)) {
+              setLang(event.target.value);
+              setGlobalDialect(event.target.value);
+            }
           }}
           className="min-h-11 max-w-full rounded-xl border-2 border-ln bg-card px-3"
         >
@@ -179,19 +193,84 @@ export default function Notebook({ onLesson }: { onLesson: (items: Item[]) => vo
         <button className="chip" disabled={!active.length || busy} onClick={() => void run('guide')}>Study guide</button>
         <button className="chip" disabled={!active.length || busy} onClick={() => void run('lesson')}>Make a practice lesson</button>
       </div>
+      
+      {/* Kinetic Staggered Entry for Transcripts & Translations */}
       <div className="my-4 flex flex-col gap-3" aria-live="polite">
         {log.map((m, i) => (
-          <div key={i} className={`max-w-[92%] whitespace-pre-wrap rounded-[20px] px-4 py-3.5 ${m.role === 'u' ? 'self-end bg-ac font-medium text-ink' : 'self-start border-2 border-ln bg-card'}`}>
-            {m.text || '…'}
-            {m.role === 'a' && m.text && hasSunbirdTts(lang) && <div><button className="chip mt-2 !min-h-11" onClick={() => void speak(m.text, lang)}>🔊 Listen</button></div>}
+          <div
+            key={i}
+            className={`animate-kinetic-entry stagger-${Math.min((i % 5) + 1, 5)} max-w-[92%] whitespace-pre-wrap rounded-[20px] px-4 py-3.5 shadow-sm transition-shadow ${
+              m.role === 'u'
+                ? 'self-end bg-ac font-medium text-ink shadow-[0_2px_12px_rgba(255,196,0,0.25)]'
+                : 'self-start border-2 border-ln bg-card shadow-[0_2px_12px_rgba(0,23,49,0.04)]'
+            }`}
+          >
+            {m.role === 'u' && (
+              <div className="mb-1 flex items-center gap-1.5 text-[11px] font-bold opacity-75">
+                <span>👤 Learner</span>
+                <span className="text-[10px]">·</span>
+                <span className="uppercase tracking-wider">{lang}</span>
+              </div>
+            )}
+            {m.text || (
+              <span className="inline-flex items-center gap-1.5 text-mu">
+                <span className="h-1.5 w-1.5 rounded-full bg-sun animate-ping" />
+                <span>Thinking & translating…</span>
+              </span>
+            )}
+            {m.role === 'a' && m.text && hasSunbirdTts(lang) && (
+              <div className="mt-2.5 flex items-center gap-2 border-t border-ln/60 pt-2">
+                <button
+                  type="button"
+                  className="chip !min-h-9 transition-transform hover:scale-105 active:scale-95"
+                  onClick={() => void speak(m.text, lang)}
+                  aria-label="Listen to explanation in native dialect"
+                >
+                  🔊 Listen in {SUNBIRD_LANGUAGES.find((l) => l.code === lang)?.name || lang}
+                </button>
+              </div>
+            )}
           </div>
         ))}
       </div>
-      <div className="flex items-center gap-2.5">
-        <button aria-label={recording ? 'Stop recording' : 'Speak your question'} aria-pressed={recording} onClick={() => { setVoiceError(''); void toggleMic(lang, setQ, setVoiceError); }}
-          className={`grid h-14 w-14 flex-none place-items-center rounded-full bg-ac text-ink ${recording ? 'animate-[pulse-ring_1s_infinite]' : ''}`}>🎤</button>
-        <input value={q} onChange={(e) => setQ(e.target.value)} aria-label="Ask your notebook" placeholder="Ask about your sources" className="min-h-[52px] w-full rounded-2xl border-2 border-ln bg-card px-3.5" />
-        <button className="btn" disabled={!q.trim() || !active.length || busy} onClick={() => { void run('ask', q.trim()); setQ(''); }}>Ask</button>
+
+      {/* Voice State Indicator & Question Input with Micro-Spring Physics */}
+      <div className="flex items-center gap-3">
+        <VoiceStateOrb
+          isRecording={recording}
+          isProcessing={processing}
+          isSpeaking={speaking}
+          onClick={() => {
+            setVoiceError('');
+            void toggleMic(lang, setQ, setVoiceError);
+          }}
+          size="md"
+          activeDialectName={SUNBIRD_LANGUAGES.find((l) => l.code === lang)?.name}
+          label="Voice question"
+        />
+        <input
+          value={q}
+          onChange={(e) => setQ(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' && q.trim() && active.length && !busy) {
+              void run('ask', q.trim());
+              setQ('');
+            }
+          }}
+          aria-label="Ask your notebook"
+          placeholder={`Ask about your sources (in ${SUNBIRD_LANGUAGES.find((l) => l.code === lang)?.name || 'any language'})…`}
+          className="min-h-[52px] w-full rounded-2xl border-2 border-ln bg-card px-4 text-sm font-medium transition focus:border-sun focus:outline-none"
+        />
+        <button
+          className="btn shrink-0"
+          disabled={!q.trim() || !active.length || busy}
+          onClick={() => {
+            void run('ask', q.trim());
+            setQ('');
+          }}
+        >
+          Ask
+        </button>
       </div>
       {voiceError ? <p role="alert" className="mt-2 text-sm text-red-700">{voiceError}</p> : null}
       {!sourceList.length && <p className="mt-3 text-mu">Add at least one source to begin.</p>}

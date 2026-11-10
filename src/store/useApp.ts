@@ -1,19 +1,21 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import type { Tab, Theme, DyslexiaFont, DyslexiaSpacing, DyslexiaLineHeight, ReadingTint } from '@/types';
+import type { Tab, Theme, DyslexiaFont, DyslexiaSpacing, DyslexiaLineHeight, ReadingTint, VoiceLang } from '@/types';
 
 interface AppState {
   xp: number; streak: number; lastDay: string; enrolled: string[]; done: Record<string, number>;
   activeCourse: string | null; tab: Tab; theme: Theme; colorMode: 'light' | 'dark'; scale: string; wide: boolean;
   font: DyslexiaFont; letterSpacing: DyslexiaSpacing; lineHeight: DyslexiaLineHeight; readingTint: ReadingTint;
   sidebarHidden: boolean;
+  activeDialect: VoiceLang;
   toggleSidebar: () => void;
   setSidebarHidden: (hidden: boolean) => void;
+  setActiveDialect: (dialect: VoiceLang) => void;
   touchStreak: () => void;
   startCourse: (id: string) => void;
   completeLesson: (courseId: string | undefined, index: number | undefined, xp: number) => void;
   setTab: (t: Tab) => void;
-  setPrefs: (p: Partial<Pick<AppState, 'theme' | 'colorMode' | 'scale' | 'wide' | 'font' | 'letterSpacing' | 'lineHeight' | 'readingTint' | 'sidebarHidden'>>) => void;
+  setPrefs: (p: Partial<Pick<AppState, 'theme' | 'colorMode' | 'scale' | 'wide' | 'font' | 'letterSpacing' | 'lineHeight' | 'readingTint' | 'sidebarHidden' | 'activeDialect'>>) => void;
 }
 
 export const useApp = create<AppState>()(
@@ -23,8 +25,10 @@ export const useApp = create<AppState>()(
       theme: 'navy', colorMode: 'light', scale: '100%', wide: false,
       font: 'default', letterSpacing: 'normal', lineHeight: 'normal', readingTint: 'none',
       sidebarHidden: false,
+      activeDialect: 'lug',
       toggleSidebar: () => set((s) => ({ sidebarHidden: !s.sidebarHidden })),
       setSidebarHidden: (sidebarHidden) => set({ sidebarHidden }),
+      setActiveDialect: (activeDialect) => set({ activeDialect }),
       touchStreak: () => {
         const today = new Date().toDateString();
         const { lastDay, streak } = get();

@@ -7,6 +7,8 @@ const BROWSER_LANG: Partial<Record<VoiceLang, string>> = { eng: 'en-GB', swa: 's
 
 export function useVoice() {
   const [recording, setRecording] = useState(false);
+  const [processing, setProcessing] = useState(false);
+  const [speaking, setSpeaking] = useState(false);
   const rec = useRef<MediaRecorder | null>(null);
 
   /** Push-to-talk: first call starts recording, second call stops and transcribes via /api/stt. */
@@ -25,10 +27,15 @@ export function useVoice() {
     const r = new MediaRecorder(stream);
     rec.current = r;
     r.ondataavailable = (e) => chunks.push(e.data);
-    r.onstart = () => setRecording(true);
+    r.onstart = () => {
+      setRecording(true);
+      setProcessing(false);
+    };
     r.onstop = async () => {
       stream.getTracks().forEach((t) => t.stop());
-      rec.current = null; setRecording(false);
+      rec.current = null;
+      setRecording(false);
+      setProcessing(true);
       const form = new FormData();
       form.append('audio', new Blob(chunks, { type: r.mimeType }), 'speech.webm');
       form.append('language', normalizeSunbirdLanguage(lang));
@@ -42,6 +49,8 @@ export function useVoice() {
         const message = error instanceof Error ? error.message : 'Speech transcription failed.';
         if (onError) onError(message);
         else console.error('Speech transcription failed:', error);
+      } finally {
+        setProcessing(false);
       }
     };
     r.start();
@@ -49,16 +58,36 @@ export function useVoice() {
 
   /** Sunbird TTS first; falls back to the browser voice (no Luganda voice offline). */
   async function speak(text: string, lang: VoiceLang): Promise<void> {
+    setSpeaking(true);
     try {
-      const res = await fetch('/api/tts', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ text, language: normalizeSunbirdLanguage(lang) }) });
+      const res = await fetch('/api/tts', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text, language: normalizeSunbirdLanguage(lang) }),
+      });
       const j = (await res.json()) as { audioUrl?: string };
-      if (j.audioUrl) { await new Audio(j.audioUrl).play(); return; }
-    } catch { /* fall through */ }
+      if (j.audioUrl) {
+        const audio = new Audio(j.audioUrl);
+        audio.onended = () => setSpeaking(false);
+        audio.onerror = () => setSpeaking(false);
+        await audio.play();
+        return;
+      }
+    } catch {
+      /* fall through to browser speech */
+    }
     const browserLanguage = BROWSER_LANG[lang];
-    if (!browserLanguage) return;
+    if (!browserLanguage) {
+      setSpeaking(false);
+      return;
+    }
     const u = new SpeechSynthesisUtterance(text);
-    u.lang = browserLanguage; u.rate = 0.9;
-    speechSynthesis.cancel(); speechSynthesis.speak(u);
+    u.lang = browserLanguage;
+    u.rate = 0.9;
+    u.onend = () => setSpeaking(false);
+    u.onerror = () => setSpeaking(false);
+    speechSynthesis.cancel();
+    speechSynthesis.speak(u);
   }
-  return { recording, toggleMic, speak };
+  return { recording, processing, speaking, toggleMic, speak };
 }
