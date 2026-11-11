@@ -1,7 +1,7 @@
 'use client';
 
 import { useRef, useState } from 'react';
-import { useLearnerAccount } from '@/components/LearnerDataSync';
+import { useLearnerAccount } from '@/components/providers/LearnerDataSync';
 
 export default function Redeem({ rewardId, color }: { rewardId: string; color: string }) {
   const { refresh } = useLearnerAccount();

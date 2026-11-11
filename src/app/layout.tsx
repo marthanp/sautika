@@ -1,7 +1,7 @@
 import { ClerkProvider } from '@clerk/nextjs';
 import type { Metadata, Viewport } from 'next';
 import { Inter, Poppins } from 'next/font/google';
-import AccessibilitySync from '@/components/AccessibilitySync';
+import AccessibilitySync from '@/components/providers/AccessibilitySync';
 import './globals.css';
 
 const inter = Inter({ subsets: ['latin'], variable: '--font-inter' });

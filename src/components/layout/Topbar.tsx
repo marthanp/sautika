@@ -16,8 +16,8 @@ import {
   X,
 } from 'lucide-react';
 import { useApp } from '@/store/useApp';
-import { useLearnerProfile } from './LearnerDataSync';
-import { Logo } from './Logo';
+import { useLearnerProfile } from '@/components/providers/LearnerDataSync';
+import { Logo } from '@/components/ui/Logo';
 
 interface NotificationItem {
   id: string;

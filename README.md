@@ -48,7 +48,7 @@ Sautika bridges the educational resource gap through:
 - **Universal Document Ingestion & OCR:** Learners photograph physical revision sheets or upload Word documents (`.docx`), PDFs, and text files. Sautika extracts the text using cloud OCR and local fallback engines, summarizing key takeaways automatically.
 - **Voice-First Regional Interaction:** Powered by Sunbird AI and browser speech synthesis fallbacks, learners can dictate questions and listen to lesson explanations in East African accents and regional languages (Swahili and Luganda).
 - **Grounded AI Study Agent:** An intelligent notebook agent that answers questions cited strictly from uploaded sources (`[1]`), synthesizes revision guides, and dynamically generates 5-question interactive quizzes to test comprehension.
-- **Offline-Resilient Architecture:** Local caching via Zustand and Dexie (IndexedDB) ensures notes and course progress remain accessible without connectivity, synchronizing seamlessly to MongoDB Atlas when reconnected.
+- **Offline-Resilient Architecture:** Local caching via a persisted Zustand store keeps settings and course progress accessible without connectivity, synchronizing seamlessly to MongoDB Atlas when reconnected.
 - **Curriculum Alignment:** Preloaded curriculum units covering Baby Class through Senior 6 across Mathematics, Science, English, Social Studies, Agriculture, and Life Skills.
 - **Inclusive Accessibility:** Built-in dyslexia-friendly typography (OpenDyslexic, Lexend, Atkinson Hyperlegible), text-to-speech reading assistance, color-tint reading overlays, and high-contrast themes.
 
@@ -75,10 +75,8 @@ flowchart TD
     subgraph Client["Learner Device (Mobile, Tablet, Desktop)"]
         UI["Next.js 16 App & React 18 UI"]
         ZStore["Zustand State (Progress, XP, Streaks)"]
-        LocalDB[("Dexie IndexedDB (Local Notes & Sources)")]
         WebSpeech["Web Speech Synthesis Fallback"]
         UI <--> ZStore
-        UI <--> LocalDB
         UI -. audio fallback .-> WebSpeech
     end
 
@@ -120,7 +118,7 @@ flowchart TD
 
 ### Data and Request Lifecycle
 
-1. **Local-First Interaction:** Client-side updates (lesson completion, streak progression, note creation) write immediately to Zustand and Dexie IndexedDB.
+1. **Local-First Interaction:** Client-side updates (lesson completion, streak progression, note creation) write immediately to the persisted Zustand store.
 2. **Server-Side Token Verification:** Authenticated requests to `/api/account` validate Clerk JWT sessions server-side before persisting data to MongoDB Atlas.
 3. **Universal Document Extraction:** Uploaded PDFs, Word files, or captured photos route to `/api/ocr`. Text is extracted via `pdf-parse`, `mammoth`, or cloud `OCR.Space` (with local `tesseract.js` fallback), stored to Cloudflare R2, and summarized by the LLM engine.
 4. **Grounded Agent Processing:** Queries to `/api/notebook` bundle learner sources into prompt context, passing through the multi-provider failover pipeline before returning grounded answers or quiz objects.
@@ -138,7 +136,6 @@ flowchart TD
 | **Icons & Assets** | [Lucide React](https://lucide.dev/) | Clean, accessible vector interface iconography |
 | **Typography & A11y** | [@fontsource](https://fontsource.org/) | Embedded dyslexia-accessible typefaces (OpenDyslexic, Lexend, Atkinson Hyperlegible, Comic Neue) |
 | **Local Client State** | [Zustand](https://github.com/pmndrs/zustand) | Persisted reactive store for streaks, coin rewards, XP, and settings |
-| **Client Database** | [Dexie.js](https://dexie.org/) (IndexedDB) | Device-local storage and offline caching of study documents and notebook items |
 | **Authentication** | [Clerk](https://clerk.com/) (`@clerk/nextjs`) | Multi-factor user identity, session management, and protected routes |
 | **Cloud Database** | [MongoDB Atlas](https://www.mongodb.com/atlas) (`mongodb`) | Cloud persistence of user profiles, progress, notes, and coin history |
 | **Object Storage & Backup** | [Cloudflare R2](https://www.cloudflare.com/developer-platform/r2/) (`@aws-sdk/client-s3`) | S3-compatible cloud storage for uploaded documents and automated database sync snapshots |
@@ -152,7 +149,7 @@ flowchart TD
 
 ## Agent Architecture
 
-Sautika features a specialized **Grounded Educational Agent** embedded within the Learning Notebook (`/api/notebook` and `src/lib/llmProviders.ts`). The agent acts as an encouraging, patient tutor dedicated to East African learners.
+Sautika features a specialized **Grounded Educational Agent** embedded within the Learning Notebook (`/api/notebook` and `src/lib/llm-providers.ts`). The agent acts as an encouraging, patient tutor dedicated to East African learners.
 
 ```mermaid
 flowchart TD
@@ -304,7 +301,7 @@ sequenceDiagram
     Note over Learner,UI: Checkpoint 2: Human Content Validation
     Learner->>UI: Edits draft notes, re-orders questions, or deletes inaccurate points
     Learner->>UI: Clicks "Save to Notebook"
-    UI->>DB: Persists verified note to Dexie & MongoDB Atlas
+    UI->>DB: Persists verified note to MongoDB Atlas
     Note over Learner,UI: Checkpoint 3: Formative Assessment Loop
     Learner->>UI: Takes interactive quiz, sees instant feedback & explanations
 ```
@@ -429,11 +426,45 @@ sequenceDiagram
 
 | Command | Description |
 | --- | --- |
-| `npm run dev` | Starts local Next.js dev server with Turbopack |
+| `npm run dev` | Starts local Next.js dev server |
 | `npm run build` | Builds optimized production bundle |
 | `npm run start` | Starts production server |
 | `npm run typecheck` | Validates TypeScript types across the project |
 | `npm run lint` | Runs ESLint code style and quality checks |
+
+---
+
+## Project Structure
+
+```text
+sautika-next/
+├── .agents/                 # MCP server registration for agentic IDEs
+├── database/                # MongoDB schema, validators and index setup script
+├── docs/
+│   └── architecture/        # Agent & MCP architecture diagram (SVG, PNG, printable HTML)
+├── public/                  # Static assets served as-is (logos, images, web manifest)
+├── scripts/                 # Standalone Node scripts (MCP OCR server)
+├── src/
+│   ├── app/                 # Next.js App Router
+│   │   ├── (app)/           # Authenticated learner area (home, courses, learning, notebook, …)
+│   │   ├── api/             # Route handlers (account, notebook, ocr, stt, tts, translate, sync)
+│   │   └── …                # Landing page, auth and policy routes
+│   ├── components/
+│   │   ├── auth/            # Sign-in form
+│   │   ├── landing/         # Marketing page sections
+│   │   ├── layout/          # App shell, sidebar, topbar, footer, policy page template
+│   │   ├── providers/       # Cross-app state sync (learner data, accessibility)
+│   │   ├── ui/              # Shared primitives, icons and logo
+│   │   └── voice/           # Voice search, dialect selector and audio visualisers
+│   ├── data/                # Static curriculum and catalog content
+│   ├── hooks/               # Reusable React hooks
+│   ├── lib/                 # Server/client utilities (MongoDB, R2, LLM router, Sunbird)
+│   ├── store/               # Zustand store
+│   ├── types/               # Shared TypeScript types
+│   └── proxy.ts             # Clerk request proxy (Next.js 16 middleware)
+├── AGENTS.md                # Agent instructions (managed by `next dev`, must stay at the root)
+└── README.md
+```
 
 ---
 

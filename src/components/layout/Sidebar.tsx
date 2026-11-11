@@ -14,7 +14,7 @@ import {
 } from 'lucide-react';
 import { SignOutButton } from '@clerk/nextjs';
 import { useApp } from '@/store/useApp';
-import { Logo } from './Logo';
+import { Logo } from '@/components/ui/Logo';
 
 const NAV = [
   { href: '/home', label: 'Study Hub', icon: LayoutDashboard },

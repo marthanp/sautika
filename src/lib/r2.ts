@@ -1,10 +1,7 @@
 import {
   S3Client,
   PutObjectCommand,
-  GetObjectCommand,
-  DeleteObjectCommand,
   ListObjectsV2Command,
-  HeadBucketCommand,
 } from '@aws-sdk/client-s3';
 import { getDatabase } from './mongodb';
 
@@ -80,55 +77,6 @@ export async function uploadToR2(options: {
     url: getR2PublicUrl(cleanKey),
     size: bodyBuffer.length,
   };
-}
-
-/**
- * Read an object from Cloudflare R2 as a Buffer or string.
- */
-export async function getFromR2(key: string): Promise<Buffer | null> {
-  const s3 = getR2Client();
-  const bucket = getR2BucketName();
-  const cleanKey = key.replace(/^\/+/, '');
-
-  try {
-    const res = await s3.send(
-      new GetObjectCommand({
-        Bucket: bucket,
-        Key: cleanKey,
-      }),
-    );
-
-    if (!res.Body) return null;
-    const byteArray = await res.Body.transformToByteArray();
-    return Buffer.from(byteArray);
-  } catch (err: unknown) {
-    const error = err as { name?: string };
-    if (error?.name === 'NoSuchKey' || error?.name === 'NotFound') {
-      return null;
-    }
-    throw err;
-  }
-}
-
-/**
- * Delete an object from Cloudflare R2.
- */
-export async function deleteFromR2(key: string): Promise<boolean> {
-  const s3 = getR2Client();
-  const bucket = getR2BucketName();
-  const cleanKey = key.replace(/^\/+/, '');
-
-  try {
-    await s3.send(
-      new DeleteObjectCommand({
-        Bucket: bucket,
-        Key: cleanKey,
-      }),
-    );
-    return true;
-  } catch {
-    return false;
-  }
 }
 
 /**

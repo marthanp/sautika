@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { ArrowLeft } from 'lucide-react';
-import { Logo } from './Icons';
+import { Logo } from '@/components/ui/Icons';
 
 export interface PolicySection {
   heading: string;

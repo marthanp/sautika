@@ -3,9 +3,9 @@
 import Image from 'next/image';
 import Link from 'next/link';
 import { ArrowRight, BookOpen, CirclePlay, Sprout } from 'lucide-react';
-import { useLearnerAccount, useLearnerProfile } from '@/components/LearnerDataSync';
-import VoiceCourseSearch from '@/components/VoiceCourseSearch';
-import { SUBJECTS } from '@/lib/data';
+import { useLearnerAccount, useLearnerProfile } from '@/components/providers/LearnerDataSync';
+import VoiceCourseSearch from '@/components/voice/VoiceCourseSearch';
+import { SUBJECTS } from '@/data/catalog';
 import { coursesForClass } from '@/lib/course-access';
 import { IMAGE_BY_CATEGORY, SUBJECT_BY_CATEGORY } from '@/lib/course-display';
 

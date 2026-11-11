@@ -5,7 +5,7 @@ import { ArrowRight, UserRound } from 'lucide-react';
 import { useState, type ChangeEvent, type FormEvent } from 'react';
 import { useRouter } from 'next/navigation';
 import { useSignUp } from '@clerk/nextjs';
-import { Logo } from '@/components/Icons';
+import { Logo } from '@/components/ui/Icons';
 
 const EDUCATION_LEVELS = [
   'Baby Class',

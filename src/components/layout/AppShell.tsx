@@ -1,10 +1,10 @@
 'use client';
 
 import { useApp } from '@/store/useApp';
-import Sidebar from './Sidebar';
-import Topbar from './Topbar';
-import AmbientLanguageCanvas from './AmbientLanguageCanvas';
-import FloatingDialectSelector from './FloatingDialectSelector';
+import Sidebar from '@/components/layout/Sidebar';
+import Topbar from '@/components/layout/Topbar';
+import AmbientLanguageCanvas from '@/components/voice/AmbientLanguageCanvas';
+import FloatingDialectSelector from '@/components/voice/FloatingDialectSelector';
 
 export default function AppShell({ children }: { children: React.ReactNode }) {
   const sidebarHidden = useApp((state) => state.sidebarHidden);

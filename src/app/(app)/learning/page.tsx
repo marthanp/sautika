@@ -5,7 +5,7 @@ import { useSearchParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { ArrowLeft, BookOpen, ChartNoAxesColumn, Check, Clock, Trophy } from 'lucide-react';
 import { Card, Coin, Ring } from '@/components/ui';
-import { useLearnerAccount, useLearnerProfile } from '@/components/LearnerDataSync';
+import { useLearnerAccount, useLearnerProfile } from '@/components/providers/LearnerDataSync';
 import { coursesForClass } from '@/lib/course-access';
 import { useApp } from '@/store/useApp';
 import LessonView from './LessonView';

@@ -1,6 +1,6 @@
 import type { NextRequest } from 'next/server';
 import type { Item } from '@/types';
-import { generateAIResponse } from '@/lib/llmProviders';
+import { generateAIResponse } from '@/lib/llm-providers';
 import { isSunbirdLanguage } from '@/lib/sunbird-languages';
 import { translateWithSunbird } from '@/lib/sunbird-translation';
 

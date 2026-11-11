@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useClerk, useSignIn, useUser } from '@clerk/nextjs';
 import { useState, type FormEvent } from 'react';
 import { ArrowRight, Eye, EyeOff, LogOut, ShieldCheck } from 'lucide-react';
-import { GoogleG, Logo } from './Icons';
+import { GoogleG, Logo } from '@/components/ui/Icons';
 
 export default function SignIn() {
   const { signOut } = useClerk();

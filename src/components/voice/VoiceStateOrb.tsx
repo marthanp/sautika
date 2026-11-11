@@ -1,7 +1,7 @@
 'use client';
 
 import { Mic, Loader2, Volume2 } from 'lucide-react';
-import AudioWaveformVisualizer from './AudioWaveformVisualizer';
+import AudioWaveformVisualizer from '@/components/voice/AudioWaveformVisualizer';
 import { triggerFeedback } from '@/lib/feedback';
 
 interface VoiceStateOrbProps {

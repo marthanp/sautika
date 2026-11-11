@@ -3,7 +3,7 @@ import { ObjectId, type Document } from 'mongodb';
 import { getDatabase, getMongoClient } from '@/lib/mongodb';
 import { COURSES as CURRICULUM } from '@/data/courses';
 import { isCourseAvailableForClass, resolveEducationLevel } from '@/lib/course-access';
-import { REWARDS as REWARD_CATALOG } from '@/lib/data';
+import { REWARDS as REWARD_CATALOG } from '@/data/catalog';
 
 export const runtime = 'nodejs';
 

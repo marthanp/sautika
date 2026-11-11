@@ -2,8 +2,8 @@
 import { useEffect, useRef, useState } from 'react';
 import { Calendar, FileText, Loader2, Plus, Trash2, Upload, Volume2, X } from 'lucide-react';
 import { Card } from '@/components/ui';
-import { useLearnerAccount } from '@/components/LearnerDataSync';
-import { SUBJECTS, type Note, type Subject } from '@/lib/data';
+import { useLearnerAccount } from '@/components/providers/LearnerDataSync';
+import { SUBJECTS, type Note, type Subject } from '@/data/catalog';
 
 const FILTERS = ['All Notes', 'Mathematics', 'Science', 'English', 'Social Studies', 'Agriculture'];
 const TINT: Record<Subject, string> = {

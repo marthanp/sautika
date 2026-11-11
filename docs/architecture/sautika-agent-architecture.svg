@@ -1,0 +1,332 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 1020" width="1600" height="1020" style="background:#090D16;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
+  <defs>
+    <!-- Card Gradients -->
+    <linearGradient id="hdr-human" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#F59E0B" />
+      <stop offset="100%" stop-color="#B45309" />
+    </linearGradient>
+    <linearGradient id="hdr-agent" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#3B82F6" />
+      <stop offset="100%" stop-color="#1D4ED8" />
+    </linearGradient>
+    <linearGradient id="hdr-llm" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#10B981" />
+      <stop offset="100%" stop-color="#047857" />
+    </linearGradient>
+    <linearGradient id="hdr-mcp" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#8B5CF6" />
+      <stop offset="100%" stop-color="#5B21B6" />
+    </linearGradient>
+    <linearGradient id="hdr-data" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#06B6D4" />
+      <stop offset="100%" stop-color="#0E7490" />
+    </linearGradient>
+    <linearGradient id="hdr-api" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#EC4899" />
+      <stop offset="100%" stop-color="#BE185D" />
+    </linearGradient>
+
+    <!-- Filters -->
+    <filter id="drop" x="-10%" y="-10%" width="120%" height="120%">
+      <feDropShadow dx="0" dy="6" stdDeviation="8" flood-color="#000000" flood-opacity="0.6" />
+    </filter>
+
+    <!-- Arrow Markers -->
+    <marker id="m-amber" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 1.5 L 9 5 L 0 8.5 z" fill="#F59E0B" />
+    </marker>
+    <marker id="m-blue" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 1.5 L 9 5 L 0 8.5 z" fill="#38BDF8" />
+    </marker>
+    <marker id="m-green" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 1.5 L 9 5 L 0 8.5 z" fill="#10B981" />
+    </marker>
+    <marker id="m-purple" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 1.5 L 9 5 L 0 8.5 z" fill="#A855F7" />
+    </marker>
+    <marker id="m-cyan" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 1.5 L 9 5 L 0 8.5 z" fill="#06B6D4" />
+    </marker>
+    <marker id="m-pink" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 1.5 L 9 5 L 0 8.5 z" fill="#EC4899" />
+    </marker>
+  </defs>
+
+  <!-- Background subtle grid -->
+  <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
+    <path d="M 40 0 L 0 0 0 40" fill="none" stroke="#1E293B" stroke-width="0.7" opacity="0.4" />
+  </pattern>
+  <rect width="1600" height="1020" fill="url(#grid)" />
+
+  <!-- HEADER BANNER -->
+  <g transform="translate(40, 20)" filter="url(#drop)">
+    <rect width="1520" height="74" rx="14" fill="#131B2E" stroke="#334155" stroke-width="1.5" />
+    <circle cx="45" cy="37" r="18" fill="#F59E0B" />
+    <text x="45" y="43" fill="#FFFFFF" font-size="20" font-weight="900" text-anchor="middle">S</text>
+    <text x="80" y="38" fill="#FFFFFF" font-size="22" font-weight="800" letter-spacing="0.3">SAUTIKA — AGENT &amp; MCP SYSTEM ARCHITECTURE</text>
+    <text x="80" y="58" fill="#94A3B8" font-size="13" font-weight="500">Autonomous &amp; Grounded Educational Tutoring • Model Context Protocol • Multi-LLM Orchestration</text>
+    
+    <!-- Legend / Tags -->
+    <rect x="1140" y="24" width="350" height="26" rx="6" fill="#1E293B" />
+    <circle cx="1156" cy="37" r="5" fill="#F59E0B" />
+    <text x="1168" y="41" fill="#CBD5E1" font-size="11" font-weight="600">HITL</text>
+    <circle cx="1216" cy="37" r="5" fill="#3B82F6" />
+    <text x="1228" y="41" fill="#CBD5E1" font-size="11" font-weight="600">Agent</text>
+    <circle cx="1282" cy="37" r="5" fill="#10B981" />
+    <text x="1294" y="41" fill="#CBD5E1" font-size="11" font-weight="600">LLMs</text>
+    <circle cx="1346" cy="37" r="5" fill="#8B5CF6" />
+    <text x="1358" y="41" fill="#CBD5E1" font-size="11" font-weight="600">MCP</text>
+    <circle cx="1406" cy="37" r="5" fill="#06B6D4" />
+    <text x="1418" y="41" fill="#CBD5E1" font-size="11" font-weight="600">Memory</text>
+  </g>
+
+  <!-- ==================== ROW 1 ==================== -->
+
+  <!-- BOX 1: HUMAN-IN-THE-LOOP (HITL) -->
+  <g transform="translate(40, 115)" filter="url(#drop)">
+    <rect width="360" height="400" rx="14" fill="#111827" stroke="#F59E0B" stroke-width="2" />
+    <path d="M 0 14 Q 0 0 14 0 L 346 0 Q 360 0 360 14 L 360 44 L 0 44 Z" fill="url(#hdr-human)" />
+    <text x="18" y="29" fill="#FFFFFF" font-size="15" font-weight="bold">1. HUMAN-IN-THE-LOOP (HITL)</text>
+    <rect x="290" y="11" width="56" height="22" rx="4" fill="#78350F" />
+    <text x="318" y="26" fill="#FDE68A" font-size="10" font-weight="bold" text-anchor="middle">AGENCY</text>
+
+    <!-- Subcards -->
+    <rect x="16" y="58" width="328" height="64" rx="8" fill="#1F293D" stroke="#374151" />
+    <text x="28" y="80" fill="#FDE68A" font-size="13" font-weight="bold">A. Source Curation &amp; Ingestion</text>
+    <text x="28" y="98" fill="#D1D5DB" font-size="11.5">User uploads textbook photos, PDFs, Word docs,</text>
+    <text x="28" y="113" fill="#9CA3AF" font-size="11">or records audio queries in English / Swahili / Luganda</text>
+
+    <rect x="16" y="132" width="328" height="64" rx="8" fill="#1F293D" stroke="#374151" />
+    <text x="28" y="154" fill="#FDE68A" font-size="13" font-weight="bold">B. OCR Verification &amp; Edits</text>
+    <text x="28" y="172" fill="#D1D5DB" font-size="11.5">Learner reviews extracted OCR text, fixes handwriting</text>
+    <text x="28" y="187" fill="#9CA3AF" font-size="11">mistakes, and confirms target output language</text>
+
+    <rect x="16" y="206" width="328" height="64" rx="8" fill="#1F293D" stroke="#374151" />
+    <text x="28" y="228" fill="#FDE68A" font-size="13" font-weight="bold">C. Prompt &amp; Mode Selection</text>
+    <text x="28" y="246" fill="#D1D5DB" font-size="11.5">User triggers: 'Ask Question', 'Generate Summary',</text>
+    <text x="28" y="261" fill="#9CA3AF" font-size="11">'Create Study Guide', or 'Build Interactive Quiz'</text>
+
+    <rect x="16" y="280" width="328" height="64" rx="8" fill="#1F293D" stroke="#374151" />
+    <text x="28" y="302" fill="#FDE68A" font-size="13" font-weight="bold">D. Formative Quiz Practice &amp; Save</text>
+    <text x="28" y="320" fill="#D1D5DB" font-size="11.5">Learner plays generated 5-question test, receives score,</text>
+    <text x="28" y="335" fill="#9CA3AF" font-size="11">edits notes, and explicitly approves saving to cloud</text>
+
+    <!-- Guardrail Notice -->
+    <rect x="16" y="354" width="328" height="32" rx="6" fill="#78350F" fill-opacity="0.3" stroke="#B45309" stroke-dasharray="3" />
+    <text x="180" y="374" fill="#FBBF24" font-size="11" font-weight="700" text-anchor="middle">★ Zero unverified writes — Complete human validation</text>
+  </g>
+
+  <!-- BOX 2: AGENT CORE & ORCHESTRATION -->
+  <g transform="translate(440, 115)" filter="url(#drop)">
+    <rect width="540" height="400" rx="14" fill="#111827" stroke="#3B82F6" stroke-width="2" />
+    <path d="M 0 14 Q 0 0 14 0 L 526 0 Q 540 0 540 14 L 540 44 L 0 44 Z" fill="url(#hdr-agent)" />
+    <text x="20" y="29" fill="#FFFFFF" font-size="15" font-weight="bold">2. SAUTIKA EDUCATIONAL AGENT &amp; ORCHESTRATION</text>
+    <rect x="446" y="11" width="76" height="22" rx="4" fill="#1E3A8A" />
+    <text x="484" y="26" fill="#93C5FD" font-size="10" font-weight="bold" text-anchor="middle">NEXT 16 API</text>
+
+    <!-- Subcard: Guardrails -->
+    <rect x="18" y="58" width="504" height="74" rx="8" fill="#1E293B" stroke="#334155" />
+    <text x="30" y="80" fill="#93C5FD" font-size="13" font-weight="bold">Prompt Engine &amp; Strict Source Guardrails (/api/notebook)</text>
+    <text x="30" y="99" fill="#E2E8F0" font-size="11.5">• Injects strict context boundary: Uses ONLY uploaded sources [1], [2]</text>
+    <text x="30" y="116" fill="#E2E8F0" font-size="11.5">• Anti-Hallucination: Kindly declines to answer if concepts are not in notes</text>
+
+    <!-- Subcard: Modes -->
+    <rect x="18" y="142" width="504" height="114" rx="8" fill="#1E293B" stroke="#334155" />
+    <text x="30" y="163" fill="#93C5FD" font-size="13" font-weight="bold">Specialized Agent Execution Modes</text>
+    <text x="30" y="182" fill="#E2E8F0" font-size="11">• <tspan fill="#60A5FA" font-weight="bold">mode: 'ask'</tspan> ➔ Grounded Q&amp;A answering learner doubts with citations [1]</text>
+    <text x="30" y="200" fill="#E2E8F0" font-size="11">• <tspan fill="#60A5FA" font-weight="bold">mode: 'summary'</tspan> ➔ 4-5 bullet points + 3 core vocabulary definitions</text>
+    <text x="30" y="218" fill="#E2E8F0" font-size="11">• <tspan fill="#60A5FA" font-weight="bold">mode: 'guide'</tspan> ➔ 4 key concepts, detailed explanations &amp; self-test questions</text>
+    <text x="30" y="236" fill="#E2E8F0" font-size="11">• <tspan fill="#60A5FA" font-weight="bold">mode: 'lesson'</tspan> ➔ Synthesizes strict JSON schema for 5-question interactive quizzes</text>
+
+    <!-- Subcard: Router -->
+    <rect x="18" y="266" width="504" height="80" rx="8" fill="#1E293B" stroke="#334155" />
+    <text x="30" y="287" fill="#93C5FD" font-size="13" font-weight="bold">Multi-Provider Router &amp; Failover (src/lib/llmProviders.ts)</text>
+    <text x="30" y="306" fill="#E2E8F0" font-size="11.5">• Smart timeout catchers, rate-limit monitors, and automatic cascade</text>
+    <text x="30" y="323" fill="#38BDF8" font-size="11">• Response returns 'X-AI-Provider' HTTP header for transparency</text>
+
+    <!-- Subcard: Dispatch Status -->
+    <rect x="18" y="356" width="504" height="30" rx="6" fill="#1E3A8A" fill-opacity="0.3" stroke="#2563EB" />
+    <text x="270" y="375" fill="#BFDBFE" font-size="11" font-weight="600" text-anchor="middle">Cascade: Gemini ➔ Groq ➔ OpenRouter ➔ Mistral ➔ Heuristic Fallback</text>
+  </g>
+
+  <!-- BOX 3: LLMs & INFERENCE MODELS -->
+  <g transform="translate(1020, 115)" filter="url(#drop)">
+    <rect width="540" height="400" rx="14" fill="#111827" stroke="#10B981" stroke-width="2" />
+    <path d="M 0 14 Q 0 0 14 0 L 526 0 Q 540 0 540 14 L 540 44 L 0 44 Z" fill="url(#hdr-llm)" />
+    <text x="20" y="29" fill="#FFFFFF" font-size="15" font-weight="bold">3. LLMs &amp; INFERENCE MODELS</text>
+    <rect x="430" y="11" width="92" height="22" rx="4" fill="#064E3B" />
+    <text x="476" y="26" fill="#A7F3D0" font-size="10" font-weight="bold" text-anchor="middle">MULTI-TIER</text>
+
+    <!-- Tier 1 -->
+    <rect x="18" y="58" width="504" height="58" rx="8" fill="#1E293B" stroke="#059669" />
+    <text x="30" y="80" fill="#6EE7B7" font-size="13" font-weight="bold">Tier 1: Google Gemini 1.5 Flash (Primary)</text>
+    <text x="30" y="99" fill="#D1D5DB" font-size="11.5">Fast multimodal context, strong instruction following &amp; cost efficiency</text>
+
+    <!-- Tier 2 -->
+    <rect x="18" y="124" width="504" height="58" rx="8" fill="#1E293B" stroke="#334155" />
+    <text x="30" y="146" fill="#6EE7B7" font-size="13" font-weight="bold">Tier 2: Groq (LLaMA 3.3 70B Versatile)</text>
+    <text x="30" y="165" fill="#D1D5DB" font-size="11.5">Ultra-low token latency (300+ tps) for near-instant tutoring &amp; quiz creation</text>
+
+    <!-- Tier 3 -->
+    <rect x="18" y="190" width="504" height="58" rx="8" fill="#1E293B" stroke="#334155" />
+    <text x="30" y="212" fill="#6EE7B7" font-size="13" font-weight="bold">Tier 3: OpenRouter Gateway (Meta LLaMA 3.3 Instruct)</text>
+    <text x="30" y="231" fill="#D1D5DB" font-size="11.5">Multi-endpoint fallback when primary provider limits or quotas are exceeded</text>
+
+    <!-- Tier 4 -->
+    <rect x="18" y="256" width="504" height="58" rx="8" fill="#1E293B" stroke="#334155" />
+    <text x="30" y="278" fill="#6EE7B7" font-size="13" font-weight="bold">Tier 4: Mistral / Fireworks / NVIDIA NIM / Cohere</text>
+    <text x="30" y="297" fill="#D1D5DB" font-size="11.5">Redundant geographic cluster ensuring constant service availability</text>
+
+    <!-- Tier 5 -->
+    <rect x="18" y="322" width="504" height="66" rx="8" fill="#1E293B" stroke="#047857" stroke-dasharray="3" />
+    <text x="30" y="344" fill="#34D399" font-size="13" font-weight="bold">Tier 5: Local Educational Heuristic Fallback</text>
+    <text x="30" y="363" fill="#D1D5DB" font-size="11.5">Zero-connectivity deterministic summary &amp; question generator in TypeScript</text>
+  </g>
+
+  <!-- ==================== ROW 2 ==================== -->
+
+  <!-- BOX 4: MODEL CONTEXT PROTOCOL (MCP) -->
+  <g transform="translate(40, 560)" filter="url(#drop)">
+    <rect width="360" height="420" rx="14" fill="#111827" stroke="#8B5CF6" stroke-width="2" />
+    <path d="M 0 14 Q 0 0 14 0 L 346 0 Q 360 0 360 14 L 360 44 L 0 44 Z" fill="url(#hdr-mcp)" />
+    <text x="18" y="29" fill="#FFFFFF" font-size="15" font-weight="bold">4. MODEL CONTEXT PROTOCOL (MCP)</text>
+    <rect x="290" y="11" width="56" height="22" rx="4" fill="#4C1D95" />
+    <text x="318" y="26" fill="#DDD6FE" font-size="10" font-weight="bold" text-anchor="middle">STDIO</text>
+
+    <!-- MCP Client Host -->
+    <rect x="16" y="58" width="328" height="78" rx="8" fill="#1F293D" stroke="#374151" />
+    <text x="28" y="80" fill="#C4B5FD" font-size="13" font-weight="bold">MCP Client Host (IDE / Assistant)</text>
+    <text x="28" y="99" fill="#E2E8F0" font-size="11.5">• Hosts: Antigravity / Claude Desktop / Cursor</text>
+    <text x="28" y="116" fill="#E2E8F0" font-size="11.5">• Loads: .agents/mcp_config.json</text>
+    <text x="28" y="130" fill="#9CA3AF" font-size="10.5">Spawns Node.js stdio subprocess on session start</text>
+
+    <!-- JSON-RPC Transport -->
+    <rect x="16" y="146" width="328" height="52" rx="8" fill="#3B0764" fill-opacity="0.4" stroke="#7C3AED" stroke-dasharray="3" />
+    <text x="28" y="168" fill="#DDD6FE" font-size="12" font-weight="bold">JSON-RPC 2.0 Transport (stdio)</text>
+    <text x="28" y="185" fill="#A78BFA" font-size="11">Spec 2024-11-05: initialize, tools/list, tools/call</text>
+
+    <!-- MCP Server -->
+    <rect x="16" y="208" width="328" height="88" rx="8" fill="#1F293D" stroke="#6D28D9" />
+    <text x="28" y="229" fill="#C4B5FD" font-size="13" font-weight="bold">MCP Server: ocr-space-mcp-server</text>
+    <text x="28" y="248" fill="#E2E8F0" font-size="11">• File: scripts/mcp-ocr-server.mjs</text>
+    <text x="28" y="265" fill="#E2E8F0" font-size="11">• Resolves relative paths, web URLs &amp; base64</text>
+    <text x="28" y="282" fill="#E2E8F0" font-size="11">• Standard JSON-RPC error handling &amp; ping</text>
+
+    <!-- MCP Tool -->
+    <rect x="16" y="306" width="328" height="98" rx="8" fill="#1F293D" stroke="#374151" />
+    <text x="28" y="327" fill="#C4B5FD" font-size="13" font-weight="bold">MCP Tool: 'ocr_extract_text'</text>
+    <text x="28" y="346" fill="#E2E8F0" font-size="11">• Input: { image: string, language?: 'eng'|'swa' }</text>
+    <text x="28" y="364" fill="#E2E8F0" font-size="11">• Output: { content: [{ type: 'text', text }] }</text>
+    <text x="28" y="382" fill="#A78BFA" font-size="10.5">Allows external dev agents to run OCR on student files</text>
+  </g>
+
+  <!-- BOX 5: DATA SOURCES & MEMORY -->
+  <g transform="translate(440, 560)" filter="url(#drop)">
+    <rect width="540" height="420" rx="14" fill="#111827" stroke="#06B6D4" stroke-width="2" />
+    <path d="M 0 14 Q 0 0 14 0 L 526 0 Q 540 0 540 14 L 540 44 L 0 44 Z" fill="url(#hdr-data)" />
+    <text x="20" y="29" fill="#FFFFFF" font-size="15" font-weight="bold">5. DATA SOURCES &amp; MEMORY ARCHITECTURE</text>
+    <rect x="426" y="11" width="96" height="22" rx="4" fill="#164E63" />
+    <text x="474" y="26" fill="#A5F3FC" font-size="10" font-weight="bold" text-anchor="middle">OFFLINE-FIRST</text>
+
+    <!-- Working Memory -->
+    <rect x="18" y="58" width="504" height="66" rx="8" fill="#1E293B" stroke="#334155" />
+    <text x="30" y="80" fill="#67E8F9" font-size="13" font-weight="bold">Working / Session Memory (Client React State)</text>
+    <text x="30" y="99" fill="#E2E8F0" font-size="11.5">• Active note draft buffer, prompt options, current audio blob</text>
+    <text x="30" y="115" fill="#94A3B8" font-size="11">Ephemeral; bound to user session and active lesson player</text>
+
+    <!-- Short-Term Memory -->
+    <rect x="18" y="134" width="504" height="74" rx="8" fill="#1E293B" stroke="#334155" />
+    <text x="30" y="156" fill="#67E8F9" font-size="13" font-weight="bold">Short-Term &amp; Offline Memory (Zustand + Dexie.js)</text>
+    <text x="30" y="175" fill="#E2E8F0" font-size="11.5">• Zustand Store: Local streaks, XP points, coin wallet balance</text>
+    <text x="30" y="193" fill="#E2E8F0" font-size="11.5">• Dexie IndexedDB: Full-text cached study sources, offline notes &amp; draft edits</text>
+
+    <!-- Long-Term Memory -->
+    <rect x="18" y="218" width="504" height="78" rx="8" fill="#1E293B" stroke="#0891B2" />
+    <text x="30" y="240" fill="#67E8F9" font-size="13" font-weight="bold">Long-Term Cloud Memory: MongoDB Atlas</text>
+    <text x="30" y="259" fill="#E2E8F0" font-size="11.5">• Collections: users, learner_profiles, notes, progress, transactions</text>
+    <text x="30" y="277" fill="#E2E8F0" font-size="11.5">• Bi-directional sync via authenticated PUT /api/account</text>
+
+    <!-- Cold Backup -->
+    <rect x="18" y="306" width="504" height="96" rx="8" fill="#1E293B" stroke="#334155" />
+    <text x="30" y="328" fill="#67E8F9" font-size="13" font-weight="bold">Cloud Storage &amp; Snapshots: Cloudflare R2</text>
+    <text x="30" y="347" fill="#E2E8F0" font-size="11.5">• Stores original uploaded document files (PDFs, docx, camera photos)</text>
+    <text x="30" y="365" fill="#E2E8F0" font-size="11.5">• Automated database collection snapshot archives (/api/sync)</text>
+    <text x="30" y="382" fill="#22D3EE" font-size="11">S3-compatible, edge-distributed, zero-egress fees</text>
+  </g>
+
+  <!-- BOX 6: EXTERNAL APIS & SERVICES -->
+  <g transform="translate(1020, 560)" filter="url(#drop)">
+    <rect width="540" height="420" rx="14" fill="#111827" stroke="#EC4899" stroke-width="2" />
+    <path d="M 0 14 Q 0 0 14 0 L 526 0 Q 540 0 540 14 L 540 44 L 0 44 Z" fill="url(#hdr-api)" />
+    <text x="20" y="29" fill="#FFFFFF" font-size="15" font-weight="bold">6. EXTERNAL APIS &amp; PARSERS</text>
+    <rect x="440" y="11" width="82" height="22" rx="4" fill="#831843" />
+    <text x="481" y="26" fill="#FBCFE8" font-size="10" font-weight="bold" text-anchor="middle">SERVICES</text>
+
+    <!-- Sunbird AI -->
+    <rect x="18" y="58" width="504" height="74" rx="8" fill="#1E293B" stroke="#DB2777" />
+    <text x="30" y="80" fill="#F472B6" font-size="13" font-weight="bold">Sunbird AI Speech API (/api/stt, /api/tts)</text>
+    <text x="30" y="99" fill="#E2E8F0" font-size="11.5">• Regional East African Speech-to-Text (STT) trained on regional accents</text>
+    <text x="30" y="117" fill="#E2E8F0" font-size="11.5">• Regional Text-to-Speech (TTS) audio synthesis in Swahili and Luganda</text>
+
+    <!-- OCR.Space & Tesseract -->
+    <rect x="18" y="142" width="504" height="74" rx="8" fill="#1E293B" stroke="#334155" />
+    <text x="30" y="164" fill="#F472B6" font-size="13" font-weight="bold">OCR.Space Cloud API &amp; Local Tesseract.js</text>
+    <text x="30" y="183" fill="#E2E8F0" font-size="11.5">• Primary cloud OCR extraction with automated secondary key failover</text>
+    <text x="30" y="201" fill="#E2E8F0" font-size="11.5">• Tesseract.js WebAssembly fallback when cloud is unavailable</text>
+
+    <!-- Document Parsers -->
+    <rect x="18" y="226" width="504" height="74" rx="8" fill="#1E293B" stroke="#334155" />
+    <text x="30" y="248" fill="#F472B6" font-size="13" font-weight="bold">Document Parsers: Mammoth &amp; PDF-Parse</text>
+    <text x="30" y="267" fill="#E2E8F0" font-size="11.5">• Mammoth: Extracts raw text &amp; hierarchy from Word documents (.docx)</text>
+    <text x="30" y="285" fill="#E2E8F0" font-size="11.5">• PDF-Parse: Fast server-side extraction from curriculum syllabus PDFs</text>
+
+    <!-- Clerk Auth -->
+    <rect x="18" y="310" width="504" height="70" rx="8" fill="#1E293B" stroke="#334155" />
+    <text x="30" y="332" fill="#F472B6" font-size="13" font-weight="bold">Clerk Identity Provider</text>
+    <text x="30" y="351" fill="#E2E8F0" font-size="11.5">• Learner identity, passwordless logins &amp; session tokens</text>
+    <text x="30" y="368" fill="#E2E8F0" font-size="11.5">• Server-side route validation via Next.js 16 proxy.ts</text>
+  </g>
+
+  <!-- ==================== CLEAR ARROWS & CONNECTORS ==================== -->
+
+  <!-- 1. HITL -> Agent (Prompts, Files, Questions) -->
+  <path d="M 400 230 L 440 230" fill="none" stroke="#F59E0B" stroke-width="2.5" marker-end="url(#m-amber)" />
+  <rect x="403" y="210" width="34" height="18" rx="3" fill="#111827" stroke="#F59E0B" stroke-width="0.8" />
+  <text x="420" y="223" fill="#FDE68A" font-size="9" font-weight="bold" text-anchor="middle">Input</text>
+
+  <!-- 2. Agent -> HITL (Drafts, Summaries, Quizzes) -->
+  <path d="M 440 310 L 400 310" fill="none" stroke="#38BDF8" stroke-width="2.5" marker-end="url(#m-blue)" />
+  <rect x="403" y="315" width="34" height="18" rx="3" fill="#111827" stroke="#38BDF8" stroke-width="0.8" />
+  <text x="420" y="328" fill="#93C5FD" font-size="9" font-weight="bold" text-anchor="middle">Drafts</text>
+
+  <!-- 3. Agent -> LLMs (Inference Requests) -->
+  <path d="M 980 230 L 1020 230" fill="none" stroke="#10B981" stroke-width="2.5" marker-end="url(#m-green)" />
+  <rect x="983" y="210" width="34" height="18" rx="3" fill="#111827" stroke="#10B981" stroke-width="0.8" />
+  <text x="1000" y="223" fill="#6EE7B7" font-size="9" font-weight="bold" text-anchor="middle">Prompt</text>
+
+  <!-- 4. LLMs -> Agent (Synthesized Text / JSON Quizzes) -->
+  <path d="M 1020 310 L 980 310" fill="none" stroke="#34D399" stroke-width="2" stroke-dasharray="3" marker-end="url(#m-green)" />
+  <rect x="983" y="315" width="34" height="18" rx="3" fill="#111827" stroke="#34D399" stroke-width="0.8" />
+  <text x="1000" y="328" fill="#A7F3D0" font-size="9" font-weight="bold" text-anchor="middle">Tokens</text>
+
+  <!-- 5. Agent -> Data & Memory (Sync & Local Cache) -->
+  <path d="M 710 515 L 710 560" fill="none" stroke="#06B6D4" stroke-width="2.5" marker-end="url(#m-cyan)" />
+  <rect x="665" y="527" width="90" height="20" rx="4" fill="#111827" stroke="#06B6D4" stroke-width="0.8" />
+  <text x="710" y="541" fill="#67E8F9" font-size="10" font-weight="bold" text-anchor="middle">Sync / Cache DB</text>
+
+  <!-- 6. HITL -> MCP (Dev Assistant Tooling) -->
+  <path d="M 220 515 L 220 560" fill="none" stroke="#8B5CF6" stroke-width="2.5" marker-end="url(#m-purple)" />
+  <rect x="175" y="527" width="90" height="20" rx="4" fill="#111827" stroke="#8B5CF6" stroke-width="0.8" />
+  <text x="220" y="541" fill="#DDD6FE" font-size="10" font-weight="bold" text-anchor="middle">Dev Host Connect</text>
+
+  <!-- 7. Agent -> External APIs (STT / TTS Voice Services) -->
+  <path d="M 980 500 L 1000 500 L 1000 538 L 1290 538 L 1290 560" fill="none" stroke="#EC4899" stroke-width="2.5" marker-end="url(#m-pink)" />
+  <rect x="1080" y="528" width="150" height="20" rx="4" fill="#111827" stroke="#EC4899" stroke-width="0.8" />
+  <text x="1155" y="542" fill="#F472B6" font-size="10" font-weight="bold" text-anchor="middle">Sunbird Speech STT / TTS</text>
+
+  <!-- 8. Clean Gutter Route: MCP Tool (Box 4) to OCR Engine (Box 6) -->
+  <path d="M 220 980 L 220 1005 L 1290 1005 L 1290 980" fill="none" stroke="#A855F7" stroke-width="2" stroke-dasharray="4" marker-end="url(#m-purple)" />
+  <rect x="680" y="995" width="240" height="20" rx="4" fill="#111827" stroke="#A855F7" stroke-width="0.8" />
+  <text x="800" y="1009" fill="#DDD6FE" font-size="10.5" font-weight="bold" text-anchor="middle">MCP Tool Invokes OCR.Space Cloud Engine</text>
+
+</svg>

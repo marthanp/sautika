@@ -3,12 +3,12 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { Sparkles, Compass, BookOpen, Languages, Atom } from 'lucide-react';
-import { useVoice } from '@/lib/useVoice';
+import { useVoice } from '@/hooks/useVoice';
 import { useApp } from '@/store/useApp';
 import { isSunbirdLanguage, SUNBIRD_LANGUAGES, type VoiceLang } from '@/lib/sunbird-languages';
-import VoiceStateOrb from '@/components/VoiceStateOrb';
-import AudioWaveformVisualizer from '@/components/AudioWaveformVisualizer';
-import QuickPromptChips, { type QuickPrompt } from '@/components/QuickPromptChips';
+import VoiceStateOrb from '@/components/voice/VoiceStateOrb';
+import AudioWaveformVisualizer from '@/components/voice/AudioWaveformVisualizer';
+import QuickPromptChips, { type QuickPrompt } from '@/components/voice/QuickPromptChips';
 import { triggerFeedback } from '@/lib/feedback';
 
 export default function VoiceCourseSearch() {

@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { Calendar, NotebookText } from 'lucide-react';
 import { Card } from '@/components/ui';
-import { SUBJECTS, type Note } from '@/lib/data';
+import { SUBJECTS, type Note } from '@/data/catalog';
 
 export default function RecentNotes() {
   const [notes, setNotes] = useState<Note[]>([]);

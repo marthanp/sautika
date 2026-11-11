@@ -1,23 +1,7 @@
-import type { Category, Course, Item, LevelGroup } from '@/types';
+import type { Course, Item } from '@/types';
 
 const m = (q: string, a: string, d1: string, d2: string): Item => ({ k: 'm', q, a, d: [d1, d2] });
 const b = (q: string, a: string, ...x: string[]): Item => ({ k: 'b', q, a, x });
-
-export const LEVEL_GROUPS: LevelGroup[] = [
-  'Baby class to top class',
-  'P.1 to P.4',
-  'P.5 to P.7',
-  'S.1 to S.4',
-  'S.5 to S.6',
-];
-
-export const CATEGORIES: Category[] = [
-  'Science',
-  'Math',
-  'Languages',
-  'Digital Literacy',
-  'Social Studies',
-];
 
 export const COURSES: Course[] = [
   // =========================================================================
@@ -1263,4 +1247,3 @@ export const COURSES: Course[] = [
   },
 ];
 
-export const getCourse = (id: string | null): Course | undefined => COURSES.find((c) => c.id === id);

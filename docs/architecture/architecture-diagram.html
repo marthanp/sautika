@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Sautika — End-to-End Agent & MCP Architecture Diagram</title>
+  <style>
+    body {
+      margin: 0;
+      padding: 20px;
+      background: #0B0F19;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      font-family: system-ui, -apple-system, sans-serif;
+      color: #F8FAFC;
+    }
+    .header {
+      margin-bottom: 16px;
+      text-align: center;
+    }
+    .actions {
+      margin-bottom: 20px;
+      display: flex;
+      gap: 12px;
+    }
+    button {
+      background: #2563EB;
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 8px;
+      font-weight: 600;
+      cursor: pointer;
+      font-size: 14px;
+    }
+    button:hover {
+      background: #1D4ED8;
+    }
+    .diagram-container {
+      width: 100%;
+      max-width: 1400px;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+      border-radius: 12px;
+      overflow: hidden;
+    }
+    img, svg {
+      width: 100%;
+      height: auto;
+      display: block;
+    }
+    @media print {
+      body { background: white; padding: 0; }
+      .actions, .header { display: none; }
+      .diagram-container { box-shadow: none; max-width: 100%; }
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h1>Sautika Agent & MCP Architecture</h1>
+    <p>Showing Agents, LLMs, MCP Client/Server, Tools, External APIs, Data Sources, and Human-in-the-Loop</p>
+  </div>
+  <div class="actions">
+    <button onclick="window.print()">Print to PDF / Save as PDF</button>
+  </div>
+  <div class="diagram-container">
+    <img src="./sautika-agent-architecture.svg" alt="Sautika Architecture Diagram">
+  </div>
+</body>
+</html>
