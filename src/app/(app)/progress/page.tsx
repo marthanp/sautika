@@ -254,15 +254,15 @@ export default function ProgressPage() {
         </div>
       </section>
 
-      <Card className="mt-6 min-w-0 p-4 sm:p-5">
-        <div className="flex flex-wrap items-start justify-between gap-4">
-          <div className="min-w-0">
-            <h2 className="text-[19px] font-extrabold">Share a learner report</h2>
-            <p className="mt-1 max-w-3xl text-sm leading-relaxed text-slate-600">
-              Choose a language to download or listen to a translated summary of this learner&apos;s progress.
-            </p>
-          </div>
-          <div className="flex flex-wrap items-center gap-2">
+      <Card className="mt-6 min-w-0 p-5 sm:p-7">
+        <div className="max-w-3xl">
+          <h2 className="text-xl font-extrabold">Share a learner report</h2>
+          <p className="mt-2 text-sm leading-relaxed text-slate-600 sm:text-[15px]">
+            Choose a language to download or listen to a translated summary of this learner&apos;s progress.
+          </p>
+        </div>
+        <div className="mt-6 flex flex-col gap-5">
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-4">
             <label htmlFor="progress-report-language" className="text-sm font-semibold">Report language</label>
             <select
               id="progress-report-language"
@@ -271,32 +271,32 @@ export default function ProgressPage() {
               onChange={(event) => {
                 if (isSunbirdLanguage(event.target.value)) setReportLanguage(event.target.value);
               }}
-              className="min-h-11 max-w-full rounded-xl border-2 border-ln bg-card px-3"
+              className="min-h-12 w-full rounded-xl border-2 border-ln bg-card px-3 sm:w-60"
             >
               {SUNBIRD_LANGUAGES.map(({ code, name }) => <option key={code} value={code}>{name}</option>)}
             </select>
           </div>
-        </div>
-        <div className="mt-4 flex flex-wrap gap-3">
-          <button
-            type="button"
-            onClick={() => void downloadReport()}
-            disabled={reportAction !== null}
-            className="inline-flex min-h-11 items-center gap-2 rounded-full bg-navy px-4 text-sm font-bold text-white hover:bg-navy/90 disabled:cursor-wait disabled:opacity-60"
-          >
-            <ArrowDownToLine className="h-4 w-4" />
-            {reportAction === 'download' ? 'Preparing report…' : 'Download report'}
-          </button>
-          <button
-            type="button"
-            onClick={() => void listenToReport()}
-            disabled={reportAction !== null || (!isSpeaking && !hasSunbirdTts(reportLanguage))}
-            aria-pressed={isSpeaking}
-            className="inline-flex min-h-11 items-center gap-2 rounded-full border-2 border-navy px-4 text-sm font-bold text-navy hover:bg-blue-50 disabled:cursor-not-allowed disabled:opacity-50"
-          >
-            <Headphones className="h-4 w-4" />
-            {reportAction === 'listen' ? 'Preparing audio…' : isSpeaking ? 'Stop listening' : 'Listen to report'}
-          </button>
+          <div className="flex flex-col gap-3 sm:flex-row">
+            <button
+              type="button"
+              onClick={() => void downloadReport()}
+              disabled={reportAction !== null}
+              className="inline-flex min-h-12 items-center justify-center gap-2 rounded-full bg-navy px-5 text-sm font-bold text-white transition-colors hover:bg-navy/90 disabled:cursor-wait disabled:opacity-60"
+            >
+              <ArrowDownToLine className="h-4 w-4" />
+              {reportAction === 'download' ? 'Preparing report…' : 'Download report'}
+            </button>
+            <button
+              type="button"
+              onClick={() => void listenToReport()}
+              disabled={reportAction !== null || (!isSpeaking && !hasSunbirdTts(reportLanguage))}
+              aria-pressed={isSpeaking}
+              className="inline-flex min-h-12 items-center justify-center gap-2 rounded-full border-2 border-navy px-5 text-sm font-bold text-navy transition-colors hover:bg-blue-50 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              <Headphones className="h-4 w-4" />
+              {reportAction === 'listen' ? 'Preparing audio…' : isSpeaking ? 'Stop listening' : 'Listen to report'}
+            </button>
+          </div>
         </div>
         {!hasSunbirdTts(reportLanguage) ? (
           <p className="mt-3 text-sm text-slate-600">Sunbird can translate and download this report in {SUNBIRD_LANGUAGES.find(({ code }) => code === reportLanguage)?.name}, but does not currently provide a voice for it.</p>

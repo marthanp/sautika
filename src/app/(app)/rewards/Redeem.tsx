@@ -39,7 +39,7 @@ export default function Redeem({ rewardId, color }: { rewardId: string; color: s
         type="button"
         onClick={() => void redeem()}
         disabled={done || isRedeeming}
-        className="mt-5 h-12 w-full rounded-lg text-[16px] font-bold text-white disabled:opacity-60"
+        className="reward-redeem-button mt-5 h-12 w-full rounded-lg text-[16px] font-bold text-white disabled:opacity-60"
         style={{ background: color }}
       >
         {isRedeeming ? 'Redeeming…' : done ? 'Redemption requested ✓' : 'Redeem'}

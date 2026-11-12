@@ -121,7 +121,7 @@ export default function RewardsPage() {
               return (
                 <li
                   key={reward.id}
-                  className="flex flex-col rounded-xl border border-line p-4 sm:p-5"
+                  className="reward-card flex flex-col rounded-xl border border-line p-4 sm:p-5"
                   style={{ background: reward.background }}
                 >
                   <div className="flex items-start justify-between gap-2">

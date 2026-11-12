@@ -28,11 +28,15 @@ html[data-color-mode='dark'] {
   --color-ink: #e6edf5;
   --color-line: #2b394a;
   --color-mist: #182535;
-  --color-blob: #28261d;
+  --color-blob: #202a35;
 }
 html[data-color-mode='dark'] body { background-color: var(--color-paper); color: var(--color-ink); }
 html[data-color-mode='dark'] .bg-white,
-html[data-color-mode='dark'] [class~='bg-white/90'] { background-color: #182433; }
+html[data-color-mode='dark'] [class~='bg-white/90'],
+html[data-color-mode='dark'] [class~='bg-white/95'] { background-color: #182433; }
+html[data-color-mode='dark'] [class~='bg-white/60'],
+html[data-color-mode='dark'] [class~='bg-white/70'],
+html[data-color-mode='dark'] [class~='bg-white/80'] { background-color: #202d3d; }
 html[data-color-mode='dark'] .text-slate-600 { color: #b8c8d8; }
 html[data-color-mode='dark'] .text-slate-500 { color: #a2b4c6; }
 html[data-color-mode='dark'] .text-slate-400 { color: #8fa2b6; }
@@ -65,7 +69,7 @@ html[data-color-mode='dark'] [class~='bg-[#FEF8DE]'],
 html[data-color-mode='dark'] [class~='bg-[#FEF8E8]'],
 html[data-color-mode='dark'] [class~='bg-[#FFF0C5]'],
 html[data-color-mode='dark'] [class~='bg-[#FFF1C7]'],
-html[data-color-mode='dark'] [class~='bg-[#FFF3D0]'] { background-color: #302b1e; }
+html[data-color-mode='dark'] [class~='bg-[#FFF3D0]'] { background-color: #262b34; }
 html[data-color-mode='dark'] [class~='bg-[#E4F7EF]'],
 html[data-color-mode='dark'] [class~='bg-[#E7FBF2]'],
 html[data-color-mode='dark'] [class~='bg-[#EAF8F0]'],
@@ -174,7 +178,14 @@ html[data-color-mode='dark'] [class*='hover:bg-slate-100']:hover { background-co
 html[data-color-mode='dark'] .bg-slate-50 { background-color: #1a2738; }
 html[data-color-mode='dark'] .bg-slate-100 { background-color: #1e2d3d; }
 /* Progress bars track */
-html[data-color-mode='dark'] [class*='bg-slate-200\/70'] { background-color: #2b3a4a; }
+html[data-color-mode='dark'] [class*='bg-slate-200\/70'],
+html[data-color-mode='dark'] [class*='bg-slate-200\/80'] { background-color: #3a4a5d; }
+html[data-color-mode='dark'] .reward-card { background-color: #202d3d !important; }
+html[data-color-mode='dark'] .reward-redeem-button {
+  border: 1px solid #e6b000;
+  background-color: #ffc400 !important;
+  color: #001731;
+}
 /* Violet / indigo tones */
 html[data-color-mode='dark'] [class*='bg-violet-600'] { background-color: #6d4dd6; }
 html[data-color-mode='dark'] [class*='text-violet-500'],

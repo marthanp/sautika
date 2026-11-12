@@ -95,8 +95,8 @@ export default function LearningPage() {
   }
 
   return (
-    <div className="mx-auto grid max-w-[1330px] gap-6 xl:grid-cols-12">
-      <div className="min-w-0 xl:col-span-8">
+    <div className="mx-auto flex max-w-[1330px] flex-col gap-6 xl:flex-row xl:items-stretch">
+      <div className="min-w-0 flex-1">
         <nav aria-label="Breadcrumb" className="flex flex-wrap items-center gap-2 text-xs sm:text-[13.5px]">
           <Link href="/courses" className="flex items-center gap-1.5 font-bold text-navy hover:underline">
             <ArrowLeft className="h-4 w-4" />Back to Courses
@@ -134,52 +134,54 @@ export default function LearningPage() {
           onComplete={completeLesson}
         />
       </div>
-      <aside className="min-w-0 space-y-4 xl:col-span-4">
-        <Card className="p-4 sm:p-5">
-          <h2 className="flex items-center gap-2.5 text-[16px] sm:text-[17px] font-extrabold text-navy">
-            <ChartNoAxesColumn className="h-6 w-6 shrink-0 text-blue-600" />Course Progress
-          </h2>
-          <div className="mt-3.5 flex items-center gap-3.5 border-b border-line pb-4">
-            <Ring v={progressPercent} size={84} stroke={8}><span className="text-[18px] sm:text-[20px] font-extrabold">{progressPercent}%</span></Ring>
-            <div className="min-w-0 flex-1">
-              <p className="text-xs sm:text-[14px] font-bold text-slate-800">{completedLessons.length} of {activeCourse.lessons.length} completed</p>
-              <p className="mt-0.5 text-xs text-slate-500">Progress saved automatically</p>
+      <aside className="min-w-0 w-full xl:max-w-[320px] xl:self-stretch">
+        <div className="flex h-full flex-col justify-end gap-4">
+          <div className="rounded-2xl bg-[#E9F3FD] p-4 sm:p-5">
+            <div className="flex items-center gap-3.5">
+              <Trophy className="h-10 w-10 shrink-0 text-sun" />
+              <div className="min-w-0 flex-1">
+                <b className="block text-[17px] text-navy">Keep learning!</b>
+                <p className="mt-0.5 text-xs leading-snug text-slate-600">Completing a lesson earns 10 coins &amp; 10 XP.</p>
+              </div>
+            </div>
+            <div className="mt-3.5 flex items-center gap-2.5 border-t border-blue-100/80 pt-3 text-xs font-medium text-slate-700">
+              <Coin size={22} />
+              <span className="min-w-0 flex-1 truncate">Rewards saved to learner account</span>
             </div>
           </div>
-          <ul className="mt-4 space-y-1">
-            {activeCourse.lessons.map((item, index) => {
-              const complete = completedLessons.includes(index);
-              return (
-                <li key={`${activeCourse.id}-${index}`}>
-                  <Link
-                    href={`/learning?course=${encodeURIComponent(activeCourse.id)}&lesson=${index}`}
-                    aria-current={index === lessonIndex ? 'step' : undefined}
-                    className={`flex min-h-[44px] min-w-0 items-center gap-2.5 rounded-lg px-2.5 py-1.5 text-xs sm:text-[13px] font-medium transition ${
-                      index === lessonIndex ? 'bg-[#FFF3D0] text-navy font-bold' : 'text-slate-700 hover:bg-slate-50'
-                    }`}
-                  >
-                    <span className={`grid h-5 w-5 shrink-0 place-items-center rounded-full border-2 text-[10.5px] font-bold ${complete ? 'border-emerald-700 bg-emerald-700 text-white' : 'border-slate-300'}`}>
-                      {complete ? <Check className="h-3 w-3" strokeWidth={3} /> : index + 1}
-                    </span>
-                    <span className="min-w-0 flex-1 break-words line-clamp-2 leading-snug">{item.title}</span>
-                  </Link>
-                </li>
-              );
-            })}
-          </ul>
-        </Card>
-        <div className="rounded-2xl bg-[#E9F3FD] p-4 sm:p-5">
-          <div className="flex items-center gap-3.5">
-            <Trophy className="h-10 w-10 shrink-0 text-sun" />
-            <div className="min-w-0 flex-1">
-              <b className="block text-[17px] text-navy">Keep learning!</b>
-              <p className="mt-0.5 text-xs leading-snug text-slate-600">Completing a lesson earns 10 coins &amp; 10 XP.</p>
+          <Card className="p-4 sm:p-5">
+            <h2 className="flex items-center gap-2.5 text-[16px] sm:text-[17px] font-extrabold text-navy">
+              <ChartNoAxesColumn className="h-6 w-6 shrink-0 text-blue-600" />Course Progress
+            </h2>
+            <div className="mt-3.5 flex items-center gap-3.5 border-b border-line pb-4">
+              <Ring v={progressPercent} size={84} stroke={8}><span className="text-[18px] sm:text-[20px] font-extrabold">{progressPercent}%</span></Ring>
+              <div className="min-w-0 flex-1">
+                <p className="text-xs sm:text-[14px] font-bold text-slate-800">{completedLessons.length} of {activeCourse.lessons.length} completed</p>
+                <p className="mt-0.5 text-xs text-slate-500">Progress saved automatically</p>
+              </div>
             </div>
-          </div>
-          <div className="mt-3.5 flex items-center gap-2.5 border-t border-blue-100/80 pt-3 text-xs font-medium text-slate-700">
-            <Coin size={22} />
-            <span className="min-w-0 flex-1 truncate">Rewards saved to learner account</span>
-          </div>
+            <ul className="mt-4 space-y-1">
+              {activeCourse.lessons.map((item, index) => {
+                const complete = completedLessons.includes(index);
+                return (
+                  <li key={`${activeCourse.id}-${index}`}>
+                    <Link
+                      href={`/learning?course=${encodeURIComponent(activeCourse.id)}&lesson=${index}`}
+                      aria-current={index === lessonIndex ? 'step' : undefined}
+                      className={`flex min-h-[44px] min-w-0 items-center gap-2.5 rounded-lg px-2.5 py-1.5 text-xs sm:text-[13px] font-medium transition ${
+                        index === lessonIndex ? 'bg-[#FFF3D0] text-navy font-bold' : 'text-slate-700 hover:bg-slate-50'
+                      }`}
+                    >
+                      <span className={`grid h-5 w-5 shrink-0 place-items-center rounded-full border-2 text-[10.5px] font-bold ${complete ? 'border-emerald-700 bg-emerald-700 text-white' : 'border-slate-300'}`}>
+                        {complete ? <Check className="h-3 w-3" strokeWidth={3} /> : index + 1}
+                      </span>
+                      <span className="min-w-0 flex-1 break-words line-clamp-2 leading-snug">{item.title}</span>
+                    </Link>
+                  </li>
+                );
+              })}
+            </ul>
+          </Card>
         </div>
       </aside>
     </div>
