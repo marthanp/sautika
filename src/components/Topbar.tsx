@@ -16,6 +16,7 @@ import {
   X,
 } from 'lucide-react';
 import { useApp } from '@/store/useApp';
+import { useUITranslation } from '@/lib/useUITranslation';
 import { useLearnerProfile } from './LearnerDataSync';
 import { Logo } from './Logo';
 
@@ -60,13 +61,14 @@ export default function Topbar() {
   const setPrefs = useApp((state) => state.setPrefs);
   const sidebarHidden = useApp((state) => state.sidebarHidden);
   const toggleSidebar = useApp((state) => state.toggleSidebar);
+  const t = useUITranslation();
   const [searchVal, setSearchVal] = useState('');
   const [showNotifications, setShowNotifications] = useState(false);
   const [notifications, setNotifications] = useState<NotificationItem[]>(DEFAULT_NOTIFICATIONS);
 
   const placeholder = pathname === '/notebook'
-    ? 'Search notes, topics or ask Sautika...'
-    : 'Search courses, topics or ask Sautika...';
+    ? t('Search notes, topics or ask Sautika...')
+    : t('Search courses, topics or ask Sautika...');
 
   const fullName = [profile?.firstName, profile?.lastName].filter(Boolean).join(' ') || user?.fullName || 'Learner';
   const email = profile?.email || user?.primaryEmailAddress?.emailAddress || '';
@@ -107,8 +109,8 @@ export default function Topbar() {
       <button
         type="button"
         onClick={toggleSidebar}
-        title={sidebarHidden ? 'Show navigation bar' : 'Hide navigation bar'}
-        aria-label={sidebarHidden ? 'Show navigation bar' : 'Hide navigation bar'}
+        title={sidebarHidden ? t('Show navigation bar') : t('Hide navigation bar')}
+        aria-label={sidebarHidden ? t('Show navigation bar') : t('Hide navigation bar')}
         className="order-1 hidden lg:flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-line bg-white text-navy shadow-xs transition hover:bg-slate-50"
       >
         {sidebarHidden ? <PanelLeftOpen className="h-5 w-5" /> : <PanelLeftClose className="h-5 w-5" />}
@@ -116,10 +118,10 @@ export default function Topbar() {
 
       {/* Functional Search Bar */}
       <form onSubmit={handleSearchSubmit} className="order-2 relative w-full lg:order-1 lg:max-w-[560px] lg:flex-1">
-        <span className="sr-only">Search</span>
+        <span className="sr-only">{t('Search')}</span>
         <button
           type="submit"
-          aria-label="Submit search"
+          aria-label={t('Submit search')}
           className="absolute left-3.5 top-1/2 -translate-y-1/2 text-navy"
         >
           <Search className="h-4 w-4" />
@@ -139,9 +141,9 @@ export default function Topbar() {
         {/* Dark/Light mode toggle */}
         <button
           type="button"
-          aria-label={colorMode === 'light' ? 'Switch to dark mode' : 'Switch to light mode'}
+          aria-label={colorMode === 'light' ? t('Switch to dark mode') : t('Switch to light mode')}
           aria-pressed={colorMode === 'dark'}
-          title={colorMode === 'light' ? 'Switch to dark mode' : 'Switch to light mode'}
+          title={colorMode === 'light' ? t('Switch to dark mode') : t('Switch to light mode')}
           onClick={() => setPrefs({ colorMode: colorMode === 'light' ? 'dark' : 'light' })}
           className="grid h-10 w-10 place-items-center rounded-full transition-colors hover:bg-slate-100"
         >
@@ -154,7 +156,7 @@ export default function Topbar() {
         <div className="relative">
           <button
             type="button"
-            aria-label="Notifications"
+            aria-label={t('Notifications')}
             aria-expanded={showNotifications}
             onClick={() => setShowNotifications((prev) => !prev)}
             className="relative grid h-10 w-10 place-items-center rounded-full transition-colors hover:bg-slate-100"
@@ -171,7 +173,7 @@ export default function Topbar() {
             <div className="absolute right-0 top-full z-50 mt-2 w-[min(22rem,calc(100vw-1.5rem))] overflow-hidden rounded-2xl border border-line bg-white shadow-2xl">
               <div className="flex items-center justify-between border-b border-line bg-slate-50 px-4 py-3">
                 <span className="flex items-center gap-2 text-[14px] font-bold text-navy">
-                  <Sparkles className="h-4 w-4 text-sun" /> Notifications
+                  <Sparkles className="h-4 w-4 text-sun" /> {t('Notifications')}
                 </span>
                 {unreadCount > 0 && (
                   <button
@@ -179,7 +181,7 @@ export default function Topbar() {
                     onClick={markAllRead}
                     className="flex items-center gap-1 text-[12px] font-semibold text-blue-600 hover:underline"
                   >
-                    <Check className="h-3 w-3" /> Mark all read
+                    <Check className="h-3 w-3" /> {t('Mark all read')}
                   </button>
                 )}
               </div>
@@ -197,7 +199,7 @@ export default function Topbar() {
                         <b className="text-[13px] font-bold text-navy">{n.title}</b>
                         <button
                           type="button"
-                          aria-label="Dismiss notification"
+                          aria-label={t('Dismiss notification')}
                           onClick={() => clearNotification(n.id)}
                           className="text-slate-400 hover:text-slate-700"
                         >
@@ -209,7 +211,7 @@ export default function Topbar() {
                     </div>
                   ))
                 ) : (
-                  <p className="p-6 text-center text-sm text-slate-500">No new notifications</p>
+                  <p className="p-6 text-center text-sm text-slate-500">{t('No new notifications')}</p>
                 )}
               </div>
             </div>
@@ -219,7 +221,7 @@ export default function Topbar() {
         {/* Learner Profile Menu */}
         <details className="group relative">
           <summary
-            aria-label="Show learner profile"
+            aria-label={t('Show learner profile')}
             className="flex cursor-pointer list-none items-center gap-1 rounded-full p-1 hover:bg-slate-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-navy"
           >
             <span
@@ -251,21 +253,21 @@ export default function Topbar() {
               <span className="min-w-0 flex-1">
                 <b className="block truncate text-[14px] font-semibold text-ink">{fullName}</b>
                 <span className="block truncate text-[13px] text-slate-500">{email}</span>
-                <span className="mt-1 block text-[11px] font-medium text-slate-500">Profile managed by administrator</span>
+                <span className="mt-1 block text-[11px] font-medium text-slate-500">{t('Profile managed by administrator')}</span>
               </span>
             </div>
             <a
               href="/settings"
               className="flex min-h-11 w-full items-center gap-3 px-4 text-[14px] font-medium text-slate-700 hover:bg-slate-50 border-b border-line"
             >
-              Settings &amp; Typography
+              {t('Settings')} &amp; {t('Typography')}
             </a>
             <SignOutButton redirectUrl="/">
               <button
                 type="button"
                 className="flex min-h-12 w-full items-center gap-3 px-4 text-left text-[14px] font-medium text-slate-600 hover:bg-slate-50"
               >
-                <LogOut className="h-4 w-4" /> Sign out
+                <LogOut className="h-4 w-4" /> {t('Sign out')}
               </button>
             </SignOutButton>
           </div>

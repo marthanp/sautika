@@ -36,6 +36,8 @@ import { useApp } from '@/store/useApp';
 import { useLearnerAccount, useLearnerProfile } from '@/components/LearnerDataSync';
 import { coursesForClass } from '@/lib/course-access';
 import type { DyslexiaFont, DyslexiaSpacing, DyslexiaLineHeight, ReadingTint } from '@/types';
+import { SUNBIRD_LANGUAGES, isSunbirdLanguage } from '@/lib/sunbird-languages';
+import { useUITranslation } from '@/lib/useUITranslation';
 
 const ACTIONS = [
   ['Change Password', KeyRound],
@@ -592,9 +594,11 @@ function NotificationsSection() {
 
 function LearningPreferencesSection() {
   const [dailyGoal, setDailyGoal] = useState('1');
-  const [voiceLang, setVoiceLang] = useState('English');
   const [autoPlayAudio, setAutoPlayAudio] = useState(true);
   const [saved, setSaved] = useState(false);
+  const dialect = useApp((s) => s.dialect);
+  const setDialect = useApp((s) => s.setDialect);
+  const t = useUITranslation();
 
   const save = () => {
     setSaved(true);
@@ -604,46 +608,62 @@ function LearningPreferencesSection() {
   return (
     <div className="space-y-4">
       <Card className="p-6">
-        <h2 className="text-[19px] font-extrabold text-navy">Learning Preferences</h2>
-        <p className="mt-1 text-[14px] text-slate-500">Customize your daily pace, voice playback, and study routines.</p>
-        {saved && <p className="mt-3 rounded-lg bg-emerald-50 px-3 py-1.5 text-[13px] font-semibold text-emerald-700">Learning preferences saved ✓</p>}
+        <h2 className="text-[19px] font-extrabold text-navy">{t('Learning Preferences')}</h2>
+        <p className="mt-1 text-[14px] text-slate-500">{t('Customize your daily pace, voice playback, and study routines.')}</p>
+        {saved && <p className="mt-3 rounded-lg bg-emerald-50 px-3 py-1.5 text-[13px] font-semibold text-emerald-700">{t('Learning preferences saved')} ✓</p>}
 
         <div className="mt-6 space-y-6">
+          {/* Dialect / UI Language */}
           <div>
-            <label className="text-[14px] font-bold text-navy">Daily Lesson Goal</label>
-            <p className="text-[12.5px] text-slate-500">How many lessons do you want to aim to complete each day?</p>
+            <label className="text-[14px] font-bold text-navy">{t('App Language / Dialect')}</label>
+            <p className="mt-0.5 text-[12.5px] text-slate-500">
+              {t('Select your dialect to translate the app interface and use voice search in your language.')}
+            </p>
+            <div className="mt-3 flex flex-wrap items-center gap-3">
+              <select
+                aria-label={t('Select app dialect')}
+                value={dialect}
+                onChange={(e) => {
+                  if (isSunbirdLanguage(e.target.value)) {
+                    setDialect(e.target.value);
+                    save();
+                  }
+                }}
+                className="min-h-11 rounded-xl border-2 border-line bg-white px-4 text-[14px] font-semibold text-navy focus:border-sun focus:outline-none"
+              >
+                {SUNBIRD_LANGUAGES.map(({ code, name }) => (
+                  <option key={code} value={code}>{name}</option>
+                ))}
+              </select>
+              {dialect !== 'eng' && (
+                <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-3 py-1 text-[12.5px] font-semibold text-emerald-700 border border-emerald-200">
+                  <Check className="h-3.5 w-3.5" />
+                  {t('UI translated to')} {SUNBIRD_LANGUAGES.find((l) => l.code === dialect)?.name}
+                </span>
+              )}
+            </div>
+          </div>
+
+          {/* Daily goal */}
+          <div>
+            <label className="text-[14px] font-bold text-navy">{t('Daily Lesson Goal')}</label>
+            <p className="text-[12.5px] text-slate-500">{t('How many lessons do you want to aim to complete each day?')}</p>
             <div className="mt-2.5 grid grid-cols-2 sm:grid-cols-4 gap-2.5">
               {[
-                { count: '1', desc: '1 Lesson (Casual)' },
-                { count: '2', desc: '2 Lessons (Regular)' },
-                { count: '3', desc: '3 Lessons (Serious)' },
-                { count: '5', desc: '5 Lessons (Mastery)' },
+                { count: '1', desc: 'Casual' },
+                { count: '2', desc: 'Regular' },
+                { count: '3', desc: 'Serious' },
+                { count: '5', desc: 'Mastery' },
               ].map(({ count, desc }) => (
                 <button
                   key={count}
                   type="button"
+                  aria-pressed={dailyGoal === count}
                   onClick={() => { setDailyGoal(count); save(); }}
                   className={`rounded-xl border-2 p-3 text-left transition ${dailyGoal === count ? 'border-sun bg-[#FFFDF5] shadow-sm ring-2 ring-sun/30' : 'border-line bg-white hover:bg-slate-50'}`}
                 >
-                  <b className="block text-[15px]">{count} Lesson{count !== '1' ? 's' : ''}</b>
-                  <span className="text-[11px] text-slate-500">{desc.split(' ')[1]}</span>
-                </button>
-              ))}
-            </div>
-          </div>
-
-          <div>
-            <label className="text-[14px] font-bold text-navy">Preferred Audio Accent / Language</label>
-            <p className="text-[12.5px] text-slate-500">Audio playback voice used for text-to-speech questions.</p>
-            <div className="mt-2.5 flex flex-wrap gap-2.5">
-              {['English', 'Kiswahili', 'Luganda'].map((lang) => (
-                <button
-                  key={lang}
-                  type="button"
-                  onClick={() => { setVoiceLang(lang); save(); }}
-                  className={`h-10 rounded-full border px-5 text-[13.5px] font-bold transition ${voiceLang === lang ? 'border-sun bg-sun text-navy' : 'border-line bg-white text-slate-700 hover:bg-slate-50'}`}
-                >
-                  {lang}
+                  <b className="block text-[15px]">{count} {count !== '1' ? t('Lessons') : t('Lesson')}</b>
+                  <span className="text-[11px] text-slate-500">{t(desc)}</span>
                 </button>
               ))}
             </div>
@@ -651,8 +671,8 @@ function LearningPreferencesSection() {
 
           <div className="flex items-center justify-between border-t border-line pt-4">
             <div>
-              <b className="block text-[15px] text-navy">Auto-Read Questions Aloud</b>
-              <span className="text-[13px] text-slate-500">Automatically pronounce lesson prompts when you advance.</span>
+              <b className="block text-[15px] text-navy">{t('Auto-Read Questions Aloud')}</b>
+              <span className="text-[13px] text-slate-500">{t('Automatically pronounce lesson prompts when you advance.')}</span>
             </div>
             <button
               type="button"

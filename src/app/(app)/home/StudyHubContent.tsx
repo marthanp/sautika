@@ -8,10 +8,13 @@ import VoiceCourseSearch from '@/components/VoiceCourseSearch';
 import { SUBJECTS } from '@/lib/data';
 import { coursesForClass } from '@/lib/course-access';
 import { IMAGE_BY_CATEGORY, SUBJECT_BY_CATEGORY } from '@/lib/course-display';
+import { useUITranslation } from '@/lib/useUITranslation';
 
 export default function StudyHubContent() {
   const { data } = useLearnerAccount();
   const profile = useLearnerProfile();
+  const t = useUITranslation();
+
   const progressByCourse = new Map(data.courseProgress.map((progress) => [progress.courseId, progress]));
   const courses = [...coursesForClass(data.courses, profile.educationLevel)]
     .sort((a, b) => {
@@ -34,11 +37,11 @@ export default function StudyHubContent() {
 
   return (
     <div className="mx-auto max-w-[1330px]">
-      <h1 className="text-2xl font-extrabold leading-tight text-slate-900 sm:text-[34px] lg:text-[38px]">Study Hub</h1>
+      <h1 className="text-2xl font-extrabold leading-tight text-slate-900 sm:text-[34px] lg:text-[38px]">{t('Study Hub')}</h1>
       <section className="mt-3 flex flex-wrap items-center justify-between gap-4 rounded-2xl bg-[#FBF7EE] p-4 sm:p-6" aria-label="Welcome">
         <div className="min-w-0 flex-1">
-          <p className="text-[19px] font-bold text-slate-900 truncate sm:text-[23px]">Welcome, {profile.firstName || 'Learner'}! 👋</p>
-          <p className="mt-1 text-xs text-slate-600 sm:text-[14px]">Ready to learn something new today?</p>
+          <p className="text-[19px] font-bold text-slate-900 truncate sm:text-[23px]">{t('Welcome')}, {profile.firstName || t('Learner')}! 👋</p>
+          <p className="mt-1 text-xs text-slate-600 sm:text-[14px]">{t('Ready to learn something new today?')}</p>
         </div>
         <VoiceCourseSearch />
       </section>
@@ -47,11 +50,11 @@ export default function StudyHubContent() {
         <section className="min-w-0 xl:col-span-9" aria-labelledby="continue-learning">
           <div className="flex flex-wrap items-end justify-between gap-3">
             <div>
-              <h2 id="continue-learning" className="text-[22px] font-extrabold text-slate-900 sm:text-[26px]">Continue Learning</h2>
-              <p className="mt-0.5 text-xs text-slate-500 sm:text-[14px]">Pick up where you left off or explore something new.</p>
+              <h2 id="continue-learning" className="text-[22px] font-extrabold text-slate-900 sm:text-[26px]">{t('Continue Learning')}</h2>
+              <p className="mt-0.5 text-xs text-slate-500 sm:text-[14px]">{t('Pick up where you left off or explore something new.')}</p>
             </div>
             <Link href="/courses" className="inline-flex items-center gap-1.5 whitespace-nowrap pb-1 text-[13px] font-bold text-navy hover:underline sm:text-[14px]">
-              View All Courses <ArrowRight className="h-4 w-4" />
+              {t('View All Courses')} <ArrowRight className="h-4 w-4" />
             </Link>
           </div>
 
@@ -83,10 +86,10 @@ export default function StudyHubContent() {
                       </Link>
                       <p className="mt-1.5 truncate text-[12.5px] leading-snug text-slate-500 sm:text-[13px]">{course.level} • {course.cat}</p>
                       <div className="mt-auto flex items-center justify-between gap-2 pt-4">
-                        <span className="whitespace-nowrap text-xs font-medium text-slate-500">{completed}/{total} lessons</span>
+                        <span className="whitespace-nowrap text-xs font-medium text-slate-500">{completed}/{total} {t('lessons')}</span>
                         <Link
                           href={`/learning?course=${encodeURIComponent(course.id)}`}
-                          aria-label={`${completed > 0 ? 'Continue' : 'Start'} ${course.title}`}
+                          aria-label={`${completed > 0 ? t('Continue') : t('Start')} ${course.title}`}
                           className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-sun text-navy transition hover:bg-sun-dark"
                         >
                           <CirclePlay className="h-5 w-5 fill-navy" />
@@ -102,11 +105,11 @@ export default function StudyHubContent() {
               <BookOpen className="mx-auto h-9 w-9 text-slate-400" />
               <p className="mt-3 font-bold text-navy">
                 {profile.educationLevel === 'Not specified'
-                  ? 'Your class is not set on your learner profile.'
-                  : `Courses for ${profile.educationLevel} are getting ready.`}
+                  ? t('Your class is not set on your learner profile.')
+                  : t('Courses for') + ' ' + profile.educationLevel + ' ' + t('are getting ready.')}
               </p>
               <Link href="/courses" className="mt-3 inline-flex items-center gap-1 font-semibold text-blue-700 hover:underline">
-                Browse courses <ArrowRight className="h-4 w-4" />
+                {t('Browse courses')} <ArrowRight className="h-4 w-4" />
               </Link>
             </div>
           )}
@@ -117,8 +120,8 @@ export default function StudyHubContent() {
             <div className="flex items-center justify-between gap-3 sm:gap-4">
               <div className="min-w-0 flex-1">
                 <Sprout className="h-7 w-7 shrink-0 text-emerald-600 sm:h-8 sm:w-8" />
-                <h2 id="daily-goal" className="mt-2.5 truncate text-[17px] font-extrabold text-slate-900 sm:text-[18px]">Today&apos;s Goal</h2>
-                <p className="mt-0.5 truncate text-xs text-slate-600 sm:text-[13.5px]">Complete 1 lesson</p>
+                <h2 id="daily-goal" className="mt-2.5 truncate text-[17px] font-extrabold text-slate-900 sm:text-[18px]">{t("Today's Goal")}</h2>
+                <p className="mt-0.5 truncate text-xs text-slate-600 sm:text-[13.5px]">{t('Complete 1 lesson')}</p>
               </div>
               <div
                 role="progressbar"
@@ -136,7 +139,7 @@ export default function StudyHubContent() {
           <figure className="rounded-2xl bg-[#EFFBF7] p-5 sm:p-6">
             <blockquote className="break-words text-[17px] font-medium leading-snug text-navy sm:text-[19px]">
               <span aria-hidden="true" className="mb-1 block text-3xl font-extrabold leading-none sm:text-4xl">&ldquo;</span>
-              The future belongs to those who keep learning.
+              {t('The future belongs to those who keep learning.')}
             </blockquote>
             <figcaption className="mt-3 text-xs text-slate-600 sm:text-[13.5px]">— Sautika</figcaption>
           </figure>

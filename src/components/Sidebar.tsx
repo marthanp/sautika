@@ -14,22 +14,24 @@ import {
 } from 'lucide-react';
 import { SignOutButton } from '@clerk/nextjs';
 import { useApp } from '@/store/useApp';
+import { useUITranslation } from '@/lib/useUITranslation';
 import { Logo } from './Logo';
 
 const NAV = [
-  { href: '/home', label: 'Study Hub', icon: LayoutDashboard },
-  { href: '/courses', label: 'Courses', icon: BookOpen },
-  { href: '/learning', label: 'Learning', icon: CirclePlay },
-  { href: '/notebook', label: 'Notebook', icon: NotepadText },
-  { href: '/progress', label: 'Progress', icon: ChartNoAxesColumn },
-  { href: '/rewards', label: 'Coins & Rewards', icon: Star },
-  { href: '/settings', label: 'Settings', icon: Settings },
-];
+  { href: '/home', labelKey: 'Study Hub', icon: LayoutDashboard },
+  { href: '/courses', labelKey: 'Courses', icon: BookOpen },
+  { href: '/learning', labelKey: 'Learning', icon: CirclePlay },
+  { href: '/notebook', labelKey: 'Notebook', icon: NotepadText },
+  { href: '/progress', labelKey: 'Progress', icon: ChartNoAxesColumn },
+  { href: '/rewards', labelKey: 'Coins & Rewards', icon: Star },
+  { href: '/settings', labelKey: 'Settings', icon: Settings },
+] as const;
 
 export default function Sidebar() {
   const path = usePathname();
   const sidebarHidden = useApp((state) => state.sidebarHidden);
   const toggleSidebar = useApp((state) => state.toggleSidebar);
+  const t = useUITranslation();
 
   return (
     <>
@@ -53,8 +55,9 @@ export default function Sidebar() {
           </button>
         </div>
         <nav aria-label="Main" className="flex flex-col gap-1.5">
-          {NAV.map(({ href, label, icon: Icon }, i) => {
+          {NAV.map(({ href, labelKey, icon: Icon }, i) => {
             const on = path.startsWith(href);
+            const label = t(labelKey);
             return (
               <div key={href}>
                 {path === '/home' && i === 4 && <hr className="mx-3 mb-3 mt-3 border-white/15" />}
@@ -76,25 +79,29 @@ export default function Sidebar() {
         <SignOutButton redirectUrl="/">
           <button type="button" className="relative mt-auto mb-6 flex items-center justify-center gap-3 rounded-2xl border border-white/20 bg-white/5 px-4 py-3 text-[14px] font-semibold text-white transition hover:bg-white/10">
             <LogOut className="h-4 w-4 shrink-0" strokeWidth={2} />
-            <span className="truncate">Sign out</span>
+            <span className="truncate">{t('Sign out')}</span>
           </button>
         </SignOutButton>
       </aside>
       <nav aria-label="Main" className="fixed inset-x-0 bottom-0 z-30 grid min-h-16 grid-cols-7 border-t border-line bg-white pb-[env(safe-area-inset-bottom)] lg:hidden">
-        {NAV.map(({ href, label, icon: Icon }) => (
-          <Link
-            key={href}
-            href={href}
-            aria-label={label}
-            aria-current={path.startsWith(href) ? 'page' : undefined}
-            className="flex min-h-16 min-w-0 flex-col items-center justify-center gap-0.5 px-0.5 py-1.5 text-slate-500 aria-[current=page]:bg-sun aria-[current=page]:text-navy"
-          >
-            <Icon className="h-5 w-5 shrink-0" />
-            <span className="max-w-full truncate text-[9px] font-semibold leading-tight min-[380px]:text-[10px]">
-              {label === 'Coins & Rewards' ? 'Rewards' : label === 'Notebook' ? 'Notes' : label}
-            </span>
-          </Link>
-        ))}
+        {NAV.map(({ href, labelKey, icon: Icon }) => {
+          // Short labels for mobile
+          const shortLabel = labelKey === 'Coins & Rewards' ? t('Rewards') : labelKey === 'Notebook' ? t('Notes') : t(labelKey);
+          return (
+            <Link
+              key={href}
+              href={href}
+              aria-label={t(labelKey)}
+              aria-current={path.startsWith(href) ? 'page' : undefined}
+              className="flex min-h-16 min-w-0 flex-col items-center justify-center gap-0.5 px-0.5 py-1.5 text-slate-500 aria-[current=page]:bg-sun aria-[current=page]:text-navy"
+            >
+              <Icon className="h-5 w-5 shrink-0" />
+              <span className="max-w-full truncate text-[9px] font-semibold leading-tight min-[380px]:text-[10px]">
+                {shortLabel}
+              </span>
+            </Link>
+          );
+        })}
       </nav>
     </>
   );
