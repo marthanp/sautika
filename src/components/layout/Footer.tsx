@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { MapPin, Phone } from 'lucide-react';
-import { Logo } from './Icons';
+import { Logo } from '@/components/ui/Icons';
 
 const POLICIES = [
   { label: 'Cookie Policy', href: '/cookie-policy' },

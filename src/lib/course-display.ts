@@ -1,5 +1,5 @@
 import type { Category } from '@/types';
-import type { Subject } from '@/lib/data';
+import type { Subject } from '@/data/catalog';
 
 export const SUBJECT_BY_CATEGORY: Record<Category, Subject> = {
   Science: 'Science',

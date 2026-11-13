@@ -1,53 +1,37 @@
-# ==============================================================================
-# SAUTIKA GIT IGNORE CONFIGURATION
-# ==============================================================================
-
-# Dependencies (30,000+ files - never commit)
+# Dependencies
 node_modules/
-/node_modules/
-node_modules
 .pnp
 .pnp.js
 
-# Next.js Build Outputs, Static Exports & Caches
-/.next/
+# Next.js build output and caches
 .next/
-.next
-/out/
 out/
 build/
 dist/
 
-# TypeScript Build & Cache
+# TypeScript
 *.tsbuildinfo
 next-env.d.ts
 
-# Local Environment Variables & Secrets (CRITICAL: never commit credentials)
+# Environment variables and secrets (never commit credentials)
 .env
-.env.local
 .env*.local
-.env.development.local
-.env.test.local
-.env.production.local
+*.pem
 
-# Debug & Execution Logs
+# Logs
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
 
-# Framework & Cloud Tooling
+# Hosting and tooling
 .vercel/
 .turbo/
 
-# System & Editor Files
+# OS and editor files
 .DS_Store
 Thumbs.db
-*.pem
 .vscode/
 .idea/
 *.swp
 *.swo
-
-# Temporary / Scratch Test Scripts
-scratch_test.mjs

@@ -7,16 +7,27 @@ interface AppState {
   activeCourse: string | null; tab: Tab; theme: Theme; colorMode: 'light' | 'dark'; scale: string; wide: boolean;
   font: DyslexiaFont; letterSpacing: DyslexiaSpacing; lineHeight: DyslexiaLineHeight; readingTint: ReadingTint;
   sidebarHidden: boolean;
+<<<<<<< HEAD
   /** Selected UI dialect. 'eng' = English (default). Changes translate the UI via Sunbird AI. */
   dialect: VoiceLang;
   toggleSidebar: () => void;
   setSidebarHidden: (hidden: boolean) => void;
   setDialect: (dialect: VoiceLang) => void;
+=======
+  activeDialect: VoiceLang;
+  toggleSidebar: () => void;
+  setSidebarHidden: (hidden: boolean) => void;
+  setActiveDialect: (dialect: VoiceLang) => void;
+>>>>>>> d2f04c65f309218f881d7722604ea00554b5d8d6
   touchStreak: () => void;
   startCourse: (id: string) => void;
   completeLesson: (courseId: string | undefined, index: number | undefined, xp: number) => void;
   setTab: (t: Tab) => void;
+<<<<<<< HEAD
   setPrefs: (p: Partial<Pick<AppState, 'theme' | 'colorMode' | 'scale' | 'wide' | 'font' | 'letterSpacing' | 'lineHeight' | 'readingTint' | 'sidebarHidden' | 'dialect'>>) => void;
+=======
+  setPrefs: (p: Partial<Pick<AppState, 'theme' | 'colorMode' | 'scale' | 'wide' | 'font' | 'letterSpacing' | 'lineHeight' | 'readingTint' | 'sidebarHidden' | 'activeDialect'>>) => void;
+>>>>>>> d2f04c65f309218f881d7722604ea00554b5d8d6
 }
 
 export const useApp = create<AppState>()(
@@ -26,10 +37,17 @@ export const useApp = create<AppState>()(
       theme: 'navy', colorMode: 'light', scale: '100%', wide: false,
       font: 'default', letterSpacing: 'normal', lineHeight: 'normal', readingTint: 'none',
       sidebarHidden: false,
+<<<<<<< HEAD
       dialect: 'eng',
       toggleSidebar: () => set((s) => ({ sidebarHidden: !s.sidebarHidden })),
       setSidebarHidden: (sidebarHidden) => set({ sidebarHidden }),
       setDialect: (dialect) => set({ dialect }),
+=======
+      activeDialect: 'lug',
+      toggleSidebar: () => set((s) => ({ sidebarHidden: !s.sidebarHidden })),
+      setSidebarHidden: (sidebarHidden) => set({ sidebarHidden }),
+      setActiveDialect: (activeDialect) => set({ activeDialect }),
+>>>>>>> d2f04c65f309218f881d7722604ea00554b5d8d6
       touchStreak: () => {
         const today = new Date().toDateString();
         const { lastDay, streak } = get();

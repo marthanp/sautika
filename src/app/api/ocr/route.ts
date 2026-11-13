@@ -119,7 +119,7 @@ export async function POST(req: NextRequest) {
     let aiProvider = '';
     if (extractedText.length > 50) {
       try {
-        const { generateAIResponse } = await import('@/lib/llmProviders');
+        const { generateAIResponse } = await import('@/lib/llm-providers');
         const aiResult = await generateAIResponse({
           prompt: `Summarize this study document into 4 concise bullet points for a student with key learning takeaways:\n\n${extractedText.slice(0, 12000)}`,
           systemPrompt: 'You are Sautika, an encouraging study assistant for East African students. Keep summaries clear, concise, and structured.',

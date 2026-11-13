@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import PolicyPage, { type PolicySection } from '@/components/PolicyPage';
+import PolicyPage, { type PolicySection } from '@/components/layout/PolicyPage';
 
 export const metadata: Metadata = { title: 'Terms and Conditions | Sautika' };
 

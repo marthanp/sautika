@@ -16,9 +16,14 @@ import {
   X,
 } from 'lucide-react';
 import { useApp } from '@/store/useApp';
+<<<<<<< HEAD:src/components/Topbar.tsx
 import { useUITranslation } from '@/lib/useUITranslation';
 import { useLearnerProfile } from './LearnerDataSync';
 import { Logo } from './Logo';
+=======
+import { useLearnerProfile } from '@/components/providers/LearnerDataSync';
+import { Logo } from '@/components/ui/Logo';
+>>>>>>> d2f04c65f309218f881d7722604ea00554b5d8d6:src/components/layout/Topbar.tsx
 
 interface NotificationItem {
   id: string;

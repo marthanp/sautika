@@ -3,8 +3,8 @@
 import Image from 'next/image';
 import { ArrowRight, BookOpen, Calendar, ClipboardList, Clock, FileText, Gift, Trophy, Sprout, Timer } from 'lucide-react';
 import { Card, Coin, ViewAll } from '@/components/ui';
-import { EARN } from '@/lib/data';
-import { useLearnerAccount, useLearnerProfile } from '@/components/LearnerDataSync';
+import { EARN } from '@/data/catalog';
+import { useLearnerAccount, useLearnerProfile } from '@/components/providers/LearnerDataSync';
 import Redeem from './Redeem';
 
 const EARN_ICONS = [BookOpen, ClipboardList, FileText, Calendar, Trophy];

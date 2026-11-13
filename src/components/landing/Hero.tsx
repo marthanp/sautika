@@ -3,7 +3,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { useState } from 'react';
 import { ArrowRight, ChevronDown, GraduationCap, Globe } from 'lucide-react';
-import { Logo } from './Icons';
+import { Logo } from '@/components/ui/Icons';
 
 const NAV = [['Home', '#home'], ['Features', '#features'], ['About', '#about'], ['Help', '#help']] as const;
 const LANGS = ['Swahili', 'Luganda', 'Acholi', 'Ateso', 'Runyankole', 'Many more'] as const;

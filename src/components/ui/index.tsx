@@ -22,9 +22,6 @@ export function Ring({ v, size = 100, stroke = 10, color = '#0E9F6E', children }
     </div>
   );
 }
-export const Disc = ({ color, size = 40, children }: { color: string; size?: number; children: ReactNode }) => (
-  <span className="grid shrink-0 place-items-center rounded-full text-white" style={{ background: color, width: size, height: size }}>{children}</span>
-);
 export const Coin = ({ size = 28 }: { size?: number }) => (
   <span aria-hidden className="inline-grid shrink-0 place-items-center rounded-full border-[3px] border-[#F5A100] bg-[#FFC400] text-[#B97A00]" style={{ width: size, height: size }}><i className="block h-[45%] w-[45%] rounded-full border-2 border-[#E39A00]" /></span>
 );

@@ -14,7 +14,6 @@ export interface Course {
   levelGroup?: LevelGroup; author?: string; sourceUrl?: string; description?: string;
   ttsLang?: string; lessons: Lesson[];
 }
-export interface Source { id: string; userId: string; name: string; text: string; on: boolean }
 export type Theme = 'navy' | 'parchment' | 'contrast';
 export type DyslexiaFont = 'default' | 'opendyslexic' | 'lexend' | 'atkinson' | 'comic-neue';
 export type DyslexiaSpacing = 'normal' | 'relaxed' | 'wide';
@@ -22,4 +21,3 @@ export type DyslexiaLineHeight = 'normal' | 'relaxed' | 'loose';
 export type ReadingTint = 'none' | 'cream' | 'yellow' | 'peach' | 'mint' | 'blue';
 export type Tab = 'courses' | 'learn' | 'notebook';
 export type VoiceLang = import('@/lib/sunbird-languages').VoiceLang;
-export interface Session { title: string; items: Item[]; courseId?: string; lessonIndex?: number; ttsLang?: string }

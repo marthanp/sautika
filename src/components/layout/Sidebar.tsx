@@ -14,8 +14,12 @@ import {
 } from 'lucide-react';
 import { SignOutButton } from '@clerk/nextjs';
 import { useApp } from '@/store/useApp';
+<<<<<<< HEAD:src/components/Sidebar.tsx
 import { useUITranslation } from '@/lib/useUITranslation';
 import { Logo } from './Logo';
+=======
+import { Logo } from '@/components/ui/Logo';
+>>>>>>> d2f04c65f309218f881d7722604ea00554b5d8d6:src/components/layout/Sidebar.tsx
 
 const NAV = [
   { href: '/home', labelKey: 'Study Hub', icon: LayoutDashboard },

@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useClerk, useSignIn, useUser } from '@clerk/nextjs';
 import { useState, type FormEvent } from 'react';
 import { ArrowRight, Eye, EyeOff, LogOut, ShieldCheck } from 'lucide-react';
-import { GoogleG, Logo } from './Icons';
+import { GoogleG, Logo } from '@/components/ui/Icons';
 
 export default function SignIn() {
   const { signOut } = useClerk();
@@ -143,11 +143,11 @@ export default function SignIn() {
           Continue with Google
         </button>
 
-        {/* Divider */}
-        <div className="my-5 flex items-center gap-3 text-[11px] font-medium uppercase tracking-wider text-slate-400">
-          <span className="h-px flex-1 bg-slate-200" />
+        {/* Divider with WCAG AA compliant contrast */}
+        <div className="my-5 flex items-center gap-3 text-[11px] font-semibold uppercase tracking-wider text-slate-600 dark:text-slate-300">
+          <span className="h-px flex-1 bg-slate-200 dark:bg-white/15" />
           or continue with email
-          <span className="h-px flex-1 bg-slate-200" />
+          <span className="h-px flex-1 bg-slate-200 dark:bg-white/15" />
         </div>
 
         {/* Error Alert */}
@@ -175,16 +175,17 @@ export default function SignIn() {
         {/* Email & Password Form */}
         <form onSubmit={handleEmailSignIn} className="space-y-3.5">
           <div>
-            <label className="block text-[11px] font-semibold uppercase tracking-wider text-slate-500">
+            <label htmlFor="signin-email" className="block text-[11px] font-semibold uppercase tracking-wider text-slate-600 dark:text-slate-400">
               Email Address
             </label>
             <input
+              id="signin-email"
               type="email"
               name="email"
               autoComplete="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="mt-1.5 h-11 w-full rounded-xl border border-slate-200 bg-slate-50/50 px-3.5 text-[13.5px] text-slate-900 placeholder:text-slate-400 transition-colors focus:border-navy focus:bg-white focus:outline-none focus:ring-2 focus:ring-navy/10"
+              className="mt-1.5 h-11 w-full rounded-xl border border-slate-200 bg-slate-50/50 px-3.5 text-[13.5px] text-slate-900 placeholder:text-slate-400 transition-colors focus:border-navy focus:bg-white focus:outline-none focus:ring-2 focus:ring-navy/10 dark:border-white/15 dark:bg-navy-2 dark:text-white"
               placeholder="you@example.com"
               required
             />
@@ -192,18 +193,19 @@ export default function SignIn() {
 
           <div>
             <div className="flex items-center justify-between">
-              <label className="block text-[11px] font-semibold uppercase tracking-wider text-slate-500">
+              <label htmlFor="signin-password" className="block text-[11px] font-semibold uppercase tracking-wider text-slate-600 dark:text-slate-400">
                 Password
               </label>
             </div>
             <div className="relative mt-1.5">
               <input
+                id="signin-password"
                 type={showPassword ? 'text' : 'password'}
                 name="password"
                 autoComplete="current-password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="h-11 w-full rounded-xl border border-slate-200 bg-slate-50/50 pl-3.5 pr-10 text-[13.5px] text-slate-900 placeholder:text-slate-400 transition-colors focus:border-navy focus:bg-white focus:outline-none focus:ring-2 focus:ring-navy/10"
+                className="h-11 w-full rounded-xl border border-slate-200 bg-slate-50/50 pl-3.5 pr-10 text-[13.5px] text-slate-900 placeholder:text-slate-400 transition-colors focus:border-navy focus:bg-white focus:outline-none focus:ring-2 focus:ring-navy/10 dark:border-white/15 dark:bg-navy-2 dark:text-white"
                 placeholder="Enter your password"
                 required
               />

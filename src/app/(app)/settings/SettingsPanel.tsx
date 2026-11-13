@@ -33,7 +33,7 @@ import {
 } from 'lucide-react';
 import { Bar, Card, Ring } from '@/components/ui';
 import { useApp } from '@/store/useApp';
-import { useLearnerAccount, useLearnerProfile } from '@/components/LearnerDataSync';
+import { useLearnerAccount, useLearnerProfile } from '@/components/providers/LearnerDataSync';
 import { coursesForClass } from '@/lib/course-access';
 import type { DyslexiaFont, DyslexiaSpacing, DyslexiaLineHeight, ReadingTint } from '@/types';
 import { SUNBIRD_LANGUAGES, isSunbirdLanguage } from '@/lib/sunbird-languages';
