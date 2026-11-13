@@ -95,95 +95,109 @@ export default function LearningPage() {
   }
 
   return (
-    <div className="mx-auto flex max-w-[1330px] flex-col gap-6 xl:flex-row xl:items-stretch">
-      <div className="min-w-0 flex-1">
-        <nav aria-label="Breadcrumb" className="flex flex-wrap items-center gap-2 text-xs sm:text-[13.5px]">
-          <Link href="/courses" className="flex items-center gap-1.5 font-bold text-navy hover:underline">
-            <ArrowLeft className="h-4 w-4" />Back to Courses
-          </Link>
-          <span className="hidden h-3.5 w-px bg-slate-300 sm:block" />
-          <span className="truncate text-slate-500 font-medium">{activeCourse.cat}</span>
-        </nav>
-        <div className="mt-3 sm:mt-4">
-          <span className="inline-block max-w-full truncate rounded-full bg-[#E5EFFE] px-3.5 py-1 text-xs font-bold text-blue-700">
-            {activeCourse.cat} · {activeCourse.level}
+    <div className="mx-auto flex max-w-[860px] flex-col gap-5">
+      {/* ── Breadcrumb ── */}
+      <nav aria-label="Breadcrumb" className="flex flex-wrap items-center gap-2 text-xs sm:text-[13.5px]">
+        <Link href="/courses" className="flex items-center gap-1.5 font-bold text-navy hover:underline">
+          <ArrowLeft className="h-4 w-4" />Back to Courses
+        </Link>
+        <span className="hidden h-3.5 w-px bg-slate-300 sm:block" />
+        <span className="truncate text-slate-500 font-medium">{activeCourse.cat}</span>
+      </nav>
+
+      {/* ── Course Header ── */}
+      <div>
+        <span className="inline-block max-w-full truncate rounded-full bg-[#E5EFFE] px-3.5 py-1 text-xs font-bold text-blue-700">
+          {activeCourse.cat} · {activeCourse.level}
+        </span>
+        <h1 className="mt-2 break-words text-2xl font-extrabold leading-tight text-slate-900 sm:text-[30px]">
+          {activeCourse.title}
+        </h1>
+        <p className="mt-1.5 text-xs leading-relaxed text-slate-500 sm:text-[13.5px]">
+          Work through the lesson activities, practise what you learn, and complete the quiz to save your progress.
+        </p>
+        <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1.5 text-xs sm:text-[13px] text-slate-500">
+          <span className="flex items-center gap-1.5 font-semibold">
+            <BookOpen className="h-4 w-4 text-slate-400" />Lesson {lessonIndex + 1} of {activeCourse.lessons.length}
           </span>
-          <h1 className="mt-2.5 break-words text-2xl font-extrabold leading-tight text-slate-900 sm:text-[32px] lg:text-[36px]">
-            {activeCourse.title}
-          </h1>
-          <p className="mt-2 max-w-[650px] text-xs leading-relaxed text-slate-600 sm:text-[14px]">
-            Work through the lesson activities, practise what you learn, and complete the quiz to save your progress.
-          </p>
-          <div className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-2 text-xs sm:text-[13px] text-slate-600">
-            <span className="flex items-center gap-1.5 font-semibold">
-              <BookOpen className="h-4 w-4 text-slate-500" />Lesson {lessonIndex + 1} of {activeCourse.lessons.length}
-            </span>
-            <span className="hidden h-3.5 w-px bg-slate-300 sm:block" />
-            <span className="flex items-center gap-1.5">
-              <Clock className="h-4 w-4 text-slate-500" />Self-paced
-            </span>
-          </div>
+          <span className="hidden h-3.5 w-px bg-slate-300 sm:block" />
+          <span className="flex items-center gap-1.5">
+            <Clock className="h-4 w-4 text-slate-400" />Self-paced
+          </span>
         </div>
-        {completionError ? <p role="alert" className="mt-3 rounded-xl border border-red-200 bg-red-50 px-4 py-2.5 text-xs sm:text-sm text-red-800">{completionError}</p> : null}
-        <LessonView
-          courseId={activeCourse.id}
-          lesson={lesson}
-          lessonIndex={lessonIndex}
-          isCompleted={isCompleted}
-          isCompleting={isCompleting}
-          onComplete={completeLesson}
-        />
       </div>
-      <aside className="min-w-0 w-full xl:max-w-[320px] xl:self-stretch">
-        <div className="flex h-full flex-col justify-end gap-4">
-          <div className="rounded-2xl bg-[#E9F3FD] p-4 sm:p-5">
-            <div className="flex items-center gap-3.5">
-              <Trophy className="h-10 w-10 shrink-0 text-sun" />
-              <div className="min-w-0 flex-1">
-                <b className="block text-[17px] text-navy">Keep learning!</b>
-                <p className="mt-0.5 text-xs leading-snug text-slate-600">Completing a lesson earns 10 coins &amp; 10 XP.</p>
-              </div>
-            </div>
-            <div className="mt-3.5 flex items-center gap-2.5 border-t border-blue-100/80 pt-3 text-xs font-medium text-slate-700">
-              <Coin size={22} />
-              <span className="min-w-0 flex-1 truncate">Rewards saved to learner account</span>
+
+      {completionError ? (
+        <p role="alert" className="rounded-xl border border-red-200 bg-red-50 px-4 py-2.5 text-xs sm:text-sm text-red-800">
+          {completionError}
+        </p>
+      ) : null}
+
+      {/* ── Lesson Content (full width) ── */}
+      <LessonView
+        courseId={activeCourse.id}
+        lesson={lesson}
+        lessonIndex={lessonIndex}
+        isCompleted={isCompleted}
+        isCompleting={isCompleting}
+        onComplete={completeLesson}
+      />
+
+      {/* ── Bottom info strip: Keep Learning + Course Progress ── */}
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-stretch">
+        {/* Keep Learning card */}
+        <div className="flex flex-1 items-start gap-3.5 rounded-2xl bg-[#E9F3FD] p-4 sm:p-5">
+          <Trophy className="h-9 w-9 shrink-0 text-sun mt-0.5" />
+          <div className="min-w-0 flex-1">
+            <b className="block text-[15px] text-navy">Keep learning!</b>
+            <p className="mt-0.5 text-xs leading-snug text-slate-600">Completing a lesson earns 10 coins &amp; 10 XP.</p>
+            <div className="mt-3 flex items-center gap-2 border-t border-blue-100/80 pt-2.5 text-xs font-medium text-slate-600">
+              <Coin size={18} />
+              <span className="min-w-0 truncate">Rewards saved to learner account</span>
             </div>
           </div>
-          <Card className="p-4 sm:p-5">
-            <h2 className="flex items-center gap-2.5 text-[16px] sm:text-[17px] font-extrabold text-navy">
-              <ChartNoAxesColumn className="h-6 w-6 shrink-0 text-blue-600" />Course Progress
-            </h2>
-            <div className="mt-3.5 flex items-center gap-3.5 border-b border-line pb-4">
-              <Ring v={progressPercent} size={84} stroke={8}><span className="text-[18px] sm:text-[20px] font-extrabold">{progressPercent}%</span></Ring>
-              <div className="min-w-0 flex-1">
-                <p className="text-xs sm:text-[14px] font-bold text-slate-800">{completedLessons.length} of {activeCourse.lessons.length} completed</p>
-                <p className="mt-0.5 text-xs text-slate-500">Progress saved automatically</p>
-              </div>
-            </div>
-            <ul className="mt-4 space-y-1">
-              {activeCourse.lessons.map((item, index) => {
-                const complete = completedLessons.includes(index);
-                return (
-                  <li key={`${activeCourse.id}-${index}`}>
-                    <Link
-                      href={`/learning?course=${encodeURIComponent(activeCourse.id)}&lesson=${index}`}
-                      aria-current={index === lessonIndex ? 'step' : undefined}
-                      className={`flex min-h-[44px] min-w-0 items-center gap-2.5 rounded-lg px-2.5 py-1.5 text-xs sm:text-[13px] font-medium transition ${
-                        index === lessonIndex ? 'bg-[#FFF3D0] text-navy font-bold' : 'text-slate-700 hover:bg-slate-50'
-                      }`}
-                    >
-                      <span className={`grid h-5 w-5 shrink-0 place-items-center rounded-full border-2 text-[10.5px] font-bold ${complete ? 'border-emerald-700 bg-emerald-700 text-white' : 'border-slate-300'}`}>
-                        {complete ? <Check className="h-3 w-3" strokeWidth={3} /> : index + 1}
-                      </span>
-                      <span className="min-w-0 flex-1 break-words line-clamp-2 leading-snug">{item.title}</span>
-                    </Link>
-                  </li>
-                );
-              })}
-            </ul>
-          </Card>
         </div>
-      </aside>
+
+        {/* Course Progress card */}
+        <Card className="flex flex-1 flex-col gap-3 p-4 sm:p-5">
+          <h2 className="flex items-center gap-2 text-[15px] font-extrabold text-navy">
+            <ChartNoAxesColumn className="h-5 w-5 shrink-0 text-blue-600" />Course Progress
+          </h2>
+          <div className="flex items-center gap-4">
+            <Ring v={progressPercent} size={72} stroke={7}>
+              <span className="text-[16px] font-extrabold">{progressPercent}%</span>
+            </Ring>
+            <div className="min-w-0 flex-1">
+              <p className="text-xs font-bold text-slate-800 sm:text-[13.5px]">
+                {completedLessons.length} of {activeCourse.lessons.length} completed
+              </p>
+              <p className="mt-0.5 text-xs text-slate-500">Progress saved automatically</p>
+            </div>
+          </div>
+          {/* Lesson list */}
+          <ul className="mt-1 grid gap-1 sm:grid-cols-2">
+            {activeCourse.lessons.map((item, index) => {
+              const complete = completedLessons.includes(index);
+              return (
+                <li key={`${activeCourse.id}-${index}`}>
+                  <Link
+                    href={`/learning?course=${encodeURIComponent(activeCourse.id)}&lesson=${index}`}
+                    aria-current={index === lessonIndex ? 'step' : undefined}
+                    className={`flex min-h-[42px] min-w-0 items-center gap-2.5 rounded-lg px-2.5 py-1.5 text-xs sm:text-[12.5px] font-medium transition ${
+                      index === lessonIndex ? 'bg-[#FFF3D0] text-navy font-bold' : 'text-slate-600 hover:bg-slate-50'
+                    }`}
+                  >
+                    <span className={`grid h-5 w-5 shrink-0 place-items-center rounded-full border-2 text-[10px] font-bold ${complete ? 'border-emerald-700 bg-emerald-700 text-white' : 'border-slate-300'}`}>
+                      {complete ? <Check className="h-3 w-3" strokeWidth={3} /> : index + 1}
+                    </span>
+                    <span className="min-w-0 flex-1 line-clamp-2 leading-snug">{item.title}</span>
+                  </Link>
+                </li>
+              );
+            })}
+          </ul>
+        </Card>
+      </div>
     </div>
   );
 }

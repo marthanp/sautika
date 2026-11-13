@@ -14,12 +14,8 @@ import {
 } from 'lucide-react';
 import { SignOutButton } from '@clerk/nextjs';
 import { useApp } from '@/store/useApp';
-<<<<<<< HEAD:src/components/Sidebar.tsx
 import { useUITranslation } from '@/lib/useUITranslation';
-import { Logo } from './Logo';
-=======
 import { Logo } from '@/components/ui/Logo';
->>>>>>> d2f04c65f309218f881d7722604ea00554b5d8d6:src/components/layout/Sidebar.tsx
 
 const NAV = [
   { href: '/home', labelKey: 'Study Hub', icon: LayoutDashboard },
@@ -79,7 +75,7 @@ export default function Sidebar() {
             );
           })}
         </nav>
-        <svg aria-hidden viewBox="0 0 280 320" className="pointer-events-none absolute -left-4 bottom-24 w-72 opacity-[0.05]" fill="#fff"><path d="M20 300C-10 200 40 80 130 40c30 90 10 210-110 260z" /><path d="M150 220c20-80 80-130 140-140-5 80-50 150-140 160z" /><path d="M60 320c30-60 90-100 160-110-10 70-60 110-160 110z" /></svg>
+        {/* decorative background removed */}
         <SignOutButton redirectUrl="/">
           <button type="button" className="relative mt-auto mb-6 flex items-center justify-center gap-3 rounded-2xl border border-white/20 bg-white/5 px-4 py-3 text-[14px] font-semibold text-white transition hover:bg-white/10">
             <LogOut className="h-4 w-4 shrink-0" strokeWidth={2} />
@@ -89,7 +85,6 @@ export default function Sidebar() {
       </aside>
       <nav aria-label="Main" className="fixed inset-x-0 bottom-0 z-30 grid min-h-16 grid-cols-7 border-t border-line bg-white pb-[env(safe-area-inset-bottom)] lg:hidden">
         {NAV.map(({ href, labelKey, icon: Icon }) => {
-          // Short labels for mobile
           const shortLabel = labelKey === 'Coins & Rewards' ? t('Rewards') : labelKey === 'Notebook' ? t('Notes') : t(labelKey);
           return (
             <Link

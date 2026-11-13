@@ -13,8 +13,8 @@ import { triggerFeedback } from '@/lib/feedback';
 
 export default function VoiceCourseSearch() {
   const router = useRouter();
-  const globalDialect = useApp((state) => state.activeDialect || 'lug');
-  const setGlobalDialect = useApp((state) => state.setActiveDialect);
+  const globalDialect = useApp((state) => state.dialect);
+  const setGlobalDialect = useApp((state) => state.setDialect);
   const { recording, processing, analyser, toggleMic } = useVoice();
   const [error, setError] = useState('');
   const [language, setLanguage] = useState<VoiceLang>(globalDialect);
