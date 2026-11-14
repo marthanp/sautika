@@ -11,7 +11,8 @@ export const SUBJECTS: Record<Subject, { color: string; icon: LucideIcon }> = {
 };
 
 export interface Note { id: number | string; subject: Subject; title: string; text: string; date: string; r2Url?: string; r2Key?: string }
-export const EARN = [['Complete a Lesson', '+10 coins', '#10B981'], ['Pass a Quiz', '+15 coins', '#7C4DFF'], ['Add a Note', '+5 coins', '#2F6BFF'], ['Daily Login', '+10 coins', '#F59E0B'], ['Reach a Milestone', '+30 coins', '#D946EF']] as const;
+// Only what the server actually awards. Do not advertise an earn rule the API does not enforce.
+export const EARN = [['Complete a Lesson', '+10 coins', '#10B981'], ['Add a Note', '+5 coins (up to 5 a day)', '#2F6BFF']] as const;
 export const REWARDS = [
   { title: 'Study Badge', cost: 100, text: 'Show off your achievement with a special badge.', color: '#1F63F5', bg: '#EAF2FF' },
   { title: 'E-Book Voucher', cost: 250, text: 'Get a free e-book from our library.', color: '#7C3AED', bg: '#F3EDFF' },
