@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState, type ElementType, type ReactNode } from 'react';
+import { useCallback, useRef, useState, type ElementType, type ReactNode } from 'react';
 
 interface RevealProps {
   children: ReactNode;
@@ -17,11 +17,14 @@ interface RevealProps {
  * visible from the start.
  */
 export default function Reveal({ children, as = 'div', className = '', delay = 0 }: RevealProps) {
-  const ref = useRef<HTMLElement | null>(null);
   const [visible, setVisible] = useState(false);
+  const observerRef = useRef<IntersectionObserver | null>(null);
 
-  useEffect(() => {
-    const node = ref.current;
+  // A ref callback runs only in the browser, so the server markup stays hidden
+  // and hydration matches even where IntersectionObserver is missing.
+  const attach = useCallback((node: HTMLElement | null) => {
+    observerRef.current?.disconnect();
+    observerRef.current = null;
     if (!node) return;
     if (typeof IntersectionObserver === 'undefined') {
       setVisible(true);
@@ -39,13 +42,13 @@ export default function Reveal({ children, as = 'div', className = '', delay = 0
       { rootMargin: '0px 0px -10% 0px' },
     );
     observer.observe(node);
-    return () => observer.disconnect();
+    observerRef.current = observer;
   }, []);
 
   const Tag = as as ElementType;
   return (
     <Tag
-      ref={ref}
+      ref={attach}
       className={`reveal${visible ? ' is-visible' : ''}${className ? ` ${className}` : ''}`}
       style={delay ? { transitionDelay: `${delay}ms` } : undefined}
     >
