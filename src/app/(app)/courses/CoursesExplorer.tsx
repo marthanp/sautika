@@ -9,6 +9,7 @@ import { Card, SubjectChip } from '@/components/ui';
 import { SUBJECTS } from '@/data/catalog';
 import { useLearnerAccount, useLearnerProfile } from '@/components/providers/LearnerDataSync';
 import { coursesForClass } from '@/lib/course-access';
+import { searchCourses } from '@/lib/course-search';
 import { IMAGE_BY_CATEGORY, SUBJECT_BY_CATEGORY } from '@/lib/course-display';
 import type { Category, LevelGroup } from '@/types';
 
@@ -98,22 +99,16 @@ export default function CoursesExplorer() {
         if (course.cat !== subject) return false;
       }
 
-      // Search term matching
-      if (searchQuery.trim()) {
-        const q = searchQuery.toLowerCase();
-        const matchesTitle = course.title.toLowerCase().includes(q);
-        const matchesLevel = course.level.toLowerCase().includes(q);
-        const matchesCat = course.cat.toLowerCase().includes(q);
-        const matchesDesc = (course.description ?? '').toLowerCase().includes(q);
-        const matchesAuthor = (course.author ?? '').toLowerCase().includes(q);
-        if (!matchesTitle && !matchesLevel && !matchesCat && !matchesDesc && !matchesAuthor) {
-          return false;
-        }
-      }
-
       return true;
     });
-  }, [courses, levelGroup, subClass, subject, searchQuery]);
+  }, [courses, levelGroup, subClass, subject]);
+
+  // Search runs last, so it can rank what the filters left instead of
+  // matching the whole phrase as one substring.
+  const searchedCourses = useMemo(
+    () => searchCourses(filteredCourses, searchQuery),
+    [filteredCourses, searchQuery],
+  );
 
   const resetFilters = () => {
     setLevelGroup('All');
@@ -250,7 +245,7 @@ export default function CoursesExplorer() {
       {/* Results Header Count */}
       <div className="flex items-center justify-between text-[13px] text-slate-500">
         <span>
-          Showing <b>{filteredCourses.length}</b> courses
+          Showing <b>{searchedCourses.length}</b> courses
           {levelGroup !== 'All' ? ` in ${levelGroup}` : ''}
           {subject !== 'All' ? ` (${subject})` : ''}
         </span>
@@ -259,7 +254,7 @@ export default function CoursesExplorer() {
 
       {/* Course Cards Grid */}
       <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
-        {filteredCourses.map((course) => {
+        {searchedCourses.map((course) => {
           const subjectMeta = SUBJECT_BY_CATEGORY[course.cat];
           const progress = progressByCourse.get(course.id);
           const completedCount = progress?.completedLessonIndexes?.length ?? 0;
@@ -353,7 +348,7 @@ export default function CoursesExplorer() {
           );
         })}
 
-        {filteredCourses.length === 0 && (
+        {searchedCourses.length === 0 && (
           <div className="col-span-full rounded-2xl border border-dashed border-slate-300 bg-white p-10 text-center">
             <p className="text-4xl">📚</p>
             <h4 className="mt-3 text-[18px] font-bold text-navy">
