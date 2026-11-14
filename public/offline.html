@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#001731" />
+    <title>No connection · Sautika</title>
+    <style>
+      :root {
+        color-scheme: dark;
+        --navy: #001731;
+        --navy-2: #0a2547;
+        --sun: #ffc400;
+      }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        min-height: 100vh;
+        display: grid;
+        place-items: center;
+        padding: 24px;
+        background: var(--navy);
+        color: #fff;
+        font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+        line-height: 1.6;
+      }
+      .card {
+        width: 100%;
+        max-width: 420px;
+        text-align: center;
+      }
+      img {
+        width: 72px;
+        height: 72px;
+        border-radius: 20px;
+      }
+      h1 {
+        margin: 20px 0 8px;
+        font-size: 26px;
+        line-height: 1.2;
+      }
+      p {
+        margin: 0 auto;
+        max-width: 340px;
+        font-size: 15px;
+        color: rgba(255, 255, 255, 0.78);
+      }
+      ul {
+        margin: 22px auto 0;
+        padding: 16px 18px;
+        max-width: 340px;
+        text-align: left;
+        list-style: none;
+        border: 1px solid rgba(255, 255, 255, 0.14);
+        border-radius: 18px;
+        background: var(--navy-2);
+        font-size: 14px;
+        color: rgba(255, 255, 255, 0.8);
+      }
+      li + li { margin-top: 10px; }
+      li::before {
+        content: "•";
+        color: var(--sun);
+        font-weight: 700;
+        margin-right: 10px;
+      }
+      button {
+        margin-top: 24px;
+        min-height: 48px;
+        padding: 0 28px;
+        border: 0;
+        border-radius: 999px;
+        background: var(--sun);
+        color: var(--navy);
+        font-size: 15px;
+        font-weight: 700;
+        cursor: pointer;
+      }
+      button:hover { background: #e6b000; }
+      button:focus-visible { outline: 3px solid #fff; outline-offset: 3px; }
+    </style>
+  </head>
+  <body>
+    <main class="card">
+      <img src="/icons/icon-192.png" alt="Sautika" width="72" height="72" />
+      <h1>No connection right now</h1>
+      <p>
+        This page has not been saved on your phone yet. Pages and lessons you have already
+        opened will still work while you are offline.
+      </p>
+      <ul>
+        <li>Check your mobile data or Wi-Fi.</li>
+        <li>Move to a spot with a stronger signal.</li>
+        <li>Open a lesson you have visited before — it is saved here.</li>
+      </ul>
+      <button type="button" onclick="location.reload()">Try again</button>
+    </main>
+  </body>
+</html>
