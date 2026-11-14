@@ -1,8 +1,8 @@
 {
   "mcpServers": {
-    "ocr-space": {
+    "sautika": {
       "command": "node",
-      "args": ["./scripts/mcp-ocr-server.mjs"]
+      "args": ["--no-warnings", "./scripts/sautika-mcp-server.mjs"]
     }
   }
 }
