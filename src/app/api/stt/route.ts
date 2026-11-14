@@ -1,9 +1,15 @@
 import type { NextRequest } from 'next/server';
+import { guardUser } from '@/lib/api-guard';
 import { isSunbirdLanguage, normalizeSunbirdLanguage } from '@/lib/sunbird-languages';
 
 export const runtime = 'nodejs';
 
+const MAX_AUDIO_BYTES = 10 * 1024 * 1024;
+
 export async function POST(req: NextRequest): Promise<Response> {
+  const guard = await guardUser('stt', 20);
+  if (!guard.ok) return guard.response;
+
   const key = process.env.SUNBIRD_API_KEY;
   if (!key) return Response.json({ error: 'SUNBIRD_API_KEY is not set' }, { status: 500 });
   const form = await req.formData();
@@ -14,6 +20,9 @@ export async function POST(req: NextRequest): Promise<Response> {
     : '';
   if (!(audio instanceof Blob) || audio.size === 0) {
     return Response.json({ error: 'A non-empty audio file is required.' }, { status: 400 });
+  }
+  if (audio.size > MAX_AUDIO_BYTES) {
+    return Response.json({ error: 'That recording is too long. Keep it under 10 MB.' }, { status: 413 });
   }
   if (!isSunbirdLanguage(language)) {
     return Response.json({ error: 'Choose a language supported by Sunbird speech recognition and translation.' }, { status: 400 });
