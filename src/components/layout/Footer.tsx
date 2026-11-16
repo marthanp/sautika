@@ -10,7 +10,7 @@ const POLICIES = [
 
 export default function Footer() {
   return (
-    <footer id="about" className="bg-navy px-5 py-10 text-white sm:px-8 md:py-12">
+    <footer id="contact" className="bg-navy px-5 py-10 text-white sm:px-8 md:py-12">
       <div className="mx-auto max-w-[1100px]">
         <div className="grid gap-9 border-b border-white/15 pb-9 md:grid-cols-[1fr_1fr] md:items-start">
           <div className="space-y-5">
