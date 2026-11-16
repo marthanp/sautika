@@ -112,7 +112,7 @@ export async function POST(req: NextRequest): Promise<Response> {
   }
 
   const authorised = isAuthorised(req);
-  const limited = rateLimit(
+  const limited = await rateLimit(
     `mcp:${authorised ? 'token' : 'anon'}:${clientIp(req)}`,
     authorised ? TOKEN_LIMIT : ANON_LIMIT,
     WINDOW_MS,

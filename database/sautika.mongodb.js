@@ -249,6 +249,33 @@ var collections = {
       { key: { userId: 1, idempotencyKey: 1 }, options: { unique: true, name: 'transaction_idempotency_unique' } },
     ],
   },
+
+  // Cluster-wide fixed-window rate limiting (src/lib/rate-limit.ts).
+  // One document per key per window; the TTL index clears finished windows.
+  rate_limits: {
+    required: ['count', 'expiresAt'],
+    properties: {
+      _id: { bsonType: 'string' },
+      count: { bsonType: ['int', 'long'], minimum: 0 },
+      expiresAt: { bsonType: 'date' },
+    },
+    indexes: [
+      { key: { expiresAt: 1 }, options: { expireAfterSeconds: 0, name: 'rate_limits_ttl' } },
+    ],
+  },
+
+  // Shared second-level cache (src/lib/kv-cache.ts), used for translations and
+  // the LLM circuit breaker. `value` is deliberately untyped: callers decide.
+  kv_cache: {
+    required: ['value', 'expiresAt'],
+    properties: {
+      _id: { bsonType: 'string' },
+      expiresAt: { bsonType: 'date' },
+    },
+    indexes: [
+      { key: { expiresAt: 1 }, options: { expireAfterSeconds: 0, name: 'kv_cache_ttl' } },
+    ],
+  },
 };
 
 Object.keys(collections).forEach(function (name) {

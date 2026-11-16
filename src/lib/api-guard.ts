@@ -1,4 +1,5 @@
 import { auth } from '@clerk/nextjs/server';
+import { enforce } from '@/lib/rate-limit';
 
 export type Guarded<T> = { ok: true; value: T } | { ok: false; response: Response };
 
@@ -17,46 +18,20 @@ export async function requireUser(): Promise<Guarded<string>> {
   return { ok: true, value: userId };
 }
 
-interface Bucket {
-  count: number;
-  resetAt: number;
-}
-
 /**
- * Fixed-window rate limiter held in a module-level Map.
+ * Fixed-window rate limiter.
  *
- * This counts requests per serverless instance, so the effective ceiling on a
- * platform that runs several instances is `limit x instances`. It is enough to
- * stop a single client draining the Sunbird, OCR and LLM quotas, but it is not
- * a cluster-wide guarantee. Move this to Upstash Redis or Vercel KV (a shared
- * INCR with an expiry) once traffic justifies it.
+ * The counters live in MongoDB (`src/lib/rate-limit.ts`), so the ceiling holds
+ * across every serverless instance instead of being `limit x instances`. It
+ * fails open when Mongo is unreachable: a database hiccup must not lock a
+ * learner out of the app.
  */
-const buckets = new Map<string, Bucket>();
-const MAX_BUCKETS = 5000;
-
-export function rateLimit(key: string, limit: number, windowMs: number): Response | null {
-  const now = Date.now();
-
-  if (buckets.size > MAX_BUCKETS) {
-    for (const [bucketKey, bucket] of buckets) {
-      if (bucket.resetAt <= now) buckets.delete(bucketKey);
-    }
-  }
-
-  const existing = buckets.get(key);
-  if (!existing || existing.resetAt <= now) {
-    buckets.set(key, { count: 1, resetAt: now + windowMs });
-    return null;
-  }
-
-  existing.count += 1;
-  if (existing.count <= limit) return null;
-
-  const retryAfter = Math.max(1, Math.ceil((existing.resetAt - now) / 1000));
-  return Response.json(
-    { error: 'You are going a little fast. Wait a moment and try again.' },
-    { status: 429, headers: { 'Retry-After': String(retryAfter) } },
-  );
+export async function rateLimit(
+  key: string,
+  limit: number,
+  windowMs: number,
+): Promise<Response | null> {
+  return enforce(key, limit, windowMs);
 }
 
 /** Best-effort client IP from the proxy headers Vercel sets. */
@@ -78,7 +53,7 @@ export async function guardUser(
   const user = await requireUser();
   if (!user.ok) return user;
 
-  const limited = rateLimit(`${scope}:${user.value}`, limit, windowMs);
+  const limited = await rateLimit(`${scope}:${user.value}`, limit, windowMs);
   if (limited) return { ok: false, response: limited };
 
   return user;
