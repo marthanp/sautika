@@ -181,23 +181,14 @@ async function buildQuiz(systemPrompt: string, language: string): Promise<Respon
 
   if (language !== 'eng') {
     try {
-      const translated = await Promise.all(
-        parsed.map(async (item) => {
-          const [q, a, d0, d1, e] = await Promise.all([
-            translateText(item.q, 'eng', language),
-            translateText(item.a, 'eng', language),
-            translateText(item.d[0], 'eng', language),
-            translateText(item.d[1], 'eng', language),
-            translateText(item.e, 'eng', language),
-          ]);
-          return {
-            item: { k: 'm', q: q.text, a: a.text, d: [d0.text, d1.text] } as Item,
-            e: e.text,
-          };
-        }),
-      );
-      items = translated.map((entry) => entry.item);
-      explanations = translated.map((entry) => entry.e);
+      // One or two requests for the whole quiz. This used to be 5 items x 5
+      // fields in parallel, which hit Sunbird's rate limit and could return a
+      // half-translated quiz.
+      const { translateFields } = await import('@/lib/translation-batch');
+      const translated = await translateFields(parsed, ['q', 'a', 'd', 'e'], 'eng', language);
+
+      items = translated.map((item) => ({ k: 'm', q: item.q, a: item.a, d: item.d }) as Item);
+      explanations = translated.map((item) => item.e);
     } catch (error) {
       console.warn('Quiz translation failed, serving the English quiz:', error);
     }

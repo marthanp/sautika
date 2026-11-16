@@ -13,6 +13,8 @@ export function useVoice() {
   const [analyser, setAnalyser] = useState<AnalyserNode | null>(null);
 
   const rec = useRef<MediaRecorder | null>(null);
+  /** The clip playing now, so read-aloud can be stopped part way. */
+  const currentAudioRef = useRef<HTMLAudioElement | null>(null);
   const audioCtxRef = useRef<AudioContext | null>(null);
   const sourceNodeRef = useRef<MediaStreamAudioSourceNode | null>(null);
   const analyserRef = useRef<AnalyserNode | null>(null);
@@ -138,8 +140,23 @@ export function useVoice() {
     r.start();
   }
 
-  /** Sunbird TTS first; falls back to the browser voice (no Luganda voice offline). */
-  async function speak(text: string, lang: VoiceLang): Promise<void> {
+  /**
+   * Sunbird TTS first; falls back to the browser voice (no Luganda voice
+   * offline).
+   *
+   * `/api/tts` returns an ordered playlist of segments rather than one clip,
+   * so a long answer is read all the way through instead of being cut at 600
+   * characters. `onSegment` reports which span is playing, which is what the
+   * sentence highlighting in reading-comfort mode follows.
+   */
+  async function speak(
+    text: string,
+    lang: VoiceLang,
+    options: {
+      onSegment?: (segment: { ord: number; charStart: number; charEnd: number } | null) => void;
+      rate?: number;
+    } = {},
+  ): Promise<void> {
     setSpeaking(true);
     triggerFeedback('chip');
     try {
@@ -148,9 +165,35 @@ export function useVoice() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ text, language: normalizeSunbirdLanguage(lang) }),
       });
-      const j = (await res.json()) as { audioUrl?: string };
+      const j = (await res.json()) as {
+        segments?: { ord: number; charStart: number; charEnd: number; audioUrl?: string }[];
+        audioUrl?: string;
+      };
+
+      const playlist = (j.segments ?? []).filter((segment) => segment.audioUrl);
+      if (playlist.length > 0) {
+        for (const segment of playlist) {
+          options.onSegment?.(segment);
+          const finished = await new Promise<boolean>((resolve) => {
+            const audio = new Audio(segment.audioUrl);
+            if (options.rate) audio.playbackRate = options.rate;
+            audio.onended = () => resolve(true);
+            // A failed segment should not stop the rest of the answer.
+            audio.onerror = () => resolve(true);
+            currentAudioRef.current = audio;
+            void audio.play().catch(() => resolve(false));
+          });
+          if (!finished) break;
+        }
+        currentAudioRef.current = null;
+        options.onSegment?.(null);
+        setSpeaking(false);
+        return;
+      }
+
       if (j.audioUrl) {
         const audio = new Audio(j.audioUrl);
+        currentAudioRef.current = audio;
         audio.onended = () => setSpeaking(false);
         audio.onerror = () => setSpeaking(false);
         await audio.play();
@@ -173,5 +216,16 @@ export function useVoice() {
     speechSynthesis.speak(u);
   }
 
-  return { recording, processing, speaking, analyser, toggleMic, speak };
+  /** Stops read-aloud wherever it has got to. */
+  function stopSpeaking(): void {
+    const audio = currentAudioRef.current;
+    if (audio) {
+      audio.pause();
+      currentAudioRef.current = null;
+    }
+    if (typeof speechSynthesis !== 'undefined') speechSynthesis.cancel();
+    setSpeaking(false);
+  }
+
+  return { recording, processing, speaking, analyser, toggleMic, speak, stopSpeaking };
 }
