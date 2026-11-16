@@ -216,9 +216,16 @@ function AppearanceSection() {
         </div>
 
         <div
-          className="mt-4 rounded-2xl border-2 border-line p-5 transition-all"
+          className={`mt-4 rounded-2xl border-2 border-line p-5 transition-all ${
+            activeTint !== 'none' ? 'reading-preview-tinted' : ''
+          }`}
           style={{
-            backgroundColor: TINTS.find((t) => t.id === activeTint)?.hex || '#FFFFFF',
+            backgroundColor:
+              activeTint !== 'none'
+                ? TINTS.find((t) => t.id === activeTint)?.hex
+                : colorMode === 'dark'
+                  ? '#182433'
+                  : '#FFFFFF',
           }}
         >
           <div className="flex items-center gap-2 text-[12.5px] font-bold uppercase tracking-wider text-slate-500">
