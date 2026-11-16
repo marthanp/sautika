@@ -1,0 +1,47 @@
+{
+  "_comment": [
+    "Atlas Vector Search index for source_chunks.embedding.",
+    "This is an Atlas-level resource, so it cannot be created by the mongosh",
+    "schema script or by the app. Create it once per cluster:",
+    "",
+    "  Atlas UI:  Database > Browse Collections > sautika.source_chunks >",
+    "             Search Indexes > Create Search Index > JSON Editor >",
+    "             Atlas Vector Search, then paste the object below",
+    "             (everything except this _comment) and name it",
+    "             source_chunks_vector.",
+    "",
+    "  Atlas CLI: atlas clusters search indexes create --file database/vector-index.json",
+    "",
+    "numDimensions must stay equal to EMBEDDING_DIMENSIONS in",
+    "src/lib/notebooks/embed.ts. Change one and you must change the other,",
+    "then re-embed every chunk.",
+    "",
+    "Until the index exists, retrieve() uses the $text keyword path, so the",
+    "notebook still works."
+  ],
+  "collectionName": "source_chunks",
+  "database": "sautika",
+  "name": "source_chunks_vector",
+  "type": "vectorSearch",
+  "fields": [
+    {
+      "type": "vector",
+      "path": "embedding",
+      "numDimensions": 768,
+      "similarity": "cosine",
+      "quantization": "scalar"
+    },
+    {
+      "type": "filter",
+      "path": "userId"
+    },
+    {
+      "type": "filter",
+      "path": "notebookId"
+    },
+    {
+      "type": "filter",
+      "path": "sourceId"
+    }
+  ]
+}
