@@ -145,7 +145,19 @@ export async function POST(
           return;
         }
 
-        const { block, map } = numberSources(chunks);
+        // `block` is not pasted into the prompt any more: the providers that
+        // cannot take citable documents get the numbered block prepended by
+        // their own adapter, after the cached prefix.
+        const { map } = numberSources(chunks);
+
+        // Providers with native citations get the passages as citable
+        // documents; the others get them numbered in the prompt, which is
+        // what `promptWithDocuments` and the `[n]` parser handle.
+        const documents = chunks.map((chunk, index) => ({
+          n: index + 1,
+          title: chunk.page !== undefined ? `page ${chunk.page}` : `passage ${index + 1}`,
+          text: chunk.text,
+        }));
 
         // 3. Recent turns, oldest first, so follow-up questions make sense.
         const history = await chat
@@ -161,18 +173,21 @@ export async function POST(
 
         const prompt = [
           recent ? `Earlier in this conversation:\n${recent}\n` : '',
-          `Sources:\n${block}`,
-          `\nLearner's question: ${englishQuestion}`,
+          `Learner's question: ${englishQuestion}`,
         ].join('\n');
 
-        // 4. Stream.
+        // 4. Stream. The question goes last, after the cached sources block,
+        //    because prompt caching is a prefix match.
         send('status', { stage: 'thinking', retrieval: mode });
         const textStream = await openTextStream({
           prompt,
           systemPrompt: RULES,
           maxTokens: 1200,
+          tier: 'fast',
+          documents,
+          // Providers without native citations fall back to the numbered
+          // block, so they still see the passages.
           temperature: 0.3,
-          timeoutMs: 45_000,
         });
         send('status', { stage: 'answering', provider: textStream.provider });
 
@@ -204,7 +219,27 @@ export async function POST(
         answer = answer.trim();
         if (!answer) throw new Error('The tutor returned an empty answer.');
 
+        // Prefer the spans the provider reported itself: the quote is the text
+        // the model actually leaned on, not the start of the chunk.
+        const native = textStream.citations?.() ?? [];
         const citations = buildCitations(answer, map);
+        for (const citation of citations) {
+          const reported = native.find((entry) => entry.n === citation.n);
+          if (reported?.quote) citation.quote = reported.quote;
+        }
+        // A provider that cited a passage the `[n]` parser missed still counts.
+        for (const reported of native) {
+          if (citations.some((citation) => citation.n === reported.n)) continue;
+          const chunk = map[reported.n];
+          if (!chunk) continue;
+          citations.push({
+            n: reported.n,
+            sourceId: chunk.sourceId,
+            chunkId: chunk.chunkId,
+            quote: reported.quote || chunk.text.slice(0, QUOTE_CHARS),
+          });
+        }
+        citations.sort((a, b) => a.n - b.n);
 
         // 5. Back into the learner's language.
         let finalAnswer = answer;

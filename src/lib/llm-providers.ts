@@ -20,6 +20,11 @@ export interface LLMRequestOptions {
   /** The learner's own text. The fallback summarises THIS, never the instruction. */
   heuristicSource?: string;
   timeoutMs?: number;
+  /**
+   * Which Anthropic tier to use when a key is configured. `fast` for anything
+   * a learner is waiting on, `deep` for reports and long scripts.
+   */
+  tier?: 'fast' | 'deep';
 }
 
 export interface LLMResponse {
@@ -157,6 +162,23 @@ export async function generateAIResponse(options: LLMRequestOptions): Promise<LL
       return null;
     }
   };
+
+  // 0. Anthropic Claude, when configured. `tier` is chosen by the caller
+  //    through `options.tier`; the default is the fast model, because most
+  //    non-streaming callers here are short jobs a learner is waiting on.
+  if (process.env.ANTHROPIC_API_KEY) {
+    const result = await attempt(async () => {
+      const { anthropicComplete } = await import('@/lib/llm/providers/anthropic');
+      const text = await anthropicComplete({
+        prompt,
+        systemPrompt,
+        maxTokens,
+        tier: options.tier ?? 'fast',
+      });
+      return text ? { text, provider: 'Anthropic Claude' } : null;
+    }, 'Anthropic');
+    if (result) return result;
+  }
 
   // 1. Google Gemini
   const geminiKey = readKey(GEMINI_KEY_ENV);

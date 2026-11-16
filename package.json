@@ -17,6 +17,7 @@
     "mcp:inspect": "npx @modelcontextprotocol/inspector node --no-warnings scripts/sautika-mcp-server.mjs"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^1.9.0",
     "@aws-sdk/client-s3": "^3.1150.0",
     "@aws-sdk/s3-request-presigner": "^3.1150.0",
     "@clerk/nextjs": "^7.9.14",
