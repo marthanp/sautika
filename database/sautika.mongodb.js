@@ -292,6 +292,17 @@ var collections = {
       error: { bsonType: 'string', maxLength: 500 },
       language: { bsonType: 'string', minLength: 2, maxLength: 10 },
       charCount: { bsonType: ['int', 'long'], minimum: 0 },
+      // Pasted or migrated text, held only until the chunker has run; the
+      // ingest step unsets it once the chunks exist.
+      rawText: { bsonType: 'string', maxLength: 1000000 },
+      guide: {
+        bsonType: 'object',
+        properties: {
+          summary: { bsonType: 'string', maxLength: 2000 },
+          keyTopics: { bsonType: 'array', items: { bsonType: 'string' } },
+          suggestedQuestions: { bsonType: 'array', items: { bsonType: 'string' } },
+        },
+      },
       createdAt: { bsonType: 'date' },
       updatedAt: { bsonType: 'date' },
     },

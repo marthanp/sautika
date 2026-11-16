@@ -1,8 +1,10 @@
 import {
   S3Client,
   PutObjectCommand,
+  GetObjectCommand,
   ListObjectsV2Command,
 } from '@aws-sdk/client-s3';
+import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import { getDatabase } from './mongodb';
 
 export const runtime = 'nodejs';
@@ -77,6 +79,63 @@ export async function uploadToR2(options: {
     url: getR2PublicUrl(cleanKey),
     size: bodyBuffer.length,
   };
+}
+
+/** Reads an object back out of R2, for source ingestion. */
+export async function downloadFromR2(key: string): Promise<{
+  body: Buffer;
+  contentType: string;
+  size: number;
+}> {
+  const s3 = getR2Client();
+  const cleanKey = key.replace(/^\/+/, '');
+
+  const result = await s3.send(
+    new GetObjectCommand({ Bucket: getR2BucketName(), Key: cleanKey }),
+  );
+  if (!result.Body) throw new Error(`R2 object ${cleanKey} has no body.`);
+
+  const body = Buffer.from(await result.Body.transformToByteArray());
+  return {
+    body,
+    contentType: result.ContentType ?? 'application/octet-stream',
+    size: body.length,
+  };
+}
+
+/**
+ * A short-lived PUT URL so the browser uploads straight to R2 instead of
+ * streaming a 60-page PDF through a serverless function with a 60 s limit.
+ *
+ * The key is chosen on the server and never taken from the client, so one
+ * learner cannot write into another learner's prefix.
+ */
+export async function createPresignedUploadUrl(options: {
+  key: string;
+  contentType: string;
+  expiresInSeconds?: number;
+}): Promise<{ url: string; key: string; expiresInSeconds: number }> {
+  const cleanKey = options.key.replace(/^\/+/, '');
+  const expiresInSeconds = options.expiresInSeconds ?? 600;
+
+  const url = await getSignedUrl(
+    getR2Client(),
+    new PutObjectCommand({
+      Bucket: getR2BucketName(),
+      Key: cleanKey,
+      ContentType: options.contentType,
+    }),
+    { expiresIn: expiresInSeconds },
+  );
+
+  return { url, key: cleanKey, expiresInSeconds };
+}
+
+/** An R2 key under this learner's own prefix, safe for any file name. */
+export function learnerUploadKey(userId: string, fileName: string, prefix = 'sources'): string {
+  const safeUser = userId.replace(/[^a-zA-Z0-9._-]/g, '_');
+  const safeName = fileName.replace(/[^a-zA-Z0-9._-]/g, '_').slice(-120) || 'upload';
+  return `${prefix}/${safeUser}/${Date.now()}_${safeName}`;
 }
 
 /**

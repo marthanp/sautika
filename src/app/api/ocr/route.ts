@@ -1,27 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server';
-import mammoth from 'mammoth';
 import { guardUser } from '@/lib/api-guard';
+import {
+  classify,
+  extensionOf,
+  extractBuffer,
+  MAX_FILE_BYTES,
+  SUPPORTED_TYPES_MESSAGE,
+} from '@/lib/notebooks/extract';
 
 export const runtime = 'nodejs';
 export const maxDuration = 60;
-
-const MAX_FILE_BYTES = 10 * 1024 * 1024;
-
-const TEXT_EXTENSIONS = new Set(['txt', 'md', 'csv', 'json', 'text']);
-const IMAGE_EXTENSIONS = new Set(['png', 'jpg', 'jpeg', 'webp', 'bmp', 'gif']);
-
-type FileKind = 'text' | 'docx' | 'pdf' | 'image';
-
-/** Decides how to read the upload, or null when we do not support the type. */
-function classify(ext: string, mimeType: string): FileKind | null {
-  if (TEXT_EXTENSIONS.has(ext) || mimeType.startsWith('text/') || mimeType === 'application/json') {
-    return 'text';
-  }
-  if (ext === 'docx' || mimeType.includes('wordprocessingml')) return 'docx';
-  if (ext === 'pdf' || mimeType === 'application/pdf') return 'pdf';
-  if (IMAGE_EXTENSIONS.has(ext) || mimeType.startsWith('image/')) return 'image';
-  return null;
-}
 
 /**
  * Universal document text extraction and OCR.
@@ -30,6 +18,9 @@ function classify(ext: string, mimeType: string): FileKind | null {
  * - Word .docx (mammoth)
  * - Plain text, Markdown, CSV, JSON
  * - Images (OCR.Space, falling back to tesseract.js)
+ *
+ * The reading itself lives in `src/lib/notebooks/extract.ts`, shared with the
+ * source ingestion pipeline so there is one implementation of each format.
  */
 export async function POST(req: NextRequest) {
   const guard = await guardUser('ocr', 10);
@@ -55,34 +46,14 @@ export async function POST(req: NextRequest) {
 
     const fileName = file.name;
     const fileType = file.type || '';
-    const ext = fileName.toLowerCase().split('.').pop() || '';
-    const kind = classify(ext, fileType);
 
-    if (!kind) {
-      return NextResponse.json(
-        {
-          error:
-            'Sautika can read PDF, Word (.docx), text, Markdown, CSV, JSON and photos of notes.',
-        },
-        { status: 415 },
-      );
+    if (!classify(extensionOf(fileName), fileType)) {
+      return NextResponse.json({ error: SUPPORTED_TYPES_MESSAGE }, { status: 415 });
     }
 
     const buffer = Buffer.from(await file.arrayBuffer());
-    let extractedText = '';
-
-    if (kind === 'text') {
-      extractedText = buffer.toString('utf-8');
-    } else if (kind === 'docx') {
-      const result = await mammoth.extractRawText({ buffer });
-      extractedText = result.value;
-    } else if (kind === 'pdf') {
-      extractedText = await extractPdfText(buffer);
-    } else {
-      extractedText = await extractImageText(buffer, fileType);
-    }
-
-    extractedText = extractedText.replace(/\r\n/g, '\n').trim();
+    const extracted = await extractBuffer(buffer, fileName, fileType);
+    let extractedText = extracted.text;
 
     if (!extractedText) {
       extractedText = `(No readable text could be extracted from ${fileName})`;
@@ -145,80 +116,5 @@ export async function POST(req: NextRequest) {
       { error: 'We could not read that file. Try a clearer photo or another format.' },
       { status: 500 },
     );
-  }
-}
-
-/**
- * pdf-parse v2 exports a `PDFParse` class; v1 exported a function.
- * Support both so the route survives either version being installed.
- */
-async function extractPdfText(buffer: Buffer): Promise<string> {
-  try {
-    const mod = (await import('pdf-parse')) as any;
-    if (mod.PDFParse) {
-      const parser = new mod.PDFParse({ data: buffer });
-      const result = await parser.getText();
-      await parser.destroy?.();
-      return typeof result?.text === 'string' ? result.text : '';
-    }
-    if (typeof mod.default === 'function') {
-      const result = await mod.default(buffer);
-      return typeof result?.text === 'string' ? result.text : '';
-    }
-    console.warn('pdf-parse exposed neither PDFParse nor a default function.');
-    return '';
-  } catch (pdfErr) {
-    console.warn('pdf-parse error:', pdfErr);
-    return '';
-  }
-}
-
-async function extractImageText(buffer: Buffer, fileType: string): Promise<string> {
-  const ocrKeys = Array.from(
-    new Set([process.env.OCR_SPACE_API_KEY, process.env.OCR_SPACE_API_KEY_FALLBACK]),
-  ).filter(Boolean) as string[];
-
-  for (const key of ocrKeys) {
-    try {
-      const ocrFormData = new FormData();
-      ocrFormData.append(
-        'base64Image',
-        `data:${fileType || 'image/jpeg'};base64,${buffer.toString('base64')}`,
-      );
-      ocrFormData.append('apikey', key);
-      ocrFormData.append('language', 'eng');
-      ocrFormData.append('OCREngine', '2');
-      ocrFormData.append('isOverlayRequired', 'false');
-
-      const ocrRes = await fetch('https://api.ocr.space/parse/image', {
-        method: 'POST',
-        body: ocrFormData,
-        signal: AbortSignal.timeout(30_000),
-      });
-
-      if (!ocrRes.ok) continue;
-      const ocrJson = (await ocrRes.json()) as {
-        ParsedResults?: { ParsedText?: string }[];
-        IsErroredOnProcessing?: boolean;
-      };
-      const text = (ocrJson.ParsedResults ?? [])
-        .map((r) => r.ParsedText || '')
-        .join('\n')
-        .trim();
-      if (text) return text;
-    } catch (ocrApiErr) {
-      console.warn('OCR.Space attempt failed, trying the next option:', ocrApiErr);
-    }
-  }
-
-  try {
-    const { createWorker } = await import('tesseract.js');
-    const worker = await createWorker('eng');
-    const ret = await worker.recognize(buffer);
-    await worker.terminate();
-    return ret.data.text;
-  } catch (tessErr) {
-    console.error('Tesseract fallback failed:', tessErr);
-    return '';
   }
 }
