@@ -224,6 +224,42 @@ export default function LearnerDataSync({ children }: { children: ReactNode }) {
     return () => { active = false; };
   }, [isLoaded, userId, user]);
 
+  /**
+   * Flushes notes that were queued while the save was failing (Task 1.1).
+   * Runs when the account is ready and again every time the browser reports
+   * that the connection is back, oldest note first so the order is kept.
+   */
+  useEffect(() => {
+    if (!userId || readyUserId !== userId) return;
+    let active = true;
+
+    const flush = (): void => {
+      void (async () => {
+        if (typeof navigator !== 'undefined' && navigator.onLine === false) return;
+        const queue = [...useApp.getState().pendingNotes].sort((a, b) => a.queuedAt - b.queuedAt);
+        if (queue.length === 0) return;
+        for (const entry of queue) {
+          if (!active) return;
+          try {
+            await requestAccount({ type: 'note', note: entry.note });
+            useApp.getState().dropPendingNote(entry.note.id);
+          } catch {
+            // Count the attempt and stop: the next online event tries again.
+            useApp.getState().markPendingAttempt(entry.note.id);
+            return;
+          }
+        }
+      })();
+    };
+
+    flush();
+    window.addEventListener('online', flush);
+    return () => {
+      active = false;
+      window.removeEventListener('online', flush);
+    };
+  }, [userId, readyUserId]);
+
   // Periodic state sync (only for authenticated users)
   useEffect(() => {
     if (!userId || readyUserId !== userId || readyUserIdRef.current !== userId) return;

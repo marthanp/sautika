@@ -1,9 +1,10 @@
 'use client';
-import { useEffect, useRef, useState } from 'react';
-import { Calendar, FileText, Loader2, Plus, Trash2, Upload, Volume2, X } from 'lucide-react';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { AlertTriangle, Calendar, CloudOff, FileText, Loader2, Plus, Trash2, Upload, Volume2, X } from 'lucide-react';
 import { Card } from '@/components/ui';
 import { useLearnerAccount } from '@/components/providers/LearnerDataSync';
 import { SUBJECTS, type Note, type Subject } from '@/data/catalog';
+import { useApp } from '@/store/useApp';
 import StudyTutor from './StudyTutor';
 
 const FILTERS = [
@@ -36,6 +37,19 @@ const UPLOAD_ACCEPT = [
   'text/csv',
   'application/json',
 ].join(',');
+/**
+ * The only types `file.text()` can turn into readable notes. Reading anything
+ * else (a PDF, a photo) gives binary junk, which used to be saved as a "note".
+ */
+const TEXT_READABLE = /^(text\/|application\/json$)/;
+const TEXT_READABLE_EXTENSIONS = ['.txt', '.md', '.csv', '.json'];
+
+function isTextReadable(file: File): boolean {
+  if (TEXT_READABLE.test(file.type)) return true;
+  const name = file.name.toLowerCase();
+  return TEXT_READABLE_EXTENSIONS.some((extension) => name.endsWith(extension));
+}
+
 const TINT: Record<Subject, string> = {
   Mathematics: '#E5EFFE',
   Science: '#DDF7EC',
@@ -58,10 +72,15 @@ const EMPTY_DRAFT: Draft = { title: '', text: '', subject: 'Mathematics' };
 
 export default function NotebookBoard() {
   const { refresh } = useLearnerAccount();
+  const pendingNotes = useApp((state) => state.pendingNotes);
+  const queueNote = useApp((state) => state.queueNote);
+  const dropPendingNote = useApp((state) => state.dropPendingNote);
   const [f, setF] = useState('All Notes');
   const [notes, setNotes] = useState<Note[]>([]);
   const [open, setOpen] = useState(false);
   const [syncError, setSyncError] = useState('');
+  /** The real error from the last failed save, shown inside the modal. */
+  const [saveError, setSaveError] = useState('');
   const [isSaving, setIsSaving] = useState(false);
   const [draft, setDraft] = useState<Draft>(EMPTY_DRAFT);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -69,26 +88,31 @@ export default function NotebookBoard() {
   /** Opens the note modal pre-filled, so nothing is ever saved without the learner checking it. */
   const openDraft = (next: Partial<Draft>): void => {
     setDraft({ ...EMPTY_DRAFT, ...next });
+    setSaveError('');
     setOpen(true);
   };
 
+  /**
+   * Returns the saved notes, or null when they cannot be loaded. The caller
+   * applies the result, so no state is set straight from an effect body.
+   */
+  const fetchNotes = useCallback(async (): Promise<Note[] | null> => {
+    try {
+      const response = await fetch('/api/account?resource=notes');
+      if (!response.ok) throw new Error('Could not load your notes.');
+      const result = (await response.json()) as { notes: Note[] };
+      return result.notes;
+    } catch {
+      // Queued notes are still on screen with their badge, so say nothing here.
+      return null;
+    }
+  }, []);
+
   useEffect(() => {
     let cancelled = false;
-    void fetch('/api/account?resource=notes')
-      .then(async (response) => {
-        if (!response.ok) throw new Error('Could not load your notes.');
-        return response.json() as Promise<{ notes: Note[] }>;
-      })
-      .then((result) => {
-        if (!cancelled) {
-          setNotes(result.notes);
-          setSyncError('');
-        }
-      })
-      .catch(() => {
-        // Silently fail — user will still see locally-added notes
-        if (!cancelled) setSyncError('');
-      });
+    void fetchNotes().then((loaded) => {
+      if (!cancelled && loaded) setNotes(loaded);
+    });
 
     const handleOpenModal = () => setOpen(true);
     const handleTriggerUpload = () => fileInputRef.current?.click();
@@ -101,7 +125,26 @@ export default function NotebookBoard() {
       window.removeEventListener('open-new-note', handleOpenModal);
       window.removeEventListener('upload-note-file', handleTriggerUpload);
     };
-  }, []);
+  }, [fetchNotes]);
+
+  /**
+   * When `LearnerDataSync` drains the queue, pull the saved notes so the card
+   * turns from "Waiting to sync" into a normal saved note without a reload.
+   */
+  const pendingCount = pendingNotes.length;
+  const lastPendingCount = useRef(pendingCount);
+  useEffect(() => {
+    const drained = pendingCount < lastPendingCount.current;
+    lastPendingCount.current = pendingCount;
+    if (!drained) return;
+    let cancelled = false;
+    void fetchNotes().then((loaded) => {
+      if (!cancelled && loaded) setNotes(loaded);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [pendingCount, fetchNotes]);
 
   useEffect(() => {
     if (!open) return;
@@ -112,19 +155,23 @@ export default function NotebookBoard() {
     return () => window.removeEventListener('keydown', onKeyDown);
   }, [open]);
 
+  /** One shape for the note, used by both the save and the "keep for later" path. */
+  const buildNote = (): Note => ({
+    id: crypto.randomUUID(),
+    subject: draft.subject,
+    title: draft.title.trim(),
+    text: draft.text,
+    date: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+    ...(draft.r2Url ? { r2Url: draft.r2Url } : {}),
+    ...(draft.r2Key ? { r2Key: draft.r2Key } : {}),
+  });
+
   const add = async (): Promise<void> => {
     if (!draft.title.trim()) return;
     setIsSaving(true);
     setSyncError('');
-    const note: Note = {
-      id: crypto.randomUUID(),
-      subject: draft.subject,
-      title: draft.title.trim(),
-      text: draft.text,
-      date: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
-      ...(draft.r2Url ? { r2Url: draft.r2Url } : {}),
-      ...(draft.r2Key ? { r2Key: draft.r2Key } : {}),
-    };
+    setSaveError('');
+    const note: Note = buildNote();
     try {
       const response = await fetch('/api/account', {
         method: 'PUT',
@@ -137,21 +184,33 @@ export default function NotebookBoard() {
       }
       setNotes((current) => [note, ...current]);
       setDraft(EMPTY_DRAFT);
+      setSaveError('');
       setOpen(false);
       await refresh();
     } catch (error) {
-      // Offline fallback: add the note locally so the user doesn't lose it
-      setNotes((current) => [note, ...current]);
-      setDraft(EMPTY_DRAFT);
-      setOpen(false);
-      const msg = error instanceof Error ? error.message : 'Could not save your note.';
-      if (!msg.toLowerCase().includes('mongodb') && !msg.toLowerCase().includes('connect')) {
-        setSyncError(msg);
+      const message = error instanceof Error ? error.message : 'Could not save your note.';
+      // Offline is expected on the data plans our learners use: queue it and say so.
+      if (typeof navigator !== 'undefined' && navigator.onLine === false) {
+        keepForLater(note);
+        return;
       }
-      // Silently swallow MongoDB errors — note is saved locally
+      // Online failure: keep the modal open with the real reason and a retry.
+      setSaveError(message);
     } finally {
       setIsSaving(false);
     }
+  };
+
+  /**
+   * Puts the note in the persisted queue instead of pretending it saved.
+   * `LearnerDataSync` flushes the queue when the connection comes back.
+   */
+  const keepForLater = (note: Note): void => {
+    queueNote(note);
+    setDraft(EMPTY_DRAFT);
+    setSaveError('');
+    setOpen(false);
+    setSyncError('Saved on this device. It will sync when you are back online.');
   };
 
   const deleteNote = async (id: string | number): Promise<void> => {
@@ -194,9 +253,14 @@ export default function NotebookBoard() {
         text = ocrData.text || '';
         r2Url = ocrData.r2Url;
         r2Key = ocrData.r2Key;
-      } else {
-        // Text fallback
+      } else if (isTextReadable(file)) {
+        // Safe fallback: this really is text, so reading it client-side is fine.
         text = await file.text().catch(() => '');
+      } else {
+        // A PDF or photo read as text is binary junk. Say so instead of saving it.
+        setUploadStatus('We could not read this file. Try a clearer photo or a PDF with selectable text.');
+        setTimeout(() => setUploadStatus(''), 6000);
+        return;
       }
 
       const title = file.name.replace(/\.[^/.]+$/, '');
@@ -261,6 +325,15 @@ export default function NotebookBoard() {
       setPlayingId(null);
     }
   };
+
+  /**
+   * Queued notes sit above the saved ones with a badge, so a note never looks
+   * saved when it is not.
+   */
+  const visibleNotes: { note: Note; pending: boolean }[] = [
+    ...pendingNotes.map((entry) => ({ note: entry.note, pending: true })),
+    ...notes.map((note) => ({ note, pending: false })),
+  ].filter(({ note }) => f === 'All Notes' || note.subject === f);
 
   return (
     <>
@@ -338,9 +411,8 @@ export default function NotebookBoard() {
       />
 
       <div className="mt-5 grid gap-5 md:grid-cols-2 xl:grid-cols-3">
-        {notes
-          .filter((n) => f === 'All Notes' || n.subject === f)
-          .map((n) => {
+        {visibleNotes
+          .map(({ note: n, pending }) => {
             const { icon: I, color } = SUBJECTS[n.subject] || SUBJECTS['Science'];
             const isPlaying = playingId === n.id;
             return (
@@ -371,13 +443,19 @@ export default function NotebookBoard() {
                       <button
                         type="button"
                         aria-label={`Delete note ${n.title}`}
-                        onClick={() => void deleteNote(n.id)}
+                        onClick={() => (pending ? dropPendingNote(n.id) : void deleteNote(n.id))}
                         className="rounded-lg p-1 text-slate-400 hover:bg-red-50 hover:text-red-600"
                       >
                         <Trash2 className="h-4 w-4" />
                       </button>
                     </div>
                   </div>
+                  {pending ? (
+                    <p className="mt-3 inline-flex items-center gap-1.5 rounded-full bg-amber-100 px-2.5 py-1 text-[12px] font-bold text-amber-900">
+                      <CloudOff className="h-3.5 w-3.5" aria-hidden />
+                      Waiting to sync
+                    </p>
+                  ) : null}
                   <h3 className="mt-4 text-[19px] font-extrabold text-navy">{n.title}</h3>
                   <p className="mt-3 min-h-[72px] text-[14.5px] leading-relaxed text-slate-600 whitespace-pre-line">
                     {n.text}
@@ -394,7 +472,7 @@ export default function NotebookBoard() {
             );
           })}
 
-        {notes.length === 0 && (
+        {visibleNotes.length === 0 && (
           <div className="col-span-full rounded-2xl border border-dashed border-slate-300 bg-white p-10 text-center">
             <p className="text-3xl">📝</p>
             <h4 className="mt-2 text-[17px] font-bold text-navy">No notes created yet</h4>
@@ -457,13 +535,33 @@ export default function NotebookBoard() {
               rows={draft.fromUpload ? 10 : 5}
               className="mt-3 w-full rounded-xl border border-line p-4 text-sm focus:border-navy focus:outline-none"
             />
+            {saveError ? (
+              <div role="alert" className="mt-4 rounded-xl border border-red-300 bg-red-50 p-4">
+                <p className="flex items-start gap-2 text-[13.5px] font-semibold leading-relaxed text-red-900">
+                  <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" aria-hidden />
+                  <span>{saveError}</span>
+                </p>
+                <p className="mt-2 text-[12.5px] leading-relaxed text-red-800">
+                  Your note is still here. Try again, or keep it on this device and we will sync it later.
+                </p>
+              </div>
+            ) : null}
             <button
               onClick={() => void add()}
               disabled={isSaving || !draft.title.trim()}
               className="mt-4 h-12 w-full rounded-xl bg-sun font-bold text-navy shadow-sm transition hover:bg-sun-dark disabled:cursor-not-allowed disabled:opacity-50"
             >
-              {isSaving ? 'Saving…' : 'Save Note (+5 Coins)'}
+              {isSaving ? 'Saving…' : saveError ? 'Try again' : 'Save Note (+5 Coins)'}
             </button>
+            {saveError ? (
+              <button
+                type="button"
+                onClick={() => keepForLater(buildNote())}
+                className="mt-2 h-12 w-full rounded-xl border border-line bg-white text-[14px] font-semibold text-navy transition hover:bg-slate-50"
+              >
+                Keep it on this device
+              </button>
+            ) : null}
           </div>
         </div>
       )}
