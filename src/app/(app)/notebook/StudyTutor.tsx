@@ -18,6 +18,7 @@ import {
 import type { LucideIcon } from 'lucide-react';
 import type { Note } from '@/data/catalog';
 import { hasSunbirdTts, SUNBIRD_LANGUAGES, type VoiceLang } from '@/lib/sunbird-languages';
+import { splitCitations, stripCitations } from '@/lib/notebooks/citations';
 import { useApp } from '@/store/useApp';
 
 const MAX_SOURCES = 8;
@@ -47,26 +48,21 @@ function languageName(code: VoiceLang): string {
   return SUNBIRD_LANGUAGES.find((language) => language.code === code)?.name ?? 'English';
 }
 
-function stripCitations(text: string): string {
-  return text.replace(/\[\d{1,2}\]/g, '').replace(/[ \t]{2,}/g, ' ').trim();
-}
-
 /** Renders a `[2]` marker as a small highlighted superscript so citations stay readable. */
 function withCitations(text: string): ReactNode[] {
-  return text.split(/(\[\d{1,2}\])/g).map((part, index) => {
-    if (/^\[\d{1,2}\]$/.test(part)) {
-      return (
-        <sup
-          key={index}
-          className="mx-0.5 rounded bg-sun/30 px-1 py-[1px] text-[10px] font-bold text-navy"
-          title="From the note with this number"
-        >
-          {part.slice(1, -1)}
-        </sup>
-      );
-    }
-    return <span key={index}>{part}</span>;
-  });
+  return splitCitations(text).map((part, index) =>
+    part.kind === 'citation' ? (
+      <sup
+        key={index}
+        className="mx-0.5 rounded bg-sun/30 px-1 py-[1px] text-[10px] font-bold text-navy"
+        title="From the note with this number"
+      >
+        {part.n}
+      </sup>
+    ) : (
+      <span key={index}>{part.text}</span>
+    ),
+  );
 }
 
 function hashSeed(text: string): number {

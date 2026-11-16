@@ -492,6 +492,9 @@ sequenceDiagram
 | `npm run start` | Starts production server |
 | `npm run typecheck` | Validates TypeScript types across the project |
 | `npm run lint` | Runs ESLint code style and quality checks |
+| `npm run test` | Runs the Vitest unit tests once |
+| `npm run test:watch` | Runs the unit tests in watch mode |
+| `npm run test:e2e` | Runs the Playwright smoke tests (starts its own dev server) |
 | `npm run mcp` | Starts the Sautika MCP server over stdio (needs Node 22.18+) |
 | `npm run mcp:inspect` | Opens the MCP Inspector against the stdio server |
 | `npm run icons` | Regenerates the PWA icons from `public/Logo_symbol.png` |
@@ -509,6 +512,9 @@ sautika-next/
 │   └── SAUTIKA_UPGRADE_PLAN.md  # Upgrade plan and roadmap notes
 ├── public/                  # Static assets served as-is (logos, images, web manifest)
 ├── scripts/                 # Standalone Node scripts (MCP server, PWA icon generator)
+├── tests/
+│   ├── unit/                # Vitest unit tests (parsers, rate limiter)
+│   └── e2e/                 # Playwright smoke tests
 ├── src/
 │   ├── app/                 # Next.js App Router
 │   │   ├── (app)/           # Authenticated learner area (home, courses, learning, notebook, …)
@@ -530,6 +536,35 @@ sautika-next/
 │   └── proxy.ts             # Clerk request proxy (Next.js 16 middleware)
 ├── AGENTS.md                # Agent instructions (managed by `next dev`, must stay at the root)
 └── README.md
+```
+
+---
+
+## Testing
+
+```bash
+npm run test       # Vitest unit tests
+npm run test:e2e   # Playwright smoke tests
+```
+
+Unit tests live in `tests/unit` and need nothing running: MongoDB is mocked
+where a module touches it.
+
+The Playwright smoke tests start their own dev server on port 3100 (override
+with `PLAYWRIGHT_PORT`, or point `PLAYWRIGHT_BASE_URL` at a server you already
+have running). They need a browser binary once:
+
+```bash
+npx playwright install chromium
+```
+
+On Windows that downloads into `%LOCALAPPDATA%\ms-playwright`. If the system
+drive is short of space, put it elsewhere and keep the variable set when
+running the tests:
+
+```powershell
+$env:PLAYWRIGHT_BROWSERS_PATH = 'D:\playwright-browsers'
+npx playwright install chromium
 ```
 
 ---
