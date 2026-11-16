@@ -11,6 +11,7 @@ import { useLearnerAccount, useLearnerProfile } from '@/components/providers/Lea
 import { coursesForClass } from '@/lib/course-access';
 import { searchCourses } from '@/lib/course-search';
 import { IMAGE_BY_CATEGORY, SUBJECT_BY_CATEGORY } from '@/lib/course-display';
+import { useUITranslation } from '@/lib/useUITranslation';
 import type { Category, LevelGroup } from '@/types';
 
 const LEVEL_GROUPS: { id: 'All' | LevelGroup; label: string; badge: string }[] = [
@@ -40,6 +41,7 @@ const SUB_CLASSES_BY_GROUP: Record<LevelGroup, string[]> = {
 };
 
 export default function CoursesExplorer() {
+  const t = useUITranslation();
   const searchParams = useSearchParams();
   const [levelGroup, setLevelGroup] = useState<'All' | LevelGroup>('All');
   const [subClass, setSubClass] = useState<string>('All');
@@ -121,20 +123,20 @@ export default function CoursesExplorer() {
     <div className="space-y-5">
       <p className="rounded-xl border border-blue-100 bg-blue-50 px-4 py-3 text-[13px] font-medium text-blue-900">
         {profile.educationLevel === 'Not specified'
-          ? 'Your class is not set on your learner profile, so class materials are hidden.'
-          : <>Materials are limited to your registered class: <b>{profile.educationLevel}</b>.</>}
+          ? t('Your class is not set on your learner profile, so class materials are hidden.')
+          : <>{t('Materials are limited to your registered class:')} <b>{profile.educationLevel}</b>.</>}
       </p>
 
       {/* Search Input Bar */}
       <div className="mt-5 flex flex-wrap items-center gap-3">
         <label className="relative min-w-[260px] flex-1">
-          <span className="sr-only">Search courses</span>
+          <span className="sr-only">{t('Search courses')}</span>
           <Search className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
           <input
             type="search"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Search courses by topic, class, or keyword..."
+            placeholder={t('Search courses by topic, class, or keyword...')}
             className="h-11 w-full rounded-full border border-line bg-white pl-11 pr-4 text-[14px] shadow-sm placeholder:text-slate-400 focus:border-navy focus:outline-none"
           />
         </label>
@@ -144,7 +146,7 @@ export default function CoursesExplorer() {
             onClick={resetFilters}
             className="flex h-11 items-center gap-1.5 rounded-full border border-line bg-white px-4 text-[13px] font-semibold text-slate-600 transition hover:bg-slate-50"
           >
-            <RotateCcw className="h-3.5 w-3.5" /> Reset
+            <RotateCcw className="h-3.5 w-3.5" /> {t('Reset')}
           </button>
         )}
       </div>
@@ -152,7 +154,7 @@ export default function CoursesExplorer() {
       {/* 1. Level Group Category Tabs (Baby class to top class, P.1 to P.4, P.5 to P.7, S.1 to S.4, S.5 to S.6) */}
       <div className="border-b border-line pb-1">
         <p className="mb-2.5 flex items-center gap-2 text-[12px] font-extrabold uppercase tracking-wider text-slate-500">
-          <GraduationCap className="h-4 w-4 text-sun" /> Class Categories
+          <GraduationCap className="h-4 w-4 text-sun" /> {t('Class Categories')}
         </p>
         <div
           role="tablist"
@@ -177,13 +179,13 @@ export default function CoursesExplorer() {
                     : 'border-line bg-white text-slate-700 hover:border-slate-300 hover:bg-slate-50'
                 }`}
               >
-                <span className="whitespace-nowrap">{label}</span>
+                <span className="whitespace-nowrap">{t(label)}</span>
                 <span
                   className={`whitespace-nowrap rounded-full px-2 py-0.5 text-[11px] font-semibold ${
                     isSelected ? 'bg-navy/15 text-navy' : 'bg-slate-100 text-slate-500'
                   }`}
                 >
-                  {badge}
+                  {t(badge)}
                 </span>
               </button>
             );
@@ -194,7 +196,7 @@ export default function CoursesExplorer() {
       {/* 2. Sub-Class Level Chips (e.g. Baby Class, Middle Class, Top Class, P.1, P.2, etc.) */}
       {availableSubClasses.length > 0 && (
         <div className="flex flex-wrap items-center gap-2 pt-1">
-          <span className="text-[12px] font-semibold text-slate-500">Specific Class:</span>
+          <span className="text-[12px] font-semibold text-slate-500">{t('Specific Class:')}</span>
           <button
             type="button"
             onClick={() => setSubClass('All')}
@@ -204,7 +206,7 @@ export default function CoursesExplorer() {
                 : 'border-line bg-white text-slate-600 hover:bg-slate-50'
             }`}
           >
-            All Classes
+            {t('All Classes')}
           </button>
           {availableSubClasses.map((sc) => (
             <button
@@ -217,7 +219,7 @@ export default function CoursesExplorer() {
                   : 'border-line bg-white text-slate-600 hover:bg-slate-50'
               }`}
             >
-              {sc}
+              {t(sc)}
             </button>
           ))}
         </div>
@@ -237,7 +239,7 @@ export default function CoursesExplorer() {
                 : 'border-line bg-white text-slate-600 hover:bg-slate-50'
             }`}
           >
-            {s}
+            {t(s)}
           </button>
         ))}
       </div>
@@ -245,11 +247,11 @@ export default function CoursesExplorer() {
       {/* Results Header Count */}
       <div className="flex items-center justify-between text-[13px] text-slate-500">
         <span>
-          Showing <b>{searchedCourses.length}</b> courses
-          {levelGroup !== 'All' ? ` in ${levelGroup}` : ''}
-          {subject !== 'All' ? ` (${subject})` : ''}
+          {t('Showing')} <b>{searchedCourses.length}</b> {t('courses')}
+          {levelGroup !== 'All' ? ` in ${t(levelGroup)}` : ''}
+          {subject !== 'All' ? ` (${t(subject)})` : ''}
         </span>
-        <span className="text-[12px] text-slate-400">Materials sourced from Sharebility Uganda</span>
+        <span className="text-[12px] text-slate-400">{t('Materials sourced from Sharebility Uganda')}</span>
       </div>
 
       {/* Course Cards Grid */}
