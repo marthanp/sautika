@@ -35,6 +35,7 @@ import { Bar, Card, Ring } from '@/components/ui';
 import { useApp } from '@/store/useApp';
 import { useLearnerAccount, useLearnerProfile } from '@/components/providers/LearnerDataSync';
 import { coursesForClass } from '@/lib/course-access';
+import { ReadingAids } from '@/components/settings/ReadingComfort';
 import type { DyslexiaFont, DyslexiaSpacing, DyslexiaLineHeight, ReadingTint } from '@/types';
 import { SUNBIRD_LANGUAGES, isSunbirdLanguage } from '@/lib/sunbird-languages';
 import { useUITranslation } from '@/lib/useUITranslation';
@@ -197,6 +198,12 @@ function AppearanceSection() {
           </button>
         </div>
       </Card>
+
+      {/*
+        Reading comfort first: the one-tap preset and the reading aids, which
+        the typography pickers below never had. The pickers are not repeated.
+      */}
+      <ReadingAids />
 
       {/* Live Interactive Reading Preview */}
       <Card className="min-w-0 p-4 sm:p-6">

@@ -154,6 +154,17 @@ var collections = {
       letterSpacing: { enum: ['normal', 'relaxed', 'wide'] },
       lineHeight: { enum: ['normal', 'relaxed', 'loose'] },
       readingTint: { enum: ['none', 'cream', 'yellow', 'peach', 'mint', 'blue'] },
+      // Reading comfort (Phase 8). Absent means off, so existing rows stay valid.
+      dyslexiaMode: { bsonType: 'bool' },
+      readingRuler: { bsonType: 'bool' },
+      focusMode: { bsonType: 'bool' },
+      boldWordStarts: { bsonType: 'bool' },
+      readAloudRate: { bsonType: ['double', 'int'], minimum: 0.5, maximum: 2 },
+      // First-run tutorial (Phase 7).
+      dialect: { bsonType: 'string', minLength: 2, maxLength: 10 },
+      onboardingStep: { bsonType: ['int', 'long'], minimum: 0 },
+      onboardingCompletedAt: { bsonType: 'date' },
+      createdAt: { bsonType: 'date' },
       updatedAt: { bsonType: 'date' },
     },
     indexes: [

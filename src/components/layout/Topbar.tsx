@@ -15,6 +15,7 @@ import {
   Sun,
   X,
 } from 'lucide-react';
+import ReadingComfortButton from '@/components/settings/ReadingComfortButton';
 import { useApp } from '@/store/useApp';
 import { useUITranslation } from '@/lib/useUITranslation';
 import { useLearnerProfile } from '@/components/providers/LearnerDataSync';
@@ -138,6 +139,12 @@ export default function Topbar() {
       <span className="order-2 hidden lg:flex lg:flex-1" />
 
       <div className="order-1 ml-auto flex shrink-0 items-center gap-1 sm:gap-2 lg:order-3 lg:ml-0">
+        {/*
+          Reading comfort, one tap from anywhere. These settings used to be
+          buried in the settings page, where a new learner never found them.
+        */}
+        <ReadingComfortButton />
+
         {/* Dark/Light mode toggle */}
         <button
           type="button"

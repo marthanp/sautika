@@ -24,10 +24,26 @@ interface AppState {
   activeCourse: string | null; tab: Tab; theme: Theme; colorMode: 'light' | 'dark'; scale: string; wide: boolean;
   font: DyslexiaFont; letterSpacing: DyslexiaSpacing; lineHeight: DyslexiaLineHeight; readingTint: ReadingTint;
   sidebarHidden: boolean;
+  /**
+   * Reading comfort. `dyslexiaMode` is the one switch: turning it on applies a
+   * sensible preset in a single tap, and every value underneath stays
+   * adjustable on its own.
+   */
+  dyslexiaMode: boolean;
+  /** A band that follows the pointer and dims the rest of the text. */
+  readingRuler: boolean;
+  /** Hides the side panes and shows one thing at a time. */
+  focusMode: boolean;
+  /** Off by default: it helps some readers and not others. */
+  boldWordStarts: boolean;
+  /** Read-aloud speed, 0.75 to 1.5. */
+  readAloudRate: number;
   /** Notes waiting to reach the server. Never shown as saved without a badge. */
   pendingNotes: PendingNote[];
   /** Selected UI dialect. 'eng' = English (default). Changes translate the UI via Sunbird AI. */
   dialect: VoiceLang;
+  /** One tap: applies or clears the whole reading-comfort preset. */
+  setDyslexiaMode: (on: boolean, font?: DyslexiaFont) => void;
   queueNote: (note: Note) => void;
   dropPendingNote: (id: string | number) => void;
   markPendingAttempt: (id: string | number) => void;
@@ -38,7 +54,7 @@ interface AppState {
   startCourse: (id: string) => void;
   completeLesson: (courseId: string | undefined, index: number | undefined, xp: number) => void;
   setTab: (t: Tab) => void;
-  setPrefs: (p: Partial<Pick<AppState, 'theme' | 'colorMode' | 'scale' | 'wide' | 'font' | 'letterSpacing' | 'lineHeight' | 'readingTint' | 'sidebarHidden' | 'dialect'>>) => void;
+  setPrefs: (p: Partial<Pick<AppState, 'theme' | 'colorMode' | 'scale' | 'wide' | 'font' | 'letterSpacing' | 'lineHeight' | 'readingTint' | 'sidebarHidden' | 'dialect' | 'dyslexiaMode' | 'readingRuler' | 'focusMode' | 'boldWordStarts' | 'readAloudRate'>>) => void;
 }
 
 export const useApp = create<AppState>()(
@@ -48,8 +64,36 @@ export const useApp = create<AppState>()(
       theme: 'navy', colorMode: 'light', scale: '100%', wide: false,
       font: 'default', letterSpacing: 'normal', lineHeight: 'normal', readingTint: 'none',
       sidebarHidden: false,
+      dyslexiaMode: false,
+      readingRuler: false,
+      focusMode: false,
+      boldWordStarts: false,
+      readAloudRate: 1,
       pendingNotes: [],
       dialect: 'eng',
+      setDyslexiaMode: (on, font) => set(() => (
+        on
+          ? {
+            dyslexiaMode: true,
+            // The preset: a readable face, a bigger base size, generous
+            // spacing, an off-white page and text left-aligned by default.
+            font: font ?? 'lexend',
+            scale: '115%',
+            letterSpacing: 'relaxed',
+            lineHeight: 'relaxed',
+            readingTint: 'cream',
+          }
+          : {
+            dyslexiaMode: false,
+            font: 'default',
+            scale: '100%',
+            letterSpacing: 'normal',
+            lineHeight: 'normal',
+            readingTint: 'none',
+            readingRuler: false,
+            boldWordStarts: false,
+          }
+      )),
       queueNote: (note) => set((s) => (
         s.pendingNotes.some((entry) => String(entry.note.id) === String(note.id))
           ? s

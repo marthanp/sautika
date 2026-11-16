@@ -22,6 +22,7 @@ import {
   type SourceSummary,
 } from '@/lib/notebooks/client';
 import { useVoice } from '@/hooks/useVoice';
+import { useApp } from '@/store/useApp';
 import { useUITranslation } from '@/lib/useUITranslation';
 import type { Citation } from '@/types/notebook';
 import type { VoiceLang } from '@/types';
@@ -63,7 +64,19 @@ export default function ChatPane({
   onPendingQuestionUsed,
 }: Props) {
   const t = useUITranslation();
-  const { recording, processing, toggleMic, speak } = useVoice();
+  const { recording, processing, speaking, toggleMic, speak, stopSpeaking } = useVoice();
+  const readAloudRate = useApp((state) => state.readAloudRate);
+
+  /**
+   * Which sentence is being read aloud, so it can be highlighted. The spans
+   * come from the server's own split, which is why they line up with the
+   * audio exactly.
+   */
+  const [spoken, setSpoken] = useState<{
+    messageId: string;
+    charStart: number;
+    charEnd: number;
+  } | null>(null);
 
   const [messages, setMessages] = useState<ChatMessageView[]>([]);
   const [question, setQuestion] = useState('');
@@ -220,6 +233,29 @@ export default function ChatPane({
     );
   };
 
+  /**
+   * Renders a reply with the sentence being read aloud wrapped in a `mark`.
+   * The spans are offsets into the citation-stripped text, so the reply is
+   * split on the same text the server spoke.
+   */
+  const withSpokenSentence = (
+    message: ChatMessageView,
+    span: { charStart: number; charEnd: number },
+  ): ReactNode[] => {
+    const plain = stripCitations(message.content);
+    const before = plain.slice(0, span.charStart);
+    const during = plain.slice(span.charStart, span.charEnd);
+    const after = plain.slice(span.charEnd);
+
+    return [
+      <span key="before">{before}</span>,
+      <mark key="during" data-speaking="true">
+        {during}
+      </mark>,
+      <span key="after">{after}</span>,
+    ];
+  };
+
   /** Renders `[2]` as a button that opens the passage it points at. */
   const withCitations = (message: ChatMessageView): ReactNode[] =>
     splitCitations(message.content).map((part, index) => {
@@ -298,7 +334,9 @@ export default function ChatPane({
               <li key={message.id}>
                 <div className="rounded-2xl rounded-bl-md bg-mist px-4 py-3">
                   <p className="max-w-[65ch] whitespace-pre-line text-[14.5px] leading-[1.7] text-ink">
-                    {withCitations(message)}
+                    {spoken?.messageId === message.id
+                      ? withSpokenSentence(message, spoken)
+                      : withCitations(message)}
                   </p>
                 </div>
 
@@ -327,10 +365,34 @@ export default function ChatPane({
                   </button>
                   <button
                     type="button"
-                    onClick={() => void speak(stripCitations(message.content), language)}
+                    onClick={() => {
+                      if (speaking) {
+                        stopSpeaking();
+                        setSpoken(null);
+                        return;
+                      }
+                      // The markers are stripped for the voice but kept on
+                      // screen, so the spans are measured against the same
+                      // stripped text the server split.
+                      void speak(stripCitations(message.content), language, {
+                        rate: readAloudRate,
+                        onSegment: (segment) => {
+                          setSpoken(
+                            segment
+                              ? {
+                                messageId: message.id,
+                                charStart: segment.charStart,
+                                charEnd: segment.charEnd,
+                              }
+                              : null,
+                          );
+                        },
+                      });
+                    }}
                     className="flex h-11 items-center gap-1.5 rounded-xl px-2.5 text-[12.5px] font-semibold text-slate-600 transition hover:bg-mist hover:text-navy"
                   >
-                    <Volume2 className="h-3.5 w-3.5" aria-hidden /> {t('Read aloud')}
+                    <Volume2 className="h-3.5 w-3.5" aria-hidden />
+                    {speaking && spoken?.messageId === message.id ? t('Stop') : t('Read aloud')}
                   </button>
                   <button
                     type="button"

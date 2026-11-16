@@ -17,6 +17,7 @@ import {
   type NotebookDetail,
   type SourceSummary,
 } from '@/lib/notebooks/client';
+import { useApp } from '@/store/useApp';
 import { useUITranslation } from '@/lib/useUITranslation';
 import type { VoiceLang } from '@/types';
 
@@ -27,6 +28,7 @@ const POLL_MS = 4000;
 
 export default function NotebookWorkspace({ notebookId }: { notebookId: string }) {
   const t = useUITranslation();
+  const focusMode = useApp((state) => state.focusMode);
 
   const [notebook, setNotebook] = useState<NotebookDetail | null>(null);
   const [sources, setSources] = useState<SourceSummary[]>([]);
@@ -296,9 +298,17 @@ export default function NotebookWorkspace({ notebookId }: { notebookId: string }
       ) : null}
 
       {/* ── Panes ────────────────────────────────────────────────────────── */}
-      <div className="min-h-0 flex-1 lg:grid lg:grid-cols-[minmax(0,25fr)_minmax(0,50fr)_minmax(0,25fr)] lg:gap-3 lg:pt-3">
+      <div
+        className={`min-h-0 flex-1 lg:grid lg:gap-3 lg:pt-3 ${
+          focusMode
+            ? 'lg:grid-cols-1'
+            : 'lg:grid-cols-[minmax(0,25fr)_minmax(0,50fr)_minmax(0,25fr)]'
+        }`}
+      >
         <section
           aria-label={t('Sources')}
+          // Focus mode leaves the chat and hides the panes beside it.
+          data-focus-hide="true"
           className={`h-full min-h-0 rounded-2xl border border-line bg-white lg:block ${
             tab === 'sources' ? 'block' : 'hidden'
           }`}
@@ -338,6 +348,7 @@ export default function NotebookWorkspace({ notebookId }: { notebookId: string }
 
         <section
           aria-label={t('Studio')}
+          data-focus-hide="true"
           className={`h-full min-h-0 rounded-2xl border border-line bg-white lg:block ${
             tab === 'studio' ? 'block' : 'hidden'
           }`}
