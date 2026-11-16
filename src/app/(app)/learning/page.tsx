@@ -95,7 +95,7 @@ export default function LearningPage() {
   }
 
   return (
-    <div className="mx-auto flex max-w-[860px] flex-col gap-5">
+    <div className="mx-auto flex max-w-[960px] flex-col gap-5">
       {/* ── Breadcrumb ── */}
       <nav aria-label="Breadcrumb" className="flex flex-wrap items-center gap-2 text-xs sm:text-[13.5px]">
         <Link href="/courses" className="flex items-center gap-1.5 font-bold text-navy hover:underline">
