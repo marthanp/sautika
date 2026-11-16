@@ -3,11 +3,10 @@ import type { Metadata, Viewport } from 'next';
 import { Inter, Poppins } from 'next/font/google';
 import AccessibilitySync from '@/components/providers/AccessibilitySync';
 import ServiceWorkerRegister from '@/components/providers/ServiceWorkerRegister';
-import { useUITranslation } from '@/hooks/useUITranslation';
 import './globals.css';
 
-
-const DESCRIPTION = t('A voice-first AI tutor for East African learners. Ask in Luganda, Swahili, Acholi or English, turn your notes into quizzes and study guides, and keep the pages you have opened when the connection drops.');
+const DESCRIPTION =
+  'A voice-first AI tutor for East African learners. Ask in Luganda, Swahili, Acholi or English, turn your notes into quizzes and study guides, and keep the pages you have opened when the connection drops.';
 
 const inter = Inter({ subsets: ['latin'], variable: '--font-inter' });
 const poppins = Poppins({ subsets: ['latin'], weight: ['500', '600', '700', '800'], variable: '--font-poppins' });

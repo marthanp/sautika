@@ -1087,3 +1087,17 @@ html[data-reading-tint='blue'] body {
     transition: none !important;
   }
 }
+
+/* Page Audio Reader Highlight */
+.sautika-reading-highlight {
+  outline: 2.5px solid #ffc400 !important;
+  outline-offset: 3px !important;
+  border-radius: 8px !important;
+  background-color: rgba(255, 196, 0, 0.16) !important;
+  transition: all 0.25s ease-in-out !important;
+}
+
+[data-color-mode='dark'] .sautika-reading-highlight {
+  outline-color: #ffd233 !important;
+  background-color: rgba(255, 210, 51, 0.22) !important;
+}
