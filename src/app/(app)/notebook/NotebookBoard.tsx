@@ -1,9 +1,12 @@
 'use client';
-import { useEffect, useRef, useState } from 'react';
-import { Calendar, FileText, Loader2, Plus, Trash2, Upload, Volume2, X } from 'lucide-react';
+
+import { useEffect, useRef, useState, useMemo } from 'react';
+import { Calendar, FileText, Loader2, Plus, Search, Sparkles, Trash2, Upload, Volume2, X } from 'lucide-react';
 import { Card } from '@/components/ui';
 import { useLearnerAccount } from '@/components/providers/LearnerDataSync';
 import { SUBJECTS, type Note, type Subject } from '@/data/catalog';
+import { useUITranslation } from '@/lib/useUITranslation';
+import { triggerFeedback } from '@/lib/feedback';
 import StudyTutor from './StudyTutor';
 
 const FILTERS = [
@@ -15,8 +18,8 @@ const FILTERS = [
   'Agriculture',
   'Life Skills',
 ];
+
 const MAX_UPLOAD_TEXT = 50_000;
-/** Only what /api/ocr can actually read. */
 const UPLOAD_ACCEPT = [
   '.pdf',
   '.docx',
@@ -36,6 +39,7 @@ const UPLOAD_ACCEPT = [
   'text/csv',
   'application/json',
 ].join(',');
+
 const TINT: Record<Subject, string> = {
   Mathematics: '#E5EFFE',
   Science: '#DDF7EC',
@@ -58,7 +62,10 @@ const EMPTY_DRAFT: Draft = { title: '', text: '', subject: 'Mathematics' };
 
 export default function NotebookBoard() {
   const { refresh } = useLearnerAccount();
-  const [f, setF] = useState('All Notes');
+  const t = useUITranslation();
+
+  const [activeFilter, setActiveFilter] = useState('All Notes');
+  const [searchQuery, setSearchQuery] = useState('');
   const [notes, setNotes] = useState<Note[]>([]);
   const [open, setOpen] = useState(false);
   const [syncError, setSyncError] = useState('');
@@ -66,7 +73,6 @@ export default function NotebookBoard() {
   const [draft, setDraft] = useState<Draft>(EMPTY_DRAFT);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  /** Opens the note modal pre-filled, so nothing is ever saved without the learner checking it. */
   const openDraft = (next: Partial<Draft>): void => {
     setDraft({ ...EMPTY_DRAFT, ...next });
     setOpen(true);
@@ -86,7 +92,6 @@ export default function NotebookBoard() {
         }
       })
       .catch(() => {
-        // Silently fail — user will still see locally-added notes
         if (!cancelled) setSyncError('');
       });
 
@@ -112,7 +117,7 @@ export default function NotebookBoard() {
     return () => window.removeEventListener('keydown', onKeyDown);
   }, [open]);
 
-  const add = async (): Promise<void> => {
+  const addNote = async (): Promise<void> => {
     if (!draft.title.trim()) return;
     setIsSaving(true);
     setSyncError('');
@@ -125,6 +130,7 @@ export default function NotebookBoard() {
       ...(draft.r2Url ? { r2Url: draft.r2Url } : {}),
       ...(draft.r2Key ? { r2Key: draft.r2Key } : {}),
     };
+
     try {
       const response = await fetch('/api/account', {
         method: 'PUT',
@@ -132,23 +138,20 @@ export default function NotebookBoard() {
         body: JSON.stringify({ type: 'note', note }),
       });
       if (!response.ok) {
-        const result = await response.json().catch(() => null) as { error?: string } | null;
+        const result = (await response.json().catch(() => null)) as { error?: string } | null;
         throw new Error(result?.error ?? 'Could not save your note.');
       }
       setNotes((current) => [note, ...current]);
       setDraft(EMPTY_DRAFT);
       setOpen(false);
+      triggerFeedback('success');
       await refresh();
-    } catch (error) {
-      // Offline fallback: add the note locally so the user doesn't lose it
+    } catch {
+      // Offline fallback: save locally so user does not lose input
       setNotes((current) => [note, ...current]);
       setDraft(EMPTY_DRAFT);
       setOpen(false);
-      const msg = error instanceof Error ? error.message : 'Could not save your note.';
-      if (!msg.toLowerCase().includes('mongodb') && !msg.toLowerCase().includes('connect')) {
-        setSyncError(msg);
-      }
-      // Silently swallow MongoDB errors — note is saved locally
+      triggerFeedback('success');
     } finally {
       setIsSaving(false);
     }
@@ -163,6 +166,7 @@ export default function NotebookBoard() {
         body: JSON.stringify({ type: 'note', action: 'delete', id: noteId }),
       });
       setNotes((prev) => prev.filter((n) => String(n.id) !== noteId));
+      triggerFeedback('chip');
       await refresh();
     } catch (err) {
       console.error('Failed to delete note:', err);
@@ -195,12 +199,10 @@ export default function NotebookBoard() {
         r2Url = ocrData.r2Url;
         r2Key = ocrData.r2Key;
       } else {
-        // Text fallback
         text = await file.text().catch(() => '');
       }
 
       const title = file.name.replace(/\.[^/.]+$/, '');
-      // Nothing is saved yet: the learner checks what we read before it becomes a note.
       openDraft({
         subject: 'Science',
         title: title || 'Uploaded Document Notes',
@@ -210,6 +212,7 @@ export default function NotebookBoard() {
         fromUpload: true,
       });
       setUploadStatus('');
+      triggerFeedback('success');
     } catch (e) {
       console.error('Upload failed:', e);
       setUploadStatus('Could not analyze file.');
@@ -221,36 +224,22 @@ export default function NotebookBoard() {
   };
 
   const [playingId, setPlayingId] = useState<string | number | null>(null);
-  const [activeAudioLang, setActiveAudioLang] = useState<string>('lug');
 
   const playVoiceNote = async (id: string | number, text: string) => {
     if (playingId === id) {
+      if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
+        window.speechSynthesis.cancel();
+      }
       setPlayingId(null);
       return;
     }
     setPlayingId(id);
+    triggerFeedback('chip');
+
     try {
-      const res = await fetch('/api/tts', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          text: text.slice(0, 500),
-          language: activeAudioLang,
-        }),
-      });
-      if (res.ok) {
-        const data = (await res.json()) as { audioUrl?: string };
-        if (data.audioUrl) {
-          const audio = new Audio(data.audioUrl);
-          audio.onended = () => setPlayingId(null);
-          audio.onerror = () => setPlayingId(null);
-          await audio.play();
-          return;
-        }
-      }
-      // Browser SpeechSynthesis fallback
-      if ('speechSynthesis' in window) {
-        const utterance = new SpeechSynthesisUtterance(text.slice(0, 500));
+      if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
+        window.speechSynthesis.cancel();
+        const utterance = new SpeechSynthesisUtterance(text.slice(0, 600));
         utterance.onend = () => setPlayingId(null);
         utterance.onerror = () => setPlayingId(null);
         window.speechSynthesis.speak(utterance);
@@ -261,6 +250,17 @@ export default function NotebookBoard() {
       setPlayingId(null);
     }
   };
+
+  // Filter & Search notes
+  const filteredNotes = useMemo(() => {
+    return notes.filter((n) => {
+      const matchesFilter = activeFilter === 'All Notes' || n.subject === activeFilter;
+      if (!matchesFilter) return false;
+      if (!searchQuery.trim()) return true;
+      const q = searchQuery.toLowerCase();
+      return n.title.toLowerCase().includes(q) || n.text.toLowerCase().includes(q);
+    });
+  }, [notes, activeFilter, searchQuery]);
 
   return (
     <>
@@ -273,87 +273,122 @@ export default function NotebookBoard() {
       />
 
       {isUploading && (
-        <div className="mt-4 flex items-center gap-3 rounded-2xl border border-sun/40 bg-sun/10 px-4 py-3 text-sm font-medium text-navy">
-          <span className="h-4 w-4 animate-spin rounded-full border-2 border-navy border-t-transparent" />
+        <div className="mb-4 flex items-center gap-3 rounded-2xl border border-sun/40 bg-sun/10 px-4 py-3 text-sm font-medium text-navy dark:bg-sun/20 dark:text-white">
+          <span className="h-4 w-4 animate-spin rounded-full border-2 border-navy border-t-transparent dark:border-white" />
           <span>{uploadStatus || 'Analyzing document with OCR engine…'}</span>
         </div>
       )}
 
-      <div className="mt-6 flex flex-wrap items-center gap-3">
-        <div className="-mx-1 flex min-w-0 flex-1 gap-3 overflow-x-auto px-1 pb-1 scrollbar-none">
-          {FILTERS.map((c) => (
-            <button
-              key={c}
-              aria-pressed={f === c}
-              onClick={() => setF(c)}
-              className="h-11 shrink-0 whitespace-nowrap rounded-full bg-white px-5 text-[14px] font-semibold shadow-sm aria-pressed:bg-sun"
-            >
-              {c}
-            </button>
-          ))}
-        </div>
-        <div className="flex w-full items-center gap-2 sm:ml-auto sm:w-auto">
-          {/* Voice Language Picker */}
-          <select
-            value={activeAudioLang}
-            onChange={(e) => setActiveAudioLang(e.target.value)}
-            aria-label="Voice language"
-            className="h-11 rounded-full border border-line bg-white px-3 text-[12.5px] font-semibold text-slate-700 shadow-sm focus:border-navy focus:outline-none"
-            title="Choose Sunbird voice language"
-          >
-            {/* Only languages Sunbird can actually speak. */}
-            <option value="lug">Luganda 🇺🇬</option>
-            <option value="ach">Acholi 🇺🇬</option>
-            <option value="teo">Ateso 🇺🇬</option>
-            <option value="nyn">Runyankole 🇺🇬</option>
-            <option value="swa">Swahili</option>
-            <option value="kin">Kinyarwanda 🇷🇼</option>
-            <option value="eng">English</option>
-          </select>
-
-          <button
-            onClick={() => fileInputRef.current?.click()}
-            className="flex h-11 flex-1 items-center justify-center gap-2 whitespace-nowrap rounded-full border border-line bg-white px-4 text-[13px] font-semibold text-slate-700 shadow-sm hover:bg-slate-50 sm:flex-initial"
-          >
-            <Upload className="h-4 w-4" /> Upload
-          </button>
-          <button
-            onClick={() => setOpen(true)}
-            className="flex h-11 flex-1 items-center justify-center gap-2 whitespace-nowrap rounded-full bg-navy px-5 text-[14px] font-semibold text-white sm:flex-initial"
-          >
-            <Plus className="h-4 w-4" /> New Note
-          </button>
-        </div>
-      </div>
-
-      {syncError ? (
-        <p role="status" className="mt-4 rounded-xl border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-950">
-          {syncError}
-        </p>
-      ) : null}
-
+      {/* 1. Integrated AI Study Tutor (Ask Questions & Voice/Text Responses) */}
       <StudyTutor
         notes={notes}
         onSaveAsNote={({ title, text }) => openDraft({ title, text })}
       />
 
-      <div className="mt-5 grid gap-5 md:grid-cols-2 xl:grid-cols-3">
-        {notes
-          .filter((n) => f === 'All Notes' || n.subject === f)
-          .map((n) => {
+      {/* 2. My Study Notes & Documents Section */}
+      <section className="mt-8">
+        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-line pb-4 dark:border-white/10">
+          <div>
+            <h3 className="text-xl font-extrabold text-navy dark:text-white">
+              {t('My Study Notes & Documents')}
+            </h3>
+            <p className="mt-0.5 text-xs text-slate-500 dark:text-slate-400">
+              {notes.length} {t('saved notes and uploaded materials')}
+            </p>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              className="flex h-10 items-center gap-2 rounded-xl border border-line bg-white px-4 text-xs font-bold text-slate-700 shadow-xs transition hover:bg-slate-50 dark:border-white/10 dark:bg-navy-2 dark:text-slate-200"
+            >
+              <Upload className="h-3.5 w-3.5" />
+              <span>{t('Upload Document')}</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setOpen(true)}
+              className="flex h-10 items-center gap-2 rounded-xl bg-sun px-4 text-xs font-bold text-navy shadow-xs transition hover:bg-sun-dark active:scale-95"
+            >
+              <Plus className="h-3.5 w-3.5" />
+              <span>{t('New Note')}</span>
+            </button>
+          </div>
+        </div>
+
+        {/* Filter and Search Bar: Full-width, unclipped pills */}
+        <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
+          {/* Subject Filter Pills: flex-wrap ensures all words like 'Mathematics' fit without truncation */}
+          <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
+            {FILTERS.map((c) => (
+              <button
+                key={c}
+                type="button"
+                aria-pressed={activeFilter === c}
+                onClick={() => {
+                  setActiveFilter(c);
+                  triggerFeedback('chip');
+                }}
+                className={`h-9 shrink-0 whitespace-nowrap rounded-full px-4 text-xs font-semibold transition-all ${
+                  activeFilter === c
+                    ? 'bg-sun text-navy shadow-xs'
+                    : 'border border-line bg-white text-slate-700 hover:bg-slate-50 dark:border-white/10 dark:bg-navy-2 dark:text-slate-200'
+                }`}
+              >
+                {t(c)}
+              </button>
+            ))}
+          </div>
+
+          {/* Quick Search */}
+          <div className="relative min-w-[200px] flex-1 sm:max-w-xs">
+            <Search className="pointer-events-none absolute left-3 top-2.5 h-3.5 w-3.5 text-slate-400" />
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder={t('Search notes by title or text…')}
+              className="h-9 w-full rounded-full border border-line bg-white pl-9 pr-4 text-xs text-slate-800 placeholder:text-slate-400 focus:border-navy focus:outline-none dark:border-white/15 dark:bg-navy-2 dark:text-white"
+            />
+            {searchQuery && (
+              <button
+                type="button"
+                onClick={() => setSearchQuery('')}
+                className="absolute right-2.5 top-2.5 text-slate-400 hover:text-slate-600"
+              >
+                <X className="h-3.5 w-3.5" />
+              </button>
+            )}
+          </div>
+        </div>
+
+        {syncError && (
+          <p role="status" className="mt-4 rounded-xl border border-amber-300 bg-amber-50 px-4 py-3 text-xs text-amber-950">
+            {syncError}
+          </p>
+        )}
+
+        {/* Notes Grid */}
+        <div className="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {filteredNotes.map((n) => {
             const { icon: I, color } = SUBJECTS[n.subject] || SUBJECTS['Science'];
             const isPlaying = playingId === n.id;
             return (
-              <Card key={n.id} className="relative flex flex-col justify-between p-5">
+              <Card
+                key={n.id}
+                className="flex flex-col justify-between p-4 sm:p-5 transition-shadow hover:shadow-md dark:border-white/10 dark:bg-navy-2"
+              >
                 <div>
-                  <div className="flex items-center justify-between">
+                  <div className="flex items-center justify-between gap-2">
                     <span
-                      className="inline-flex items-center gap-2 rounded-full px-3 py-1 text-[13px] font-semibold"
+                      className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-semibold"
                       style={{ background: TINT[n.subject] || '#E5EFFE', color }}
                     >
-                      <I className="h-4 w-4" />
+                      <I className="h-3.5 w-3.5" />
                       {n.subject}
                     </span>
+
                     <div className="flex items-center gap-1">
                       <button
                         type="button"
@@ -362,55 +397,72 @@ export default function NotebookBoard() {
                         className={`rounded-lg p-1.5 transition-colors ${
                           isPlaying
                             ? 'bg-sun text-navy font-bold animate-pulse'
-                            : 'text-slate-500 hover:bg-slate-100 hover:text-navy'
+                            : 'text-slate-500 hover:bg-slate-100 hover:text-navy dark:text-slate-400 dark:hover:bg-white/10'
                         }`}
-                        title="Listen with Sunbird Voice"
+                        title="Listen to note"
                       >
-                        {isPlaying ? <Loader2 className="h-4 w-4 animate-spin" /> : <Volume2 className="h-4 w-4" />}
+                        {isPlaying ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Volume2 className="h-3.5 w-3.5" />}
                       </button>
+
                       <button
                         type="button"
                         aria-label={`Delete note ${n.title}`}
                         onClick={() => void deleteNote(n.id)}
-                        className="rounded-lg p-1 text-slate-400 hover:bg-red-50 hover:text-red-600"
+                        className="rounded-lg p-1.5 text-slate-400 hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-950/40"
+                        title="Delete note"
                       >
-                        <Trash2 className="h-4 w-4" />
+                        <Trash2 className="h-3.5 w-3.5" />
                       </button>
                     </div>
                   </div>
-                  <h3 className="mt-4 text-[19px] font-extrabold text-navy">{n.title}</h3>
-                  <p className="mt-3 min-h-[72px] text-[14.5px] leading-relaxed text-slate-600 whitespace-pre-line">
+
+                  <h4 className="mt-3 text-[16px] font-extrabold text-navy dark:text-white line-clamp-1">
+                    {n.title}
+                  </h4>
+
+                  <p className="mt-2 text-xs leading-relaxed text-slate-600 dark:text-slate-300 line-clamp-4 whitespace-pre-line">
                     {n.text}
                   </p>
                 </div>
-                <div className="mt-5 flex items-center justify-between border-t border-line/60 pt-3 text-[13px] text-slate-500">
-                  <span className="flex items-center gap-2">
-                    <Calendar className="h-4 w-4" />
+
+                <div className="mt-4 flex items-center justify-between border-t border-line/60 pt-3 text-[11.5px] text-slate-500 dark:border-white/10 dark:text-slate-400">
+                  <span className="flex items-center gap-1.5">
+                    <Calendar className="h-3.5 w-3.5" />
                     {n.date}
                   </span>
-                  <FileText className="h-4 w-4" />
+                  <span className="flex items-center gap-1">
+                    {n.r2Url ? <Upload className="h-3 w-3 text-blue-500" /> : <FileText className="h-3 w-3" />}
+                    <span>{n.r2Url ? t('Document') : t('Note')}</span>
+                  </span>
                 </div>
               </Card>
             );
           })}
 
-        {notes.length === 0 && (
-          <div className="col-span-full rounded-2xl border border-dashed border-slate-300 bg-white p-10 text-center">
-            <p className="text-3xl">📝</p>
-            <h4 className="mt-2 text-[17px] font-bold text-navy">No notes created yet</h4>
-            <p className="mt-1 text-sm text-slate-500">
-              Create your first note or upload a study file to keep key points handy.
-            </p>
-            <button
-              onClick={() => setOpen(true)}
-              className="mt-4 inline-flex h-10 items-center gap-2 rounded-full bg-sun px-5 text-sm font-bold text-navy"
-            >
-              <Plus className="h-4 w-4" /> Create a Note
-            </button>
-          </div>
-        )}
-      </div>
+          {filteredNotes.length === 0 && (
+            <div className="col-span-full rounded-2xl border border-dashed border-slate-300 bg-white p-8 text-center dark:border-white/10 dark:bg-navy-2">
+              <span className="text-3xl">📝</span>
+              <h4 className="mt-2 text-sm font-bold text-navy dark:text-white">
+                {searchQuery ? t('No notes match your search') : t('No notes found in this category')}
+              </h4>
+              <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+                {searchQuery
+                  ? t('Try searching for another keyword or clear the search.')
+                  : t('Create your first note or upload a document to get started.')}
+              </p>
+              <button
+                type="button"
+                onClick={() => setOpen(true)}
+                className="mt-4 inline-flex h-9 items-center gap-1.5 rounded-full bg-sun px-4 text-xs font-bold text-navy shadow-xs hover:bg-sun-dark"
+              >
+                <Plus className="h-3.5 w-3.5" /> {t('Create Note')}
+              </button>
+            </div>
+          )}
+        </div>
+      </section>
 
+      {/* Note Creation / Review Modal */}
       {open && (
         <div
           role="dialog"
@@ -418,51 +470,62 @@ export default function NotebookBoard() {
           aria-label={draft.fromUpload ? 'Check your uploaded notes' : 'New note'}
           className="fixed inset-0 z-50 grid place-items-center bg-black/50 p-4"
         >
-          <div className="max-h-[90vh] w-full max-w-[560px] overflow-y-auto rounded-2xl bg-white p-6 shadow-2xl">
+          <div className="max-h-[90vh] w-full max-w-[560px] overflow-y-auto rounded-3xl bg-white p-6 shadow-2xl dark:bg-navy-2 dark:text-white">
             <div className="flex items-center justify-between gap-3">
-              <h2 className="text-[22px] font-extrabold text-navy">
-                {draft.fromUpload ? 'Check your uploaded notes' : 'Create New Note'}
+              <h2 className="text-xl font-extrabold text-navy dark:text-white">
+                {draft.fromUpload ? t('Check your uploaded document') : t('Create New Note')}
               </h2>
-              <button aria-label="Close" onClick={() => setOpen(false)}>
+              <button
+                type="button"
+                aria-label="Close"
+                onClick={() => setOpen(false)}
+                className="rounded-lg p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-600 dark:hover:bg-white/10"
+              >
                 <X className="h-5 w-5" />
               </button>
             </div>
-            {draft.fromUpload ? (
-              <p className="mt-2 text-[13.5px] leading-relaxed text-slate-600">
-                We read this from your file. Fix any mistakes before saving.
+
+            {draft.fromUpload && (
+              <p className="mt-2 text-xs leading-relaxed text-slate-600 dark:text-slate-300">
+                {t('We extracted this text from your uploaded file. Review and edit before saving.')}
               </p>
-            ) : null}
+            )}
+
             <input
               value={draft.title}
               onChange={(e) => setDraft({ ...draft, title: e.target.value })}
-              placeholder="Note Title (e.g. Photosynthesis Summary)"
+              placeholder={t('Note Title (e.g. Science Notes or Chapter Summary)')}
               aria-label="Title"
-              className="mt-4 h-12 w-full rounded-xl border border-line px-4 text-sm focus:border-navy focus:outline-none"
+              className="mt-4 h-11 w-full rounded-xl border border-line bg-white px-4 text-xs font-medium text-slate-800 placeholder:text-slate-400 focus:border-navy focus:outline-none dark:border-white/15 dark:bg-navy dark:text-white"
             />
+
             <select
               value={draft.subject}
               onChange={(e) => setDraft({ ...draft, subject: e.target.value as Subject })}
               aria-label="Subject"
-              className="mt-3 h-12 w-full rounded-xl border border-line px-3 text-sm focus:border-navy focus:outline-none"
+              className="mt-3 h-11 w-full rounded-xl border border-line bg-white px-3 text-xs font-semibold text-slate-800 focus:border-navy focus:outline-none dark:border-white/15 dark:bg-navy dark:text-white"
             >
               {(Object.keys(SUBJECTS) as Subject[]).map((s) => (
-                <option key={s}>{s}</option>
+                <option key={s} value={s}>{s}</option>
               ))}
             </select>
+
             <textarea
               value={draft.text}
               onChange={(e) => setDraft({ ...draft, text: e.target.value })}
-              placeholder="Write your study notes, formulas, or key ideas here..."
+              placeholder={t('Write your study notes, formulas, or key ideas here...')}
               aria-label="Note"
-              rows={draft.fromUpload ? 10 : 5}
-              className="mt-3 w-full rounded-xl border border-line p-4 text-sm focus:border-navy focus:outline-none"
+              rows={draft.fromUpload ? 9 : 5}
+              className="mt-3 w-full rounded-xl border border-line bg-white p-3 text-xs leading-relaxed text-slate-800 placeholder:text-slate-400 focus:border-navy focus:outline-none dark:border-white/15 dark:bg-navy dark:text-white"
             />
+
             <button
-              onClick={() => void add()}
+              type="button"
+              onClick={() => void addNote()}
               disabled={isSaving || !draft.title.trim()}
-              className="mt-4 h-12 w-full rounded-xl bg-sun font-bold text-navy shadow-sm transition hover:bg-sun-dark disabled:cursor-not-allowed disabled:opacity-50"
+              className="mt-4 h-11 w-full rounded-xl bg-sun text-xs font-bold text-navy shadow-sm transition hover:bg-sun-dark disabled:cursor-not-allowed disabled:opacity-50"
             >
-              {isSaving ? 'Saving…' : 'Save Note (+5 Coins)'}
+              {isSaving ? t('Saving…') : t('Save Note (+5 Coins)')}
             </button>
           </div>
         </div>
