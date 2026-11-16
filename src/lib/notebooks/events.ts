@@ -33,10 +33,22 @@ export function backgroundRunner(): BackgroundRunner {
 export async function requestSourceIngest(
   sourceId: string,
   userId: string,
+  options: { kind?: string; url?: string } = {},
 ): Promise<{ runner: BackgroundRunner }> {
   if (inngestConfigured()) {
-    const { inngest, sourceUploaded } = await import('@/inngest/client');
-    await inngest.send(sourceUploaded.create({ sourceId, userId }));
+    const client = await import('@/inngest/client');
+
+    // Each kind has its own function: a web page is fetched first, a
+    // recording is transcribed first, everything else is read straight away.
+    if (options.kind === 'url' && options.url) {
+      await client.inngest.send(
+        client.sourceUrlAdded.create({ sourceId, userId, url: options.url }),
+      );
+    } else if (options.kind === 'audio') {
+      await client.inngest.send(client.sourceAudioUploaded.create({ sourceId, userId }));
+    } else {
+      await client.inngest.send(client.sourceUploaded.create({ sourceId, userId }));
+    }
     return { runner: 'inngest' };
   }
 
@@ -48,7 +60,14 @@ export async function requestSourceIngest(
   return { runner: 'inline' };
 }
 
-/** Queues a Studio output. Phase 5 builds the generators behind this. */
+/**
+ * Queues a Studio output.
+ *
+ * Inline is a real fallback here, not a stub: the same generate → translate →
+ * voice pipeline runs, just inside the request's lifetime. A long audio
+ * overview can outlive that, which is what the row's `failed` status and the
+ * retry button are for.
+ */
 export async function requestStudioGenerate(
   outputId: string,
   userId: string,
@@ -59,5 +78,53 @@ export async function requestStudioGenerate(
     await inngest.send(studioGenerateRequested.create({ outputId, userId, type }));
     return { runner: 'inngest' };
   }
+
+  void runStudioInline(outputId).catch((error: unknown) => {
+    console.error(`Inline Studio build of ${outputId} failed:`, error);
+  });
   return { runner: 'inline' };
+}
+
+/** The Inngest steps, run in order, for a deployment without Inngest. */
+async function runStudioInline(outputId: string): Promise<void> {
+  const { studioCollection } = await import('@/lib/notebooks/schema');
+  const studio = await studioCollection();
+
+  const output = await studio.findOne({ _id: outputId });
+  const request = (output as { request?: unknown } | null)?.request;
+  if (!request) throw new Error('That Studio output has no request to build from.');
+
+  await studio.updateOne(
+    { _id: outputId },
+    { $set: { status: 'running', updatedAt: new Date() } },
+  );
+
+  try {
+    const [{ gather, generateStudio }, { translateStudioPayload, voicePayload }] = await Promise.all([
+      import('@/lib/studio/generate'),
+      import('@/lib/studio/finish'),
+    ]);
+
+    const typed = request as import('@/lib/studio/types').StudioRequest;
+    const context = await gather(typed);
+    const english = await generateStudio(typed, context);
+    const translated = await translateStudioPayload(english, typed.language);
+    const voiced = await voicePayload(translated, typed.language);
+
+    await studio.updateOne(
+      { _id: outputId },
+      {
+        $set: { status: 'ready', payload: voiced, updatedAt: new Date() },
+        $unset: { progress: '', error: '' },
+      },
+    );
+  } catch (error) {
+    const message = error instanceof Error && error.message
+      ? error.message
+      : 'We could not build this. Try again, or tick different sources.';
+    await studio.updateOne(
+      { _id: outputId },
+      { $set: { status: 'failed', error: message.slice(0, 500), updatedAt: new Date() } },
+    );
+  }
 }

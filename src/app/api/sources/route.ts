@@ -163,7 +163,7 @@ export async function POST(req: NextRequest): Promise<Response> {
     { $inc: { sourceCount: 1 }, $set: { updatedAt: now } },
   );
 
-  const { runner } = await requestSourceIngest(sourceId, userId);
+  const { runner } = await requestSourceIngest(sourceId, userId, { kind, ...(url ? { url } : {}) });
 
   return Response.json({ source: serialize(source), runner }, { status: 201 });
 }

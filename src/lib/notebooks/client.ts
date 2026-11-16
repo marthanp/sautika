@@ -192,6 +192,52 @@ export function deleteNote(notebookId: string, noteId: string): Promise<{ delete
   );
 }
 
+export interface StudioOutputView {
+  id: string;
+  type: string;
+  status: 'queued' | 'running' | 'ready' | 'failed';
+  language: string;
+  payload: unknown;
+  progress: { stage: string; percent: number; message: string } | null;
+  error?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export function listStudio(notebookId: string): Promise<{ outputs: StudioOutputView[] }> {
+  return getJson(`/api/notebooks/${notebookId}/studio`, 'Could not load your Studio outputs.');
+}
+
+export function requestStudio(
+  notebookId: string,
+  input: {
+    type: string;
+    sourceIds: string[];
+    language?: string;
+    template?: string;
+    difficulty?: 'easy' | 'normal' | 'hard';
+    count?: number;
+    length?: 'short' | 'standard';
+    focus?: string;
+  },
+): Promise<{ outputId: string; status: string; runner: string }> {
+  return sendJson(
+    `/api/notebooks/${notebookId}/studio`,
+    'POST',
+    input,
+    'Could not start that just now.',
+  );
+}
+
+export function deleteStudio(notebookId: string, outputId: string): Promise<{ deleted: boolean }> {
+  return sendJson(
+    `/api/notebooks/${notebookId}/studio?outputId=${encodeURIComponent(outputId)}`,
+    'DELETE',
+    undefined,
+    'Could not remove that.',
+  );
+}
+
 /** Asks for a presigned URL, then puts the file straight into R2. */
 export async function uploadFile(
   notebookId: string,

@@ -59,6 +59,12 @@ export async function loadSourceText(
     return { text: source.rawText };
   }
 
+  // A web page is fetched on first ingest, then treated like any other text.
+  if (source.kind === 'url' && source.url) {
+    const { fetchReadableText } = await import('@/lib/notebooks/fetch-url');
+    return { text: await fetchReadableText(source.url) };
+  }
+
   if (!source.r2Key) {
     throw new Error('This source has no text and no file to read.');
   }

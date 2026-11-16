@@ -344,8 +344,15 @@ export default function NotebookWorkspace({ notebookId }: { notebookId: string }
         >
           <StudioPane
             notebookId={notebook.id}
+            language={notebook.language}
+            selected={selected}
             readySources={readyCount}
             notesVersion={notesVersion}
+            onOpenCitation={openCitation}
+            onAsk={(question) => {
+              setPendingQuestion(question);
+              setTab('chat');
+            }}
           />
         </section>
       </div>

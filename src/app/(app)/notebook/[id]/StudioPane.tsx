@@ -1,11 +1,11 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import {
   AlertTriangle,
-  BarChart3,
   BookOpenCheck,
   Brain,
+  ChevronLeft,
   FileBarChart,
   Headphones,
   Image as ImageIcon,
@@ -13,19 +13,34 @@ import {
   Loader2,
   Plus,
   Presentation,
+  RotateCw,
   Table,
   Trash2,
   Video,
 } from 'lucide-react';
-import { deleteNote, listNotes, saveNote, type NoteView } from '@/lib/notebooks/client';
+import StudioOutputView from './StudioOutputView';
+import {
+  deleteNote,
+  deleteStudio,
+  listNotes,
+  listStudio,
+  requestStudio,
+  saveNote,
+  type NoteView,
+  type StudioOutputView as StudioOutput,
+} from '@/lib/notebooks/client';
 import { useUITranslation } from '@/lib/useUITranslation';
+import type { StudioPayload } from '@/lib/studio/types';
 import type { StudioType } from '@/types/notebook';
 
 interface Props {
   notebookId: string;
+  language: string;
+  selected: Set<string>;
   readySources: number;
-  /** Bumped by the chat pane when it saves a reply, to reload the list. */
   notesVersion: number;
+  onOpenCitation?: (sourceId: string, chunkId: string) => void;
+  onAsk?: (question: string) => void;
 }
 
 const TILES: { type: StudioType; label: string; icon: typeof Headphones; blurb: string }[] = [
@@ -40,42 +55,114 @@ const TILES: { type: StudioType; label: string; icon: typeof Headphones; blurb: 
   { type: 'slide_deck', label: 'Slide deck', icon: Presentation, blurb: 'Slides with speaker notes' },
 ];
 
-/**
- * The Studio pane: tiles that turn the ticked sources into study material,
- * and the notes kept in this notebook.
- *
- * The generators are Phase 5. Until then each tile says so rather than
- * pretending to work — a button that does nothing is worse than a label.
- */
-export default function StudioPane({ notebookId, readySources, notesVersion }: Props) {
+const TILE_LABEL = new Map(TILES.map((tile) => [tile.type, tile.label]));
+const TILE_ICON = new Map(TILES.map((tile) => [tile.type, tile.icon]));
+
+/** While anything is building, poll so the tile finishes on its own. */
+const POLL_MS = 3000;
+
+export default function StudioPane({
+  notebookId,
+  language,
+  selected,
+  readySources,
+  notesVersion,
+  onOpenCitation,
+  onAsk,
+}: Props) {
   const t = useUITranslation();
+  const [outputs, setOutputs] = useState<StudioOutput[]>([]);
   const [notes, setNotes] = useState<NoteView[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [starting, setStarting] = useState<StudioType | null>(null);
+  const [open, setOpen] = useState<string | null>(null);
   const [composing, setComposing] = useState(false);
   const [draft, setDraft] = useState('');
   const [saving, setSaving] = useState(false);
 
+  const fetchAll = useCallback(async (): Promise<{
+    outputs: StudioOutput[];
+    notes: NoteView[];
+  } | null> => {
+    try {
+      const [studio, noteList] = await Promise.all([listStudio(notebookId), listNotes(notebookId)]);
+      return { outputs: studio.outputs, notes: noteList.notes };
+    } catch {
+      return null;
+    }
+  }, [notebookId]);
+
   useEffect(() => {
     let cancelled = false;
-    void listNotes(notebookId)
-      .then((result) => {
-        if (!cancelled) setNotes(result.notes);
-      })
-      .catch((loadError: unknown) => {
-        if (!cancelled) {
-          setError(loadError instanceof Error ? loadError.message : t('Could not load your notes.'));
-        }
-      })
-      .finally(() => {
-        if (!cancelled) setLoading(false);
-      });
+    void fetchAll().then((result) => {
+      if (cancelled) return;
+      if (result) {
+        setOutputs(result.outputs);
+        setNotes(result.notes);
+      }
+      setLoading(false);
+    });
     return () => {
       cancelled = true;
     };
-  }, [notebookId, notesVersion, t]);
+  }, [fetchAll, notesVersion]);
 
-  const create = async (): Promise<void> => {
+  const working = outputs.some(
+    (output) => output.status === 'queued' || output.status === 'running',
+  );
+
+  useEffect(() => {
+    if (!working) return;
+    let cancelled = false;
+    const timer = window.setInterval(() => {
+      void fetchAll().then((result) => {
+        if (!cancelled && result) setOutputs(result.outputs);
+      });
+    }, POLL_MS);
+    return () => {
+      cancelled = true;
+      window.clearInterval(timer);
+    };
+  }, [working, fetchAll]);
+
+  const reload = (): void => {
+    void fetchAll().then((result) => {
+      if (result) {
+        setOutputs(result.outputs);
+        setNotes(result.notes);
+      }
+    });
+  };
+
+  const start = async (type: StudioType): Promise<void> => {
+    if (selected.size === 0) {
+      setError(t('Tick at least one source first.'));
+      return;
+    }
+    setStarting(type);
+    setError('');
+    try {
+      await requestStudio(notebookId, { type, sourceIds: [...selected], language });
+      reload();
+    } catch (startError) {
+      setError(startError instanceof Error ? startError.message : t('Could not start that just now.'));
+    } finally {
+      setStarting(null);
+    }
+  };
+
+  const remove = async (outputId: string): Promise<void> => {
+    try {
+      await deleteStudio(notebookId, outputId);
+      setOutputs((current) => current.filter((output) => output.id !== outputId));
+      if (open === outputId) setOpen(null);
+    } catch (deleteError) {
+      setError(deleteError instanceof Error ? deleteError.message : t('Could not remove that.'));
+    }
+  };
+
+  const createNote = async (): Promise<void> => {
     if (!draft.trim()) return;
     setSaving(true);
     setError('');
@@ -91,7 +178,7 @@ export default function StudioPane({ notebookId, readySources, notesVersion }: P
     }
   };
 
-  const remove = async (noteId: string): Promise<void> => {
+  const removeNote = async (noteId: string): Promise<void> => {
     try {
       await deleteNote(notebookId, noteId);
       setNotes((current) => current.filter((note) => note.id !== noteId));
@@ -100,6 +187,34 @@ export default function StudioPane({ notebookId, readySources, notesVersion }: P
     }
   };
 
+  // ── One output, open ─────────────────────────────────────────────────────
+  const opened = outputs.find((output) => output.id === open);
+  if (opened && opened.status === 'ready' && opened.payload) {
+    return (
+      <div className="flex h-full min-h-0 flex-col">
+        <div className="flex items-center gap-1 border-b border-line px-2 py-2">
+          <button
+            type="button"
+            onClick={() => setOpen(null)}
+            className="flex h-11 items-center gap-1 rounded-xl px-2 text-[13px] font-bold text-navy transition hover:bg-mist"
+          >
+            <ChevronLeft className="h-4 w-4" aria-hidden /> {t('Studio')}
+          </button>
+          <h2 className="min-w-0 flex-1 truncate text-[14px] font-extrabold text-navy">
+            {t(TILE_LABEL.get(opened.type as StudioType) ?? 'Output')}
+          </h2>
+        </div>
+        <div className="min-h-0 flex-1 overflow-y-auto px-3 py-3">
+          <StudioOutputView
+            payload={opened.payload as StudioPayload}
+            onOpenCitation={onOpenCitation}
+            onAsk={onAsk}
+          />
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="flex h-full min-h-0 flex-col">
       <div className="border-b border-line px-4 py-3">
@@ -107,7 +222,9 @@ export default function StudioPane({ notebookId, readySources, notesVersion }: P
         <p className="mt-0.5 text-[12px] text-slate-500">
           {readySources === 0
             ? t('Add a source to use Studio')
-            : t('Turn the ticked sources into study material')}
+            : selected.size === 0
+              ? t('Tick a source to use Studio')
+              : t('Turn the ticked sources into study material')}
         </p>
       </div>
 
@@ -115,24 +232,130 @@ export default function StudioPane({ notebookId, readySources, notesVersion }: P
         <ul className="grid grid-cols-2 gap-2">
           {TILES.map(({ type, label, icon: Icon, blurb }) => (
             <li key={type}>
-              <div
-                className="flex h-full min-h-[104px] flex-col rounded-xl border border-line bg-white p-3 opacity-70"
-                aria-disabled="true"
+              <button
+                type="button"
+                onClick={() => void start(type)}
+                disabled={readySources === 0 || starting !== null}
+                className="flex h-full min-h-[104px] w-full flex-col rounded-xl border border-line bg-white p-3 text-left transition hover:border-sun hover:bg-sun/10 disabled:cursor-not-allowed disabled:opacity-50"
               >
-                <Icon className="h-5 w-5 text-navy" aria-hidden />
-                <p className="mt-2 text-[13px] font-bold leading-tight text-navy">{t(label)}</p>
-                <p className="mt-0.5 text-[11px] leading-snug text-slate-500">{t(blurb)}</p>
-                <p className="mt-auto pt-1.5 text-[10.5px] font-bold uppercase tracking-wide text-slate-400">
-                  {t('Coming next')}
-                </p>
-              </div>
+                {starting === type ? (
+                  <Loader2 className="h-5 w-5 animate-spin text-navy" aria-hidden />
+                ) : (
+                  <Icon className="h-5 w-5 text-navy" aria-hidden />
+                )}
+                <span className="mt-2 text-[13px] font-bold leading-tight text-navy">{t(label)}</span>
+                <span className="mt-0.5 text-[11px] leading-snug text-slate-500">{t(blurb)}</span>
+              </button>
             </li>
           ))}
         </ul>
 
+        {error ? (
+          <p
+            role="alert"
+            className="mt-3 flex items-start gap-2 rounded-xl border border-amber-300 bg-amber-50 px-3 py-2 text-[12.5px] text-amber-950"
+          >
+            <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" aria-hidden />
+            <span>{error}</span>
+          </p>
+        ) : null}
+
+        {/* ── Built and building ───────────────────────────────────────── */}
+        {outputs.length > 0 ? (
+          <section className="mt-5" aria-labelledby="studio-outputs">
+            <h3
+              id="studio-outputs"
+              className="text-[13px] font-extrabold uppercase tracking-wider text-navy"
+            >
+              {t('Built for you')}
+            </h3>
+            <ul className="mt-2 space-y-2">
+              {outputs.map((output) => {
+                const Icon = TILE_ICON.get(output.type as StudioType) ?? FileBarChart;
+                const busy = output.status === 'queued' || output.status === 'running';
+
+                return (
+                  <li key={output.id} className="rounded-xl border border-line bg-white p-3">
+                    <div className="flex items-start gap-2">
+                      {busy ? (
+                        <Loader2 className="mt-0.5 h-4 w-4 shrink-0 animate-spin text-navy" aria-hidden />
+                      ) : (
+                        <Icon className="mt-0.5 h-4 w-4 shrink-0 text-navy" aria-hidden />
+                      )}
+
+                      <div className="min-w-0 flex-1">
+                        <p className="text-[13px] font-bold text-navy">
+                          {t(TILE_LABEL.get(output.type as StudioType) ?? output.type)}
+                        </p>
+
+                        {busy ? (
+                          <>
+                            <p className="mt-0.5 text-[12px] text-slate-500">
+                              {output.progress?.message ?? t('Starting…')}
+                            </p>
+                            <div
+                              role="progressbar"
+                              aria-valuenow={output.progress?.percent ?? 0}
+                              aria-valuemin={0}
+                              aria-valuemax={100}
+                              className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-mist"
+                            >
+                              <i
+                                className="block h-full rounded-full bg-sun transition-[width] duration-500 motion-reduce:transition-none"
+                                style={{ width: `${output.progress?.percent ?? 5}%` }}
+                              />
+                            </div>
+                          </>
+                        ) : output.status === 'failed' ? (
+                          <p className="mt-0.5 text-[12px] leading-snug text-red-800">
+                            {output.error ?? t('That did not work.')}
+                          </p>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={() => setOpen(output.id)}
+                            className="mt-1 text-[12.5px] font-bold text-navy underline"
+                          >
+                            {t('Open')}
+                          </button>
+                        )}
+                      </div>
+
+                      <span className="flex shrink-0 flex-col">
+                        {output.status === 'failed' ? (
+                          <button
+                            type="button"
+                            aria-label={t('Try again')}
+                            onClick={() => void start(output.type as StudioType)}
+                            className="grid h-11 w-11 place-items-center rounded-xl text-slate-500 transition hover:bg-mist hover:text-navy"
+                          >
+                            <RotateCw className="h-4 w-4" aria-hidden />
+                          </button>
+                        ) : null}
+                        <button
+                          type="button"
+                          aria-label={t('Remove')}
+                          onClick={() => void remove(output.id)}
+                          className="grid h-11 w-11 place-items-center rounded-xl text-slate-400 transition hover:bg-red-50 hover:text-red-700"
+                        >
+                          <Trash2 className="h-4 w-4" aria-hidden />
+                        </button>
+                      </span>
+                    </div>
+                  </li>
+                );
+              })}
+            </ul>
+          </section>
+        ) : null}
+
+        {/* ── Notes ───────────────────────────────────────────────────── */}
         <section className="mt-5" aria-labelledby="notes-heading">
           <div className="flex items-center justify-between gap-2">
-            <h3 id="notes-heading" className="text-[13px] font-extrabold uppercase tracking-wider text-navy">
+            <h3
+              id="notes-heading"
+              className="text-[13px] font-extrabold uppercase tracking-wider text-navy"
+            >
               {t('Your notes')}
             </h3>
             <button
@@ -159,7 +382,7 @@ export default function StudioPane({ notebookId, readySources, notesVersion }: P
               />
               <button
                 type="button"
-                onClick={() => void create()}
+                onClick={() => void createNote()}
                 disabled={saving || !draft.trim()}
                 className="mt-2 h-11 w-full rounded-xl bg-sun text-[13.5px] font-bold text-navy transition hover:bg-sun-dark disabled:opacity-50"
               >
@@ -168,17 +391,10 @@ export default function StudioPane({ notebookId, readySources, notesVersion }: P
             </div>
           ) : null}
 
-          {error ? (
-            <p role="alert" className="mt-2 flex items-start gap-2 rounded-xl border border-red-300 bg-red-50 px-3 py-2 text-[12.5px] text-red-900">
-              <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" aria-hidden />
-              <span>{error}</span>
-            </p>
-          ) : null}
-
           {loading ? (
             <p className="mt-3 flex items-center gap-2 text-[12.5px] text-slate-500">
               <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
-              {t('Loading your notes…')}
+              {t('Loading…')}
             </p>
           ) : notes.length === 0 ? (
             <p className="mt-3 text-[12.5px] leading-relaxed text-slate-500">
@@ -193,7 +409,7 @@ export default function StudioPane({ notebookId, readySources, notesVersion }: P
                     <button
                       type="button"
                       aria-label={`${t('Delete note')}: ${note.title}`}
-                      onClick={() => void remove(note.id)}
+                      onClick={() => void removeNote(note.id)}
                       className="grid h-11 w-11 shrink-0 place-items-center rounded-xl text-slate-400 transition hover:bg-red-50 hover:text-red-700"
                     >
                       <Trash2 className="h-4 w-4" aria-hidden />
@@ -203,8 +419,8 @@ export default function StudioPane({ notebookId, readySources, notesVersion }: P
                     {note.body}
                   </p>
                   {note.origin === 'saved_reply' ? (
-                    <p className="mt-1.5 inline-flex items-center gap-1 rounded-full bg-mist px-2 py-0.5 text-[10.5px] font-bold text-slate-600">
-                      <BarChart3 className="h-3 w-3" aria-hidden /> {t('From a reply')}
+                    <p className="mt-1.5 inline-flex rounded-full bg-mist px-2 py-0.5 text-[10.5px] font-bold text-slate-600">
+                      {t('From a reply')}
                     </p>
                   ) : null}
                 </li>
