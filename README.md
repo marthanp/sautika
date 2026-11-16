@@ -505,7 +505,8 @@ sautika-next/
 ├── .agents/                 # MCP server registration for agentic IDEs
 ├── database/                # MongoDB schema, validators and index setup script
 ├── docs/
-│   └── architecture/        # Agent & MCP architecture diagram (SVG, PNG, printable HTML)
+│   ├── architecture/        # Agent & MCP architecture diagram (SVG, PNG, printable HTML)
+│   └── SAUTIKA_UPGRADE_PLAN.md  # Upgrade plan and roadmap notes
 ├── public/                  # Static assets served as-is (logos, images, web manifest)
 ├── scripts/                 # Standalone Node scripts (MCP server, PWA icon generator)
 ├── src/
