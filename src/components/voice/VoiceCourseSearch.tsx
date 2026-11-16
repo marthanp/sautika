@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { Sparkles, Compass, BookOpen, Languages, Atom } from 'lucide-react';
 import { useVoice } from '@/hooks/useVoice';
@@ -13,20 +13,18 @@ import { triggerFeedback } from '@/lib/feedback';
 
 export default function VoiceCourseSearch() {
   const router = useRouter();
-  const globalDialect = useApp((state) => state.dialect);
+  const globalDialect = useApp((state) => state.dialect || 'eng');
   const setGlobalDialect = useApp((state) => state.setDialect);
   const { recording, processing, analyser, toggleMic } = useVoice();
   const [error, setError] = useState('');
-  const [language, setLanguage] = useState<VoiceLang>(globalDialect);
+  const [override, setOverride] = useState<VoiceLang | null>(null);
   const [transcript, setTranscript] = useState<{ raw: string; translated?: string } | null>(null);
   const [showPrompts, setShowPrompts] = useState(false);
 
-  // Sync with global dialect selection
-  useEffect(() => {
-    if (globalDialect && isSunbirdLanguage(globalDialect)) {
-      setLanguage(globalDialect);
-    }
-  }, [globalDialect]);
+  // The global dialect wins unless this panel's own picker has been used.
+  const language: VoiceLang =
+    override ?? (isSunbirdLanguage(globalDialect) ? globalDialect : 'eng');
+  const setLanguage = setOverride;
 
   const activeLangName = SUNBIRD_LANGUAGES.find((l) => l.code === language)?.name || 'Local dialect';
 
@@ -170,10 +168,10 @@ export default function VoiceCourseSearch() {
             <Sparkles className="h-3 w-3" />
             <span>Heard in {activeLangName}:</span>
           </div>
-          <p className="mt-1 font-medium text-slate-800 dark:text-slate-100">"{transcript.raw}"</p>
+          <p className="mt-1 font-medium text-slate-800 dark:text-slate-100">&ldquo;{transcript.raw}&rdquo;</p>
           {transcript.translated && (
             <div className="animate-kinetic-entry stagger-1 mt-1.5 border-t border-slate-100 pt-1.5 text-[11px] text-slate-500 dark:border-white/10 dark:text-slate-300">
-              <span className="font-semibold text-emerald-600 dark:text-emerald-400">Searching:</span> "{transcript.translated}"
+              <span className="font-semibold text-emerald-600 dark:text-emerald-400">Searching:</span> &ldquo;{transcript.translated}&rdquo;
             </div>
           )}
         </div>

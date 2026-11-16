@@ -1,0 +1,16 @@
+{
+  "mcpServers": {
+    "sautika": {
+      "type": "stdio",
+      "command": "node",
+      "args": ["--no-warnings", "./scripts/sautika-mcp-server.mjs"]
+    },
+    "sautika-live": {
+      "type": "http",
+      "url": "https://sautika.vercel.app/api/mcp",
+      "headers": {
+        "Authorization": "Bearer ${SAUTIKA_MCP_TOKEN}"
+      }
+    }
+  }
+}

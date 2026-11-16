@@ -8,6 +8,12 @@ import { REWARDS as REWARD_CATALOG } from '@/data/catalog';
 export const runtime = 'nodejs';
 
 const SUBJECTS = new Set(['Mathematics', 'Science', 'English', 'Social Studies', 'Agriculture', 'Life Skills']);
+
+/**
+ * Notes earn coins, but only for the first few each day. Without this a learner can
+ * mint coins by saving the same line over and over, which devalues every reward.
+ */
+const NOTE_COIN_DAILY_CAP = 5;
 const DEFAULT_SETTINGS = {
   theme: 'navy',
   colorMode: 'light',
@@ -412,9 +418,11 @@ export async function PUT(request: Request): Promise<Response> {
       const noteTitle = note.title.trim();
       const client = await getMongoClient();
       let created = false;
+      let cappedToday = false;
       await client.withSession(async (session) => {
         await session.withTransaction(async () => {
           created = false;
+          cappedToday = false;
           const existing = await notesCollection.findOne({ _id: noteId, userId }, { session });
           const r2Url = typeof note.r2Url === 'string' ? note.r2Url : undefined;
           const r2Key = typeof note.r2Key === 'string' ? note.r2Key : undefined;
@@ -448,13 +456,38 @@ export async function PUT(request: Request): Promise<Response> {
             },
             { session },
           );
+
+          // Count today's note rewards (UTC day) before awarding another one.
+          const startOfDay = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
+          const transactions = database.collection('coin_transactions');
+          const earnedToday = await transactions.countDocuments(
+            {
+              userId,
+              type: 'earn',
+              idempotencyKey: { $regex: '^note:' },
+              createdAt: { $gte: startOfDay },
+            },
+            { session },
+          );
+          if (earnedToday >= NOTE_COIN_DAILY_CAP) {
+            // The note is saved; today's coin allowance is simply used up.
+            await profilesCollection.updateOne(
+              { _id: userId },
+              { $set: { updatedAt: now, lastActiveAt: now } },
+              { session },
+            );
+            created = false;
+            cappedToday = true;
+            return;
+          }
+
           const profileUpdate = await profilesCollection.updateOne(
             { _id: userId },
             { $inc: { coins: 5 }, $set: { updatedAt: now, lastActiveAt: now } },
             { session },
           );
           if (profileUpdate.matchedCount !== 1) throw new Error('Learner profile was not initialized.');
-          await database.collection('coin_transactions').insertOne(
+          await transactions.insertOne(
             {
               userId,
               amount: 5,
@@ -469,7 +502,11 @@ export async function PUT(request: Request): Promise<Response> {
           created = true;
         });
       });
-      return Response.json({ ok: true, earnedCoins: created ? 5 : 0 });
+      return Response.json({
+        ok: true,
+        earnedCoins: created ? 5 : 0,
+        coinCapReached: cappedToday,
+      });
     }
 
     return Response.json({ error: 'Unsupported account update.' }, { status: 400 });

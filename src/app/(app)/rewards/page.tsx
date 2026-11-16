@@ -7,7 +7,7 @@ import { EARN } from '@/data/catalog';
 import { useLearnerAccount, useLearnerProfile } from '@/components/providers/LearnerDataSync';
 import Redeem from './Redeem';
 
-const EARN_ICONS = [BookOpen, ClipboardList, FileText, Calendar, Trophy];
+const EARN_ICONS = [BookOpen, FileText];
 const REWARD_ICONS = [Gift, BookOpen, Timer, Gift];
 const ACT_ICONS = [ClipboardList, FileText, ClipboardList, Calendar, Trophy];
 

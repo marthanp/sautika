@@ -20,7 +20,7 @@ const PINNED_DIALECTS: { code: VoiceLang; name: string; nativeName: string; regi
 ];
 
 export default function FloatingDialectSelector({ className = '' }: { className?: string }) {
-  const activeDialect = useApp((state) => state.dialect);
+  const activeDialect = useApp((state) => state.dialect || 'eng');
   const setActiveDialect = useApp((state) => state.setDialect);
   const [isOpen, setIsOpen] = useState(false);
   const [search, setSearch] = useState('');

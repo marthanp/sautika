@@ -19,6 +19,7 @@
   <a href="#mcp-implementation">MCP Implementation</a> ·
   <a href="#mcp-toolsservers">MCP Tools</a> ·
   <a href="#human-in-the-loop-workflow">Human-in-the-Loop</a> ·
+  <a href="#security">Security</a> ·
   <a href="#setup--installation">Setup</a> ·
   <a href="#usage-instructions">Usage</a> ·
   <a href="#limitations">Limitations</a> ·
@@ -46,10 +47,10 @@ Across East Africa, millions of primary and secondary school learners encounter 
 Sautika bridges the educational resource gap through:
 
 - **Universal Document Ingestion & OCR:** Learners photograph physical revision sheets or upload Word documents (`.docx`), PDFs, and text files. Sautika extracts the text using cloud OCR and local fallback engines, summarizing key takeaways automatically.
-- **Voice-First Regional Interaction:** Powered by Sunbird AI and browser speech synthesis fallbacks, learners can dictate questions and listen to lesson explanations in East African accents and regional languages (Swahili and Luganda).
+- **Voice-First Regional Interaction:** Powered by Sunbird AI with a browser speech-synthesis fallback, learners dictate questions and listen to answers. The interface translates into 47 languages and 17 of them have a voice (Luganda, Swahili, Acholi, Ateso, Runyankole, Kinyarwanda and more).
 - **Grounded AI Study Agent:** An intelligent notebook agent that answers questions cited strictly from uploaded sources (`[1]`), synthesizes revision guides, and dynamically generates 5-question interactive quizzes to test comprehension.
-- **Offline-Resilient Architecture:** Local caching via a persisted Zustand store keeps settings and course progress accessible without connectivity, synchronizing seamlessly to MongoDB Atlas when reconnected.
-- **Curriculum Alignment:** Preloaded curriculum units covering Baby Class through Senior 6 across Mathematics, Science, English, Social Studies, Agriculture, and Life Skills.
+- **Offline-Resilient Architecture:** A service worker (`public/sw.js`) keeps the pages and lessons a learner has already opened, and a persisted Zustand store keeps settings and progress, syncing to MongoDB Atlas when the connection returns. API responses are never cached.
+- **Curriculum Alignment:** 38 preloaded courses covering Baby Class through Senior 6 across Science, Math, Languages, Social Studies and Digital Literacy.
 - **Inclusive Accessibility:** Built-in dyslexia-friendly typography (OpenDyslexic, Lexend, Atkinson Hyperlegible), text-to-speech reading assistance, color-tint reading overlays, and high-contrast themes.
 
 ---
@@ -123,6 +124,8 @@ flowchart TD
 3. **Universal Document Extraction:** Uploaded PDFs, Word files, or captured photos route to `/api/ocr`. Text is extracted via `pdf-parse`, `mammoth`, or cloud `OCR.Space` (with local `tesseract.js` fallback), stored to Cloudflare R2, and summarized by the LLM engine.
 4. **Grounded Agent Processing:** Queries to `/api/notebook` bundle learner sources into prompt context, passing through the multi-provider failover pipeline before returning grounded answers or quiz objects.
 5. **Speech Synthesis:** Voice queries stream audio blobs to `/api/stt` for East African speech recognition; text responses can be synthesized into regional speech via `/api/tts`.
+6. **Translation Routing:** `/api/translate` and `src/lib/translation.ts` pick a provider per language pair. For the languages Sunbird AI specialises in (Luganda, Acholi, Ateso, Lugbara, Runyankole, Lumasaba, Lusoga, Rukiga, Rukonjo, Ruruuli, Rutooro, Lendu, Kinyarwanda, Swahili, Dholuo, Kalenjin, Luhya) the order is **Sunbird → Google → LLM**; elsewhere it is **Google → Sunbird → LLM**. `TRANSLATION_PROVIDER_ORDER` overrides it. English results can be run through the LLM as a copy editor, and an edit more than 1.6× longer than the original is rejected as padding. Results are cached in memory, and interface labels are batched into roughly one request per screen and mirrored to `localStorage`.
+7. **Offline Behaviour:** In production, `public/sw.js` serves page navigations network-first and keeps the newest 40 visited pages, serves static assets cache-first (newest 300), and falls back to `/offline.html`. `/api/*` and `/sso-callback` are never cached, and signing out clears the page cache so a shared phone does not keep the previous learner's pages.
 
 ---
 
@@ -143,7 +146,9 @@ flowchart TD
 | **OCR Engines** | `OCR.Space API`, `tesseract.js` | Cloud API and local WebAssembly fallback for extracting text from note photos |
 | **Speech Services** | [Sunbird AI](https://sunbird.ai/) & Web Speech API | East African regional speech-to-text (`/api/stt`) and text-to-speech (`/api/tts`) |
 | **LLM Inference Engine** | Multi-Provider Failover Router | Resilient multi-tier routing across Google Gemini, Groq, OpenRouter, Mistral, SambaNova, Fireworks, NVIDIA NIM, Kimi, Zhipu, and Cohere |
-| **AI Tooling Protocol** | [Model Context Protocol (MCP)](https://modelcontextprotocol.io/) | Stdio JSON-RPC MCP server connecting AI development agents to Sautika's OCR tools |
+| **Translation Router** | Sunbird AI, Google Cloud Translation v2, LLM | Per-pair routing with caching and optional English polishing |
+| **Offline Layer** | Service worker + Web App Manifest | Caches visited pages and static assets; installable on Android |
+| **AI Tooling Protocol** | [Model Context Protocol (MCP)](https://modelcontextprotocol.io/) | One import-free core served over stdio and Streamable HTTP, exposing curriculum, translation, speech, OCR and note tools |
 
 ---
 
@@ -167,11 +172,11 @@ flowchart TD
 
     SystemPrompt --> Router{"Multi-Provider LLM Router"}
 
-    Router -->|1. Primary| P1["Google Gemini (gemini-1.5-flash)"]
+    Router -->|1. Primary| P1["Google Gemini (gemini-3.8-flash, GEMINI_MODEL)"]
     Router -->|2. High-Speed Fallback| P2["Groq (llama-3.3-70b-versatile)"]
     Router -->|3. Open Gateway| P3["OpenRouter (llama-3.3-70b-instruct)"]
     Router -->|4. Regional/Specialized| P4["Mistral / SambaNova / Fireworks / NIM / Kimi / Cohere"]
-    Router -->|5. Zero-Cloud Fallback| P5["Local Educational Heuristic Generator"]
+    Router -->|5. Zero-Cloud Fallback| P5["Extractive summary of the learner's own sources"]
 
     P1 -. failure .-> P2
     P2 -. failure .-> P3
@@ -197,83 +202,110 @@ flowchart TD
 
 ## MCP Implementation
 
-Sautika integrates the **[Model Context Protocol (MCP)](https://modelcontextprotocol.io/)**, an open standard enabling AI assistants (such as Google Antigravity, Claude Desktop, or Cursor) to securely interface with local and external development tools.
+Sautika ships a **[Model Context Protocol](https://modelcontextprotocol.io/)** server, so an assistant (Claude Code, Claude Desktop, Cursor, Antigravity) can work from the real curriculum instead of guessing at it.
 
-Sautika exposes an MCP server implementation over `stdio` transport using JSON-RPC 2.0 located at [`scripts/mcp-ocr-server.mjs`](./scripts/mcp-ocr-server.mjs).
+Every tool, resource and prompt lives in one module, [`src/mcp/core.ts`](./src/mcp/core.ts), and two transports wrap it:
+
+| Transport | Entry point | Run it with | For |
+| --- | --- | --- | --- |
+| stdio | [`scripts/sautika-mcp-server.mjs`](./scripts/sautika-mcp-server.mjs) | `npm run mcp` | An assistant on this machine |
+| Streamable HTTP (JSON) | [`src/app/api/mcp/route.ts`](./src/app/api/mcp/route.ts) | `POST /api/mcp` | Remote clients, with or without a token |
+
+`core.ts` has **no imports at all**. The courses, language list, search function, environment and `fetch` all arrive in a context object. That is what lets the same file run inside Next.js and directly under Node's native TypeScript type stripping, with no build step and no second copy of the logic to keep in sync.
+
+### Protocol versions
+
+`2026-07-28` (discovery only), `2025-11-25` (negotiated by default), `2025-06-18`, `2025-03-26`, `2024-11-05`.
+
+- `server/discover` returns `supportedVersions`, capabilities, server info, instructions and a five-minute cache hint.
+- `initialize` negotiates the client's version when it is supported, and falls back to `2025-11-25`.
+- A request carrying an unsupported `_meta["io.modelcontextprotocol/protocolVersion"]` gets error `-32022` with the supported list in `data.supported`.
+- Unknown method is `-32601`; an unknown tool or resource is `-32602`.
+- Input and service failures come back as **tool results** with `isError: true`, not protocol errors, so the model can read the message and try again.
 
 ### Configuration
 
-Sautika registers the MCP server in the workspace configuration files:
-- [`.agents/mcp_config.json`](./.agents/mcp_config.json)
-- [`.agents/plugins/ocr-service/mcp_config.json`](./.agents/plugins/ocr-service/mcp_config.json)
+[`.mcp.json`](./.mcp.json) registers both transports for Claude Code:
 
 ```json
 {
   "mcpServers": {
-    "ocr-space": {
+    "sautika": {
+      "type": "stdio",
       "command": "node",
-      "args": ["./scripts/mcp-ocr-server.mjs"]
+      "args": ["--no-warnings", "./scripts/sautika-mcp-server.mjs"]
+    },
+    "sautika-live": {
+      "type": "http",
+      "url": "https://sautika.vercel.app/api/mcp",
+      "headers": { "Authorization": "Bearer ${SAUTIKA_MCP_TOKEN}" }
     }
   }
 }
 ```
 
-When an agentic IDE or AI assistant launches the workspace, the MCP server initializes automatically and registers Sautika's document extraction tools into the agent's runtime tool registry.
+[`.agents/mcp_config.json`](./.agents/mcp_config.json) and [`.agents/plugins/ocr-service/mcp_config.json`](./.agents/plugins/ocr-service/mcp_config.json) register the same stdio server under the name `sautika` for agentic IDEs.
+
+The stdio server reads `.env.local` and then `.env`, never overriding a variable that is already set, and needs **Node 22.18 or newer**.
 
 ---
 
 ## MCP Tools/Servers
 
-### Server: `ocr-space` (`ocr-space-mcp-server` v1.0.0)
+### Server: `sautika` (v2.0.0)
 
-- **Transport:** Standard Input/Output (`stdio`)
-- **Protocol:** JSON-RPC 2.0 (MCP Protocol Version `2024-11-05`)
-- **Location:** [`scripts/mcp-ocr-server.mjs`](./scripts/mcp-ocr-server.mjs)
+- **Transports:** stdio and Streamable HTTP
+- **Protocol:** JSON-RPC 2.0, MCP `2025-11-25` by default
+- **Methods:** `server/discover`, `initialize`, `ping`, `tools/list`, `tools/call`, `resources/list`, `resources/templates/list`, `resources/read`, `prompts/list`, `prompts/get`
 
-### Available Tool: `ocr_extract_text`
+### Tools
 
-Extracts text from images, photos of revision notes, or diagrams using the OCR cloud engine with automatic format normalization.
+Over HTTP, anonymous callers get the read-only curriculum tools. The ones that spend Sunbird, LLM or OCR quota need `Authorization: Bearer ${MCP_API_TOKEN}`.
 
-#### Input Schema
+| Tool | stdio | HTTP, no token | HTTP, token | What it does |
+| --- | :---: | :---: | :---: | --- |
+| `search_courses` | ✅ | ✅ | ✅ | Ranked search over the 38 courses; understands "fractions P.4" and "computers for senior three". Returns `structuredContent`. |
+| `get_course` | ✅ | ✅ | ✅ | One course with every lesson, question and answer. |
+| `get_lesson_quiz` | ✅ | ✅ | ✅ | The questions of one lesson, optionally translated. |
+| `list_languages` | ✅ | ✅ | ✅ | All 47 languages, with a `voice` flag for the 17 Sunbird can speak. |
+| `platform_status` | ✅ | ✅ | ✅ | Catalogue counts and which services are configured. Booleans only, never secrets. |
+| `translate_text` | ✅ | — | ✅ | Sunbird → Google → LLM routing, with optional English polishing. |
+| `text_to_speech` | ✅ | — | ✅ | Sunbird speech, returned as an audio URL. |
+| `generate_quiz` | ✅ | — | ✅ | Multiple-choice questions from notes, each with two distractors and an explanation. |
+| `summarize_notes` | ✅ | — | ✅ | A revision summary or a study guide, in the learner's language. |
+| `ocr_extract_text` | ✅ | — | ✅ | Text from a photo of notes (https URL or data URI; stdio also accepts a local path). |
+| `extract_document_text` | ✅ | — | — | Local only: reads `.txt`, `.md`, `.csv`, `.json`, `.docx` and `.pdf` from disk. |
 
-| Parameter | Type | Required | Default | Description |
-| --- | --- | --- | --- | --- |
-| `image` | `string` | **Yes** | — | Target image to parse. Accepts an absolute or relative local file path, a public HTTP/HTTPS URL, or a base64 Data URI string. |
-| `language` | `string` | No | `"eng"` | Recognition language code (e.g. `eng` for English, `swa` for Swahili, `fre` for French, `spa` for Spanish). |
+Every tool declares a `title`, a strict `inputSchema` (`additionalProperties: false`) and annotations (`readOnlyHint`, `destructiveHint`, `idempotentHint`, `openWorldHint`). Nothing in this server writes to the platform.
 
-#### JSON-RPC Invocation Example
+### Resources
 
-```json
-{
-  "jsonrpc": "2.0",
-  "id": 1,
-  "method": "tools/call",
-  "params": {
-    "name": "ocr_extract_text",
-    "arguments": {
-      "image": "./public/samples/notes-sample.jpg",
-      "language": "eng"
-    }
-  }
-}
+| URI | Contents |
+| --- | --- |
+| `sautika://curriculum` | Every course with subject, class, lesson and question counts |
+| `sautika://languages` | Every language, with a `voice` flag |
+| `sautika://courses/{course_id}` | One full course (also listed as a resource template) |
+
+### Prompts
+
+| Prompt | Arguments | Produces |
+| --- | --- | --- |
+| `lesson_plan` | `course_id` | A 40-minute plan: objectives, warm-up, teaching steps, a group activity with Ugandan examples, and an exit check drawn from the course questions |
+| `explain_in_language` | `topic`, `language`, `level?` | A simple explanation in the chosen language, with a local example and a check question |
+| `revision_session` | `course_id` | A 20-minute revision run through one course |
+
+### Trying it
+
+```bash
+# stdio
+printf '%s
+' '{"jsonrpc":"2.0","id":1,"method":"tools/list"}' | npm run --silent mcp
+
+# HTTP, anonymous: the five read-only tools
+curl -X POST http://localhost:3000/api/mcp   -H 'content-type: application/json'   -d '{"jsonrpc":"2.0","id":1,"method":"tools/list"}'
 ```
 
-#### Successful Tool Response
-
-```json
-{
-  "jsonrpc": "2.0",
-  "id": 1,
-  "result": {
-    "content": [
-      {
-        "type": "text",
-        "text": "Photosynthesis is the process by which green plants use sunlight to synthesize nutrients..."
-      }
-    ]
-  }
-}
-```
+`npm run mcp:inspect` opens the MCP Inspector against the stdio server, which lists all 11 tools.
 
 ---
 
@@ -315,11 +347,30 @@ sequenceDiagram
 
 ---
 
+## Security
+
+| Area | What is enforced | Where |
+| --- | --- | --- |
+| **Sign-in** | `/api/notebook`, `/api/ocr`, `/api/stt`, `/api/tts` and `/api/account` require a Clerk session and return `401` without one | `src/lib/api-guard.ts` |
+| **Rate limits** | Per user, per minute: notebook 15, OCR 10, speech-to-text 20, text-to-speech 30, translate 120 | `guardUser()` |
+| **Anonymous translation** | `/api/translate` allows 30 requests per minute per IP so the landing page can translate itself; only signed-in callers may ask for `polishEnglish`, which spends LLM tokens | `src/app/api/translate/route.ts` |
+| **Backup endpoints** | `/api/sync` needs `Authorization: Bearer ${SYNC_SECRET}` (or `CRON_SECRET`), compared in constant time, and returns `503` when neither is set | `requireCronSecret()` |
+| **Database snapshots** | Sync snapshots are written under `mongodb-sync/` in R2, which must stay a **private** bucket prefix — it holds learner data | `src/lib/r2.ts`, `/api/sync` |
+| **Uploads** | 10 MB cap, a per-user key prefix so one learner cannot read another's files, and only the types the OCR route can actually read | `/api/ocr` |
+| **Coins** | Notes award coins at most 5 times a day, enforced server-side; the rewards page only advertises the rules the API enforces | `/api/account` |
+| **MCP endpoint** | POST only, `Origin` checked against the host or `MCP_ALLOWED_ORIGINS`, 60 requests/min anonymously and 240 with a token; without `MCP_API_TOKEN` only the five read-only curriculum tools are visible | `src/app/api/mcp/route.ts` |
+| **Service worker** | Never caches `/api/*` or `/sso-callback`, and clears the page cache on sign-out | `public/sw.js` |
+| **Secrets** | API keys are read only on the server; `platform_status` and the status endpoints report booleans, never values | throughout |
+
+> The rate limiter counts per serverless instance, so the real ceiling is `limit × instances`. It stops one client draining the Sunbird, OCR and LLM quotas; move it to Redis or Vercel KV when traffic justifies a cluster-wide guarantee.
+
+---
+
 ## Setup / Installation
 
 ### Prerequisites
 
-- **Node.js:** `20.9.0` or higher
+- **Node.js:** `20.9.0` or higher to run the app; `22.18.0` or higher for the MCP stdio server, which runs TypeScript directly
 - **npm:** Package manager bundled with Node
 - **MongoDB Atlas Cluster** (or local MongoDB instance)
 - **mongosh:** (MongoDB Shell, optional for running initial schema scripts)
@@ -383,8 +434,15 @@ sequenceDiagram
 | `GROQ_API_KEY` | Groq API key for high-speed Llama-3.3 inference | Optional |
 | `OPENROUTER_API_KEY` | OpenRouter API key for backup multi-model routing | Optional |
 | `MISTRAL_API_KEY` | Mistral AI API key for failover | Optional |
+| `GEMINI_MODEL` / `GROQ_MODEL` | Override the default models (`gemini-3.8-flash`, `llama-3.3-70b-versatile`) | Optional |
+| `GOOGLE_TRANSLATE_API_KEY` | Google Cloud Translation v2 key. Enable the Cloud Translation API, then restrict the key to it | Optional |
+| `TRANSLATION_ENGLISH_POLISH` | `true` to run English translations through the LLM as a copy editor | Optional |
+| `TRANSLATION_PROVIDER_ORDER` | Force a routing order, e.g. `google,sunbird,llm` | Optional |
+| `SYNC_SECRET` / `CRON_SECRET` | Bearer secret for the backup endpoints (`/api/sync`) | Required for sync |
+| `MCP_API_TOKEN` | Unlocks the full tool set on `POST /api/mcp`. Generate: `node -e "console.log(require('node:crypto').randomBytes(32).toString('hex'))"` | Optional |
+| `MCP_ALLOWED_ORIGINS` | Comma-separated origins allowed to call `/api/mcp` from a browser | Optional |
 
-> **Note:** Sautika includes built-in heuristic fallbacks for LLM operations, browser Web Speech fallback for voice synthesis, and local `tesseract.js` for OCR. The application runs smoothly in development even with a minimal set of API keys.
+> **Note:** Sautika degrades rather than breaks. With no LLM key, Summarise falls back to an extractive summary of the learner's own notes (never a summary of the instructions). Voice falls back to the browser's Web Speech voices, and OCR falls back to local `tesseract.js`. Quizzes are the one feature that genuinely needs an LLM key, and they say so.
 
 ---
 
@@ -392,7 +450,8 @@ sequenceDiagram
 
 ### 1. Curriculum Exploration & Quizzes
 - Navigate to **Courses** from the sidebar.
-- Filter by grade level (from **Baby Class** up to **Senior 6**) and subject (**Mathematics**, **Science**, **English**, **Social Studies**, **Agriculture**, **Life Skills**).
+- Filter by grade level (from **Baby Class** up to **Senior 6**) and subject (**Science**, **Math**, **Languages**, **Social Studies**, **Digital Literacy**).
+- Search the way you would speak: "fractions P.4", "computers for senior three" or "I want to learn about fractions" all find the right course.
 - Click any course card to launch the **Lesson Player**.
 - Complete multiple-choice exercises, receive immediate audio and visual feedback, and earn XP and learning coins.
 
@@ -402,15 +461,17 @@ sequenceDiagram
   - **Photos of handwritten or textbook notes:** `.png`, `.jpg`, `.jpeg`, `.webp`
   - **Documents:** `.pdf`, `.docx`
   - **Plain Text:** `.txt`, `.md`, `.csv`, `.json`
-- Sautika extracts the text, saves a backup copy to Cloudflare R2, and displays an editable note draft.
+- Sautika extracts the text, saves a backup copy to Cloudflare R2, and opens a **review** modal titled "Check your uploaded notes". Nothing is saved until you have read the text and pressed save, because OCR of handwriting is never perfect.
 
-### 3. AI Notebook & Study Assistant
-- Open any note in your Notebook.
-- Choose an action from the action toolbar:
-  - **Summarize:** Creates 4–5 bullet points highlighting core ideas and 3 vocabulary terms.
-  - **Study Guide:** Formats 4 key concepts, explanations, and practice questions.
-  - **Generate Quiz:** Creates a 5-question interactive quiz directly from the content.
-  - **Ask Question:** Type any question regarding the note; the agent responds with citations referencing `[Source 1]`.
+### 3. AI Study Tutor
+- Open **Notebook**. The **AI Study Tutor** panel sits above your notes.
+- Pick up to 8 notes as sources, then choose what to do:
+  - **Summarise:** 4–5 bullet points with citations, plus 3 words to know.
+  - **Study guide:** key ideas, core terms and practice questions with answers.
+  - **Quiz me:** a 5-question quiz with instant feedback, an explanation per answer and a final score.
+  - **Ask a question:** type a question and get an answer built only from the notes you picked.
+- Answers cite their source as a small superscript `[1]`, in the language chosen in the header.
+- **Listen** reads the answer aloud (Sunbird voice, or the browser voice as a fallback), and **Review and save as note** opens the note editor pre-filled so you can check it before it is saved.
 
 ### 4. Voice Interaction & Regional Speech
 - Click the microphone icon to speak your question using Sunbird AI speech-to-text.
@@ -431,6 +492,9 @@ sequenceDiagram
 | `npm run start` | Starts production server |
 | `npm run typecheck` | Validates TypeScript types across the project |
 | `npm run lint` | Runs ESLint code style and quality checks |
+| `npm run mcp` | Starts the Sautika MCP server over stdio (needs Node 22.18+) |
+| `npm run mcp:inspect` | Opens the MCP Inspector against the stdio server |
+| `npm run icons` | Regenerates the PWA icons from `public/Logo_symbol.png` |
 
 ---
 
@@ -443,7 +507,7 @@ sautika-next/
 ├── docs/
 │   └── architecture/        # Agent & MCP architecture diagram (SVG, PNG, printable HTML)
 ├── public/                  # Static assets served as-is (logos, images, web manifest)
-├── scripts/                 # Standalone Node scripts (MCP OCR server)
+├── scripts/                 # Standalone Node scripts (MCP server, PWA icon generator)
 ├── src/
 │   ├── app/                 # Next.js App Router
 │   │   ├── (app)/           # Authenticated learner area (home, courses, learning, notebook, …)
@@ -458,7 +522,8 @@ sautika-next/
 │   │   └── voice/           # Voice search, dialect selector and audio visualisers
 │   ├── data/                # Static curriculum and catalog content
 │   ├── hooks/               # Reusable React hooks
-│   ├── lib/                 # Server/client utilities (MongoDB, R2, LLM router, Sunbird)
+│   ├── lib/                 # Server/client utilities (MongoDB, R2, LLM router, translation router, course search, API guards)
+│   ├── mcp/                 # Import-free MCP core shared by both transports
 │   ├── store/               # Zustand store
 │   ├── types/               # Shared TypeScript types
 │   └── proxy.ts             # Clerk request proxy (Next.js 16 middleware)
@@ -480,7 +545,8 @@ sautika-next/
 ## Future Improvements
 
 - [ ] **Curriculum Semantic Search:** Integration of PostgreSQL with `pgvector` for semantic syllabus retrieval across East African national curriculum textbooks.
-- [ ] **Progressive Web App (PWA):** Service worker offline caching and installation onto Android and low-cost smartphones.
+- [x] **Progressive Web App (PWA):** Service worker caching of visited pages and lessons, an offline page, and installation onto Android and low-cost smartphones.
+- [ ] **Offline lesson packs:** Let a learner pick a course and keep its whole lesson set on the phone before going offline.
 - [ ] **On-Device Edge AI:** Integration of WebLLM or compact on-device models to provide offline summaries and quiz generation without requiring cloud API calls.
 - [ ] **Classroom & Teacher Dashboard:** Group assignment distribution, class analytics, and synchronized offline homework grading.
 - [ ] **Additional Regional Languages:** Extending speech-to-text and text-to-speech models to include Runyankole, Acholi, and Ateso.

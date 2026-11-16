@@ -1,4 +1,5 @@
 import type { NextRequest } from 'next/server';
+import { guardUser } from '@/lib/api-guard';
 import { hasSunbirdTts, isSunbirdLanguage, normalizeSunbirdLanguage } from '@/lib/sunbird-languages';
 
 export const runtime = 'nodejs';
@@ -8,6 +9,9 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 }
 
 export async function POST(req: NextRequest): Promise<Response> {
+  const guard = await guardUser('tts', 30);
+  if (!guard.ok) return guard.response;
+
   const key = process.env.SUNBIRD_API_KEY;
   if (!key) return Response.json({ error: 'SUNBIRD_API_KEY is not set' }, { status: 500 });
 

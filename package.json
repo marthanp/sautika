@@ -8,7 +8,10 @@
     "build": "next build --webpack",
     "start": "next start",
     "lint": "eslint .",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "icons": "node scripts/generate-icons.mjs",
+    "mcp": "node --no-warnings scripts/sautika-mcp-server.mjs",
+    "mcp:inspect": "npx @modelcontextprotocol/inspector node --no-warnings scripts/sautika-mcp-server.mjs"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1150.0",
@@ -36,7 +39,11 @@
     "eslint": "^9.39.5",
     "eslint-config-next": "^16.4.6",
     "postcss": "^8.4.47",
+    "sharp": "^0.35.5",
     "tailwindcss": "^4.3.3",
     "typescript": "^5.6.2"
+  },
+  "engines": {
+    "node": ">=22.18.0"
   }
 }

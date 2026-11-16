@@ -4,8 +4,38 @@ import { Calendar, FileText, Loader2, Plus, Trash2, Upload, Volume2, X } from 'l
 import { Card } from '@/components/ui';
 import { useLearnerAccount } from '@/components/providers/LearnerDataSync';
 import { SUBJECTS, type Note, type Subject } from '@/data/catalog';
+import StudyTutor from './StudyTutor';
 
-const FILTERS = ['All Notes', 'Mathematics', 'Science', 'English', 'Social Studies', 'Agriculture'];
+const FILTERS = [
+  'All Notes',
+  'Mathematics',
+  'Science',
+  'English',
+  'Social Studies',
+  'Agriculture',
+  'Life Skills',
+];
+const MAX_UPLOAD_TEXT = 50_000;
+/** Only what /api/ocr can actually read. */
+const UPLOAD_ACCEPT = [
+  '.pdf',
+  '.docx',
+  '.txt',
+  '.md',
+  '.csv',
+  '.json',
+  '.png',
+  '.jpg',
+  '.jpeg',
+  '.webp',
+  'image/*',
+  'application/pdf',
+  'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+  'text/plain',
+  'text/markdown',
+  'text/csv',
+  'application/json',
+].join(',');
 const TINT: Record<Subject, string> = {
   Mathematics: '#E5EFFE',
   Science: '#DDF7EC',
@@ -15,6 +45,17 @@ const TINT: Record<Subject, string> = {
   'Life Skills': '#D9F3F3',
 };
 
+interface Draft {
+  title: string;
+  text: string;
+  subject: Subject;
+  r2Url?: string;
+  r2Key?: string;
+  fromUpload?: boolean;
+}
+
+const EMPTY_DRAFT: Draft = { title: '', text: '', subject: 'Mathematics' };
+
 export default function NotebookBoard() {
   const { refresh } = useLearnerAccount();
   const [f, setF] = useState('All Notes');
@@ -22,12 +63,14 @@ export default function NotebookBoard() {
   const [open, setOpen] = useState(false);
   const [syncError, setSyncError] = useState('');
   const [isSaving, setIsSaving] = useState(false);
-  const [draft, setDraft] = useState<{ title: string; text: string; subject: Subject }>({
-    title: '',
-    text: '',
-    subject: 'Mathematics',
-  });
+  const [draft, setDraft] = useState<Draft>(EMPTY_DRAFT);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  /** Opens the note modal pre-filled, so nothing is ever saved without the learner checking it. */
+  const openDraft = (next: Partial<Draft>): void => {
+    setDraft({ ...EMPTY_DRAFT, ...next });
+    setOpen(true);
+  };
 
   useEffect(() => {
     let cancelled = false;
@@ -60,6 +103,15 @@ export default function NotebookBoard() {
     };
   }, []);
 
+  useEffect(() => {
+    if (!open) return;
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setOpen(false);
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [open]);
+
   const add = async (): Promise<void> => {
     if (!draft.title.trim()) return;
     setIsSaving(true);
@@ -70,6 +122,8 @@ export default function NotebookBoard() {
       title: draft.title.trim(),
       text: draft.text,
       date: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+      ...(draft.r2Url ? { r2Url: draft.r2Url } : {}),
+      ...(draft.r2Key ? { r2Key: draft.r2Key } : {}),
     };
     try {
       const response = await fetch('/api/account', {
@@ -82,13 +136,13 @@ export default function NotebookBoard() {
         throw new Error(result?.error ?? 'Could not save your note.');
       }
       setNotes((current) => [note, ...current]);
-      setDraft({ title: '', text: '', subject: 'Mathematics' });
+      setDraft(EMPTY_DRAFT);
       setOpen(false);
       await refresh();
     } catch (error) {
       // Offline fallback: add the note locally so the user doesn't lose it
       setNotes((current) => [note, ...current]);
-      setDraft({ title: '', text: '', subject: 'Mathematics' });
+      setDraft(EMPTY_DRAFT);
       setOpen(false);
       const msg = error instanceof Error ? error.message : 'Could not save your note.';
       if (!msg.toLowerCase().includes('mongodb') && !msg.toLowerCase().includes('connect')) {
@@ -146,27 +200,15 @@ export default function NotebookBoard() {
       }
 
       const title = file.name.replace(/\.[^/.]+$/, '');
-      const note: Note = {
-        id: crypto.randomUUID(),
+      // Nothing is saved yet: the learner checks what we read before it becomes a note.
+      openDraft({
         subject: 'Science',
         title: title || 'Uploaded Document Notes',
-        text: text.slice(0, 15000) || `Uploaded file: ${file.name}`,
-        date: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+        text: text.slice(0, MAX_UPLOAD_TEXT) || `Uploaded file: ${file.name}`,
         r2Url,
         r2Key,
-      };
-
-      const response = await fetch('/api/account', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ type: 'note', note }),
+        fromUpload: true,
       });
-
-      // Update state locally in all cases
-      setNotes((prev) => [note, ...prev]);
-      if (response.ok) {
-        await refresh();
-      }
       setUploadStatus('');
     } catch (e) {
       console.error('Upload failed:', e);
@@ -225,7 +267,7 @@ export default function NotebookBoard() {
       <input
         ref={fileInputRef}
         type="file"
-        accept=".pdf,.doc,.docx,.txt,.md,.text,.csv,.xlsx,.xls,.ppt,.pptx,.png,.jpg,.jpeg,.webp,.gif,image/*,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+        accept={UPLOAD_ACCEPT}
         className="hidden"
         onChange={(e) => void handleFileUpload(e.target.files)}
       />
@@ -255,14 +297,17 @@ export default function NotebookBoard() {
           <select
             value={activeAudioLang}
             onChange={(e) => setActiveAudioLang(e.target.value)}
+            aria-label="Voice language"
             className="h-11 rounded-full border border-line bg-white px-3 text-[12.5px] font-semibold text-slate-700 shadow-sm focus:border-navy focus:outline-none"
             title="Choose Sunbird voice language"
           >
+            {/* Only languages Sunbird can actually speak. */}
             <option value="lug">Luganda 🇺🇬</option>
             <option value="ach">Acholi 🇺🇬</option>
-            <option value="ate">Ateso 🇺🇬</option>
-            <option value="lgg">Lugbara 🇺🇬</option>
+            <option value="teo">Ateso 🇺🇬</option>
             <option value="nyn">Runyankole 🇺🇬</option>
+            <option value="swa">Swahili</option>
+            <option value="kin">Kinyarwanda 🇷🇼</option>
             <option value="eng">English</option>
           </select>
 
@@ -286,6 +331,11 @@ export default function NotebookBoard() {
           {syncError}
         </p>
       ) : null}
+
+      <StudyTutor
+        notes={notes}
+        onSaveAsNote={({ title, text }) => openDraft({ title, text })}
+      />
 
       <div className="mt-5 grid gap-5 md:grid-cols-2 xl:grid-cols-3">
         {notes
@@ -365,16 +415,23 @@ export default function NotebookBoard() {
         <div
           role="dialog"
           aria-modal
-          aria-label="New note"
+          aria-label={draft.fromUpload ? 'Check your uploaded notes' : 'New note'}
           className="fixed inset-0 z-50 grid place-items-center bg-black/50 p-4"
         >
-          <div className="w-full max-w-[460px] rounded-2xl bg-white p-6 shadow-2xl">
-            <div className="flex items-center justify-between">
-              <h2 className="text-[22px] font-extrabold text-navy">Create New Note</h2>
+          <div className="max-h-[90vh] w-full max-w-[560px] overflow-y-auto rounded-2xl bg-white p-6 shadow-2xl">
+            <div className="flex items-center justify-between gap-3">
+              <h2 className="text-[22px] font-extrabold text-navy">
+                {draft.fromUpload ? 'Check your uploaded notes' : 'Create New Note'}
+              </h2>
               <button aria-label="Close" onClick={() => setOpen(false)}>
                 <X className="h-5 w-5" />
               </button>
             </div>
+            {draft.fromUpload ? (
+              <p className="mt-2 text-[13.5px] leading-relaxed text-slate-600">
+                We read this from your file. Fix any mistakes before saving.
+              </p>
+            ) : null}
             <input
               value={draft.title}
               onChange={(e) => setDraft({ ...draft, title: e.target.value })}
@@ -397,7 +454,7 @@ export default function NotebookBoard() {
               onChange={(e) => setDraft({ ...draft, text: e.target.value })}
               placeholder="Write your study notes, formulas, or key ideas here..."
               aria-label="Note"
-              rows={5}
+              rows={draft.fromUpload ? 10 : 5}
               className="mt-3 w-full rounded-xl border border-line p-4 text-sm focus:border-navy focus:outline-none"
             />
             <button

@@ -32,8 +32,11 @@ export default function AudioWaveformVisualizer({
         cancelAnimationFrame(animFrameId.current);
         animFrameId.current = null;
       }
-      setBarLevels(new Array(barCount).fill(0.15));
-      return;
+      // Schedule the reset so the effect body itself does not call setState.
+      const idleFrame = requestAnimationFrame(() => {
+        setBarLevels(new Array(barCount).fill(0.15));
+      });
+      return () => cancelAnimationFrame(idleFrame);
     }
 
     let bufferLength = 32;
