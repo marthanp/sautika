@@ -27,7 +27,7 @@ export interface LLMResponse {
   provider: string;
 }
 
-interface OpenAICompatibleProvider {
+export interface OpenAICompatibleProvider {
   name: string;
   keyEnv: string[];
   url: string;
@@ -41,7 +41,7 @@ interface OpenAICompatibleProvider {
  * The OpenAI-compatible providers, in failover order. Gemini and Cohere speak
  * their own dialects and are handled separately.
  */
-const OPENAI_COMPATIBLE: OpenAICompatibleProvider[] = [
+export const OPENAI_COMPATIBLE: OpenAICompatibleProvider[] = [
   {
     name: 'Groq',
     keyEnv: ['GROQ_API_KEY'],
@@ -101,11 +101,12 @@ const OPENAI_COMPATIBLE: OpenAICompatibleProvider[] = [
   },
 ];
 
-const GEMINI_KEY_ENV = ['GEMINI_API_KEY', 'GOOGLE_API_KEY', 'GOOGLE_AI_API_KEY'];
+export const GEMINI_KEY_ENV = ['GEMINI_API_KEY', 'GOOGLE_API_KEY', 'GOOGLE_AI_API_KEY'];
 /** Current GA Flash model. `gemini-1.5-flash` is retired. */
-const GEMINI_DEFAULT_MODEL = 'gemini-3.8-flash';
+export const GEMINI_DEFAULT_MODEL = 'gemini-3.8-flash';
 
-function readKey(names: string[]): string | undefined {
+/** The first of these environment variables that has a value. */
+export function readKey(names: string[]): string | undefined {
   for (const name of names) {
     const value = process.env[name];
     if (value) return value;
@@ -113,7 +114,8 @@ function readKey(names: string[]): string | undefined {
   return undefined;
 }
 
-function model(envName: string, fallback: string): string {
+/** A model name from the environment, or the shipped default. */
+export function model(envName: string, fallback: string): string {
   return process.env[envName] || fallback;
 }
 

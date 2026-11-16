@@ -29,6 +29,13 @@ export const COLLECTIONS = {
   studio: 'studio_outputs',
 } as const;
 
+/**
+ * The owner of the featured notebooks. They belong to the platform rather
+ * than to a learner: `assertNotebookAccess` lets anyone read a notebook with
+ * `isFeatured: true`, and lets nobody write one.
+ */
+export const FEATURED_OWNER = '__featured__';
+
 /** The name of the Atlas Vector Search index; see database/vector-index.json. */
 export const VECTOR_INDEX = 'source_chunks_vector';
 /** The name of the keyword index used when embeddings are unavailable. */

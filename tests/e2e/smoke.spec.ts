@@ -44,6 +44,19 @@ test('the sign-in page renders a usable form', async ({ page }) => {
   await expect(page.getByRole('button', { name: /sign in|continue/i }).first()).toBeVisible();
 });
 
+test('a signed-out visitor is sent to sign-in, not into a notebook', async ({ page }) => {
+  await page.goto('/notebook', { waitUntil: 'domcontentloaded' });
+  // Clerk owns the redirect; what matters is that the workspace never renders.
+  await expect(page).toHaveURL(/sign-in|sign-up|accounts\./);
+});
+
+test('the notebook API refuses a signed-out caller', async ({ request }) => {
+  for (const path of ['/api/notebooks', '/api/sources?notebookId=whatever']) {
+    const response = await request.get(path);
+    expect(response.status(), path).toBe(401);
+  }
+});
+
 test('the landing page has no horizontal scroll on a phone', async ({ page }) => {
   await page.goto('/', { waitUntil: 'domcontentloaded' });
   const overflow = await page.evaluate(

@@ -463,15 +463,38 @@ sequenceDiagram
   - **Plain Text:** `.txt`, `.md`, `.csv`, `.json`
 - Sautika extracts the text, saves a backup copy to Cloudflare R2, and opens a **review** modal titled "Check your uploaded notes". Nothing is saved until you have read the text and pressed save, because OCR of handwriting is never perfect.
 
-### 3. AI Study Tutor
-- Open **Notebook**. The **AI Study Tutor** panel sits above your notes.
-- Pick up to 8 notes as sources, then choose what to do:
-  - **Summarise:** 4–5 bullet points with citations, plus 3 words to know.
-  - **Study guide:** key ideas, core terms and practice questions with answers.
-  - **Quiz me:** a 5-question quiz with instant feedback, an explanation per answer and a final score.
-  - **Ask a question:** type a question and get an answer built only from the notes you picked.
-- Answers cite their source as a small superscript `[1]`, in the language chosen in the header.
-- **Listen** reads the answer aloud (Sunbird voice, or the browser voice as a fallback), and **Review and save as note** opens the note editor pre-filled so you can check it before it is saved.
+### 3. The Notebook workspace
+- Open **Notebook** for your notebooks. Each one keeps its own sources, conversation and study material.
+- **Featured notebooks** are built from the 38 curriculum courses and are read-only; **Make a copy** gives you one you can add to.
+- Open a notebook to get three panes — **Sources**, **Chat** and **Studio**. On a phone they become three tabs, with Chat open first.
+- **Sources:** add a PDF, a Word file, a photo of your notes, typed text or a web page. Uploads go straight to Cloudflare R2 through a short-lived signed URL, so a long PDF is not pushed through a serverless function. Each source shows its progress (Waiting, Reading, Ready, Failed with a retry), and only the ticked sources are used.
+- **Chat:** answers stream in as they are written and cite their source as a numbered button. Click one to open the source reader at that exact passage, highlighted. Under each reply: save to note, copy, read aloud, simpler. Enter sends, Shift+Enter adds a line, and the microphone works in the composer.
+- **Studio:** the notes you keep from the chat, plus your own. The nine generators (Audio Overview, Mind Map, Flashcards, Quiz and the rest) are the next phase of work and are labelled as such.
+- Answers are grounded only in the sources you ticked. If the sources do not cover something, the tutor says so instead of inventing an answer.
+
+#### Setting up the notebook data
+
+```bash
+# 1. Collections, validators and indexes
+mongosh "$MONGODB_URI" --file database/sautika.mongodb.js
+
+# 2. Featured notebooks from the curriculum (operator-only)
+curl -X POST -H "Authorization: Bearer $CRON_SECRET" \
+     http://localhost:3000/api/notebooks/seed-featured
+
+# 3. Chunk and embed whatever is queued; repeat until it reports 0
+curl -X POST -H "Authorization: Bearer $CRON_SECRET" \
+     "http://localhost:3000/api/sources/process?limit=5"
+
+# 4. Optional: move an existing learner's flat notes into notebooks
+node scripts/migrate-notes-to-notebooks.mjs --dry-run
+node scripts/migrate-notes-to-notebooks.mjs
+```
+
+Retrieval works without an Atlas Vector Search index, using a MongoDB `$text`
+keyword search. Creating the index described in
+[`database/vector-index.json`](./database/vector-index.json) makes the answers
+better grounded; the steps are in that file.
 
 ### 4. Voice Interaction & Regional Speech
 - Click the microphone icon to speak your question using Sunbird AI speech-to-text.
@@ -506,7 +529,7 @@ sequenceDiagram
 ```text
 sautika-next/
 ├── .agents/                 # MCP server registration for agentic IDEs
-├── database/                # MongoDB schema, validators and index setup script
+├── database/                # MongoDB schema and validators, plus the Atlas vector index definition
 ├── docs/
 │   ├── architecture/        # Agent & MCP architecture diagram (SVG, PNG, printable HTML)
 │   └── SAUTIKA_UPGRADE_PLAN.md  # Upgrade plan and roadmap notes
@@ -529,7 +552,10 @@ sautika-next/
 │   │   └── voice/           # Voice search, dialect selector and audio visualisers
 │   ├── data/                # Static curriculum and catalog content
 │   ├── hooks/               # Reusable React hooks
+│   ├── inngest/             # Background-job client and event definitions
 │   ├── lib/                 # Server/client utilities (MongoDB, R2, LLM router, translation router, course search, API guards)
+│   │   ├── llm/             # Streaming layer over the LLM providers
+│   │   └── notebooks/       # Schema, chunking, embeddings, retrieval, ingestion
 │   ├── mcp/                 # Import-free MCP core shared by both transports
 │   ├── store/               # Zustand store
 │   ├── types/               # Shared TypeScript types
