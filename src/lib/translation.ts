@@ -104,8 +104,8 @@ function envProviderOrder(): TranslationProvider[] | null {
 function routeFor(source: string, target: string): TranslationProvider[] {
   const fromEnv = envProviderOrder();
   if (fromEnv) return fromEnv;
-  const specialist = SUNBIRD_SPECIALIST.has(source) || SUNBIRD_SPECIALIST.has(target);
-  return specialist ? ['sunbird', 'google', 'llm'] : ['google', 'sunbird', 'llm'];
+  // Always prioritize Sunbird AI for translation when configured
+  return ['sunbird', 'google', 'llm'];
 }
 
 function languageName(code: string): string {

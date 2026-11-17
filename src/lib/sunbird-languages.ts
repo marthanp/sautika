@@ -63,6 +63,31 @@ export function isSunbirdLanguage(value: unknown): value is VoiceLang {
   return typeof value === 'string' && SUNBIRD_LANGUAGES.some((language) => language.code === value);
 }
 
+/**
+ * Related dialect mapping for TTS fallback.
+ * Many Ugandan Bantu languages share high mutual intelligibility and phonetic structure.
+ * When Sunbird TTS does not have a model for a specific dialect (e.g. Rukiga/cgg),
+ * mapping it to Runyankole (nyn) or Luganda (lug) produces natural speech.
+ */
+export const SUNBIRD_TTS_DIALECT_MAP: Partial<Record<VoiceLang, VoiceLang>> = {
+  cgg: 'nyn', // Rukiga -> Runyankole
+  ttj: 'nyn', // Rutooro -> Runyankole
+  ruc: 'lug', // Ruruuli -> Luganda
+  xog: 'lug', // Lusoga -> Luganda
+  myx: 'lug', // Lumasaba -> Luganda
+  koo: 'lug', // Rukonjo -> Luganda
+  lgg: 'ach', // Lugbara -> Acholi
+  kln: 'swa', // Kalenjin -> Swahili
+  luy: 'swa', // Luhya -> Swahili
+};
+
+export function getTtsLanguage(language: VoiceLang): VoiceLang {
+  const norm = normalizeSunbirdLanguage(language) as VoiceLang;
+  if (SUPPORTED_TTS_LANGUAGES.has(norm)) return norm;
+  return SUNBIRD_TTS_DIALECT_MAP[norm] || norm;
+}
+
 export function hasSunbirdTts(language: VoiceLang): boolean {
-  return SUPPORTED_TTS_LANGUAGES.has(language);
+  const ttsLang = getTtsLanguage(language);
+  return SUPPORTED_TTS_LANGUAGES.has(ttsLang);
 }

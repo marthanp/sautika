@@ -189,14 +189,17 @@ export default function AIChatbot({ context }: AIChatbotProps) {
           },
           onDone: (result) => {
             setPending(null);
-            setMessages((current) => [
-              ...current,
-              {
-                id: `assistant-${Date.now()}`,
-                role: 'assistant',
-                content: result.answer,
-              },
-            ]);
+            const newAssistantMsg: ChatMessage = {
+              id: `assistant-${Date.now()}`,
+              role: 'assistant',
+              content: result.answer,
+            };
+            setMessages((current) => [...current, newAssistantMsg]);
+            // Automatically speak the response aloud using Sunbird TTS
+            setSpeakingId(newAssistantMsg.id);
+            void speak(result.answer, dialect, { rate: readAloudRate }).finally(() => {
+              setSpeakingId(null);
+            });
           },
           onError: (message) => {
             setPending(null);

@@ -8,7 +8,7 @@
  * segments drive the sentence highlighting that dyslexia mode uses.
  */
 
-import { hasSunbirdTts, isSunbirdLanguage, normalizeSunbirdLanguage } from '@/lib/sunbird-languages';
+import { getTtsLanguage, hasSunbirdTts, isSunbirdLanguage, normalizeSunbirdLanguage } from '@/lib/sunbird-languages';
 
 /** Comfortably inside Sunbird's per-request limit, with room for long words. */
 export const MAX_SEGMENT_CHARS = 420;
@@ -150,6 +150,7 @@ export async function speak(text: string, language: string): Promise<SpeechSegme
   // Narrowed before the voice check, which only accepts a known language code.
   if (!isSunbirdLanguage(normalised) || !hasSunbirdTts(normalised)) return [];
 
+  const ttsLanguage = getTtsLanguage(normalised);
   const segments = splitForSpeech(text);
   const batchSize = 3;
 
@@ -157,7 +158,7 @@ export async function speak(text: string, language: string): Promise<SpeechSegme
     const batch = segments.slice(index, index + batchSize);
     await Promise.all(
       batch.map(async (segment) => {
-        const url = await synthesise(segment.text, normalised);
+        const url = await synthesise(segment.text, ttsLanguage);
         if (url) segment.audioUrl = url;
         else segment.error = 'This part could not be read aloud.';
       }),
