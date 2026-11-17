@@ -36,20 +36,27 @@ export async function requestSourceIngest(
   options: { kind?: string; url?: string } = {},
 ): Promise<{ runner: BackgroundRunner }> {
   if (inngestConfigured()) {
-    const client = await import('@/inngest/client');
+    try {
+      const client = await import('@/inngest/client');
 
-    // Each kind has its own function: a web page is fetched first, a
-    // recording is transcribed first, everything else is read straight away.
-    if (options.kind === 'url' && options.url) {
-      await client.inngest.send(
-        client.sourceUrlAdded.create({ sourceId, userId, url: options.url }),
-      );
-    } else if (options.kind === 'audio') {
-      await client.inngest.send(client.sourceAudioUploaded.create({ sourceId, userId }));
-    } else {
-      await client.inngest.send(client.sourceUploaded.create({ sourceId, userId }));
+      // Each kind has its own function: a web page is fetched first, a
+      // recording is transcribed first, everything else is read straight away.
+      if (options.kind === 'url' && options.url) {
+        await client.inngest.send(
+          client.sourceUrlAdded.create({ sourceId, userId, url: options.url }),
+        );
+      } else if (options.kind === 'audio') {
+        await client.inngest.send(client.sourceAudioUploaded.create({ sourceId, userId }));
+      } else {
+        await client.inngest.send(client.sourceUploaded.create({ sourceId, userId }));
+      }
+      return { runner: 'inngest' };
+    } catch (error) {
+      // A rejected event key or an unreachable Inngest would otherwise leave
+      // the source sitting at `queued` for ever. Falling through to the
+      // inline path means the learner still gets their source read.
+      console.error('Could not hand the source to Inngest; running inline instead:', error);
     }
-    return { runner: 'inngest' };
   }
 
   // Inline: start it and do not await, so the upload response is not held up.
@@ -74,9 +81,15 @@ export async function requestStudioGenerate(
   type: string,
 ): Promise<{ runner: BackgroundRunner }> {
   if (inngestConfigured()) {
-    const { inngest, studioGenerateRequested } = await import('@/inngest/client');
-    await inngest.send(studioGenerateRequested.create({ outputId, userId, type }));
-    return { runner: 'inngest' };
+    try {
+      const { inngest, studioGenerateRequested } = await import('@/inngest/client');
+      await inngest.send(studioGenerateRequested.create({ outputId, userId, type }));
+      return { runner: 'inngest' };
+    } catch (error) {
+      // Same reasoning as source ingestion: a queued row nobody picks up is
+      // worse than a slower inline build.
+      console.error('Could not hand the Studio job to Inngest; running inline instead:', error);
+    }
   }
 
   void runStudioInline(outputId).catch((error: unknown) => {

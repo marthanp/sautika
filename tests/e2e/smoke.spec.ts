@@ -65,3 +65,43 @@ test('the landing page has no horizontal scroll on a phone', async ({ page }) =>
   // A pixel or two of rounding is fine; a sideways-scrolling page is not.
   expect(overflow).toBeLessThanOrEqual(2);
 });
+
+/**
+ * Phase 10's phone check. The project already runs every test on a Pixel-sized
+ * viewport; this pins the narrowest width we claim to support and the
+ * reduced-motion preference.
+ */
+test.describe('on a 360px phone', () => {
+  test.use({ viewport: { width: 360, height: 760 } });
+
+  // Reduced motion is emulated per page rather than as a `use` option, which
+  // this Playwright version does not accept there.
+  test.beforeEach(async ({ page }) => {
+    await page.emulateMedia({ reducedMotion: 'reduce' });
+  });
+
+  test('the landing page fits without sideways scrolling', async ({ page }) => {
+    await page.goto('/', { waitUntil: 'domcontentloaded' });
+
+    const overflow = await page.evaluate(
+      () => document.documentElement.scrollWidth - document.documentElement.clientWidth,
+    );
+    expect(overflow, 'horizontal overflow in px').toBeLessThanOrEqual(2);
+  });
+
+  test('the new sections render and the About link has somewhere to go', async ({ page }) => {
+    await page.goto('/', { waitUntil: 'domcontentloaded' });
+
+    // Added in Phase 9: the About link used to point at nothing.
+    await expect(page.locator('#about')).toBeAttached();
+    await expect(page.locator('#notebook')).toBeAttached();
+  });
+
+  test('the password reset page works without a session', async ({ page }) => {
+    await page.goto('/forgot-password', { waitUntil: 'domcontentloaded' });
+
+    await expect(page.getByRole('heading', { name: /reset your password/i })).toBeVisible();
+    await expect(page.getByLabel(/email address/i)).toBeVisible();
+    await expect(page.getByRole('button', { name: /send me a code/i })).toBeVisible();
+  });
+});

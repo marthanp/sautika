@@ -192,6 +192,25 @@ export function deleteNote(notebookId: string, noteId: string): Promise<{ delete
   );
 }
 
+export interface WebResultView {
+  title: string;
+  url: string;
+  snippet: string;
+  host: string;
+}
+
+/** Whether the web-source search is switched on for this deployment. */
+export function webSearchAvailable(): Promise<{ available: boolean }> {
+  return getJson('/api/sources/search', 'Could not check the web search.');
+}
+
+export function searchWebSources(
+  query: string,
+  depth: 'fast' | 'deep' = 'fast',
+): Promise<{ results: WebResultView[]; provider: string }> {
+  return sendJson('/api/sources/search', 'POST', { query, depth }, 'We could not search just now.');
+}
+
 export interface StudioOutputView {
   id: string;
   type: string;

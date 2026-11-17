@@ -1,11 +1,17 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { AlertTriangle, FileUp, Globe, Loader2, Type, X } from 'lucide-react';
-import { addSource, uploadFile } from '@/lib/notebooks/client';
+import { AlertTriangle, FileUp, Globe, Loader2, Plus, Search, Type, X } from 'lucide-react';
+import {
+  addSource,
+  searchWebSources,
+  uploadFile,
+  webSearchAvailable,
+  type WebResultView,
+} from '@/lib/notebooks/client';
 import { useUITranslation } from '@/lib/useUITranslation';
 
-type Tab = 'upload' | 'text' | 'url';
+type Tab = 'upload' | 'text' | 'url' | 'search';
 
 /** The types `/api/ocr` and the ingestion pipeline can actually read. */
 const ACCEPT = [
@@ -33,8 +39,28 @@ export default function AddSourceDialog({ notebookId, onClose, onAdded }: Props)
   const [title, setTitle] = useState('');
   const [text, setText] = useState('');
   const [url, setUrl] = useState('');
+  /** Web search is hidden entirely when no provider key is configured. */
+  const [searchOn, setSearchOn] = useState(false);
+  const [query, setQuery] = useState('');
+  const [depth, setDepth] = useState<'fast' | 'deep'>('fast');
+  const [results, setResults] = useState<WebResultView[]>([]);
+  const [searching, setSearching] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
   const headingRef = useRef<HTMLHeadingElement>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    void webSearchAvailable()
+      .then((result) => {
+        if (!cancelled) setSearchOn(result.available);
+      })
+      .catch(() => {
+        // Unreachable means unavailable, which is the safe default.
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   useEffect(() => {
     headingRef.current?.focus();
@@ -110,10 +136,47 @@ export default function AddSourceDialog({ notebookId, onClose, onAdded }: Props)
     }
   };
 
+  const runSearch = async (): Promise<void> => {
+    if (!query.trim()) return;
+    setSearching(true);
+    setError('');
+    setResults([]);
+    try {
+      const found = await searchWebSources(query.trim(), depth);
+      setResults(found.results);
+      if (found.results.length === 0) {
+        setError(t('Nothing came back. Try different words.'));
+      }
+    } catch (searchError) {
+      setError(
+        searchError instanceof Error ? searchError.message : t('We could not search just now.'),
+      );
+    } finally {
+      setSearching(false);
+    }
+  };
+
+  /** A result only becomes a source when the learner says so. */
+  const addResult = async (result: WebResultView): Promise<void> => {
+    setBusy(`${t('Adding')} ${result.host}\u2026`);
+    setError('');
+    try {
+      await addSource({ notebookId, kind: 'url', title: result.title, url: result.url });
+      setResults((current) => current.filter((entry) => entry.url !== result.url));
+      onAdded();
+    } catch (addError) {
+      setError(addError instanceof Error ? addError.message : t('Could not add that source.'));
+    } finally {
+      setBusy('');
+    }
+  };
+
   const tabs: { id: Tab; label: string; icon: typeof FileUp }[] = [
     { id: 'upload', label: t('Upload'), icon: FileUp },
     { id: 'text', label: t('Paste text'), icon: Type },
     { id: 'url', label: t('Web page'), icon: Globe },
+    // Only offered when a search provider is configured.
+    ...(searchOn ? [{ id: 'search' as Tab, label: t('Search'), icon: Search }] : []),
   ];
 
   return (
@@ -251,6 +314,79 @@ export default function AddSourceDialog({ notebookId, onClose, onAdded }: Props)
               >
                 {busy ? t('Adding…') : t('Add this page')}
               </button>
+            </>
+          ) : null}
+
+          {tab === 'search' ? (
+            <>
+              <label htmlFor="source-search" className="block text-[13px] font-bold text-navy">
+                {t('Search the web for new sources')}
+              </label>
+              <div className="mt-1.5 flex gap-2">
+                <input
+                  id="source-search"
+                  type="search"
+                  value={query}
+                  onChange={(event) => setQuery(event.target.value)}
+                  onKeyDown={(event) => {
+                    if (event.key === 'Enter') void runSearch();
+                  }}
+                  placeholder={t('For example: photosynthesis for Senior 2')}
+                  className="h-12 min-w-0 flex-1 rounded-xl border border-line px-4 text-[14px] text-ink focus:border-navy focus:outline-none"
+                />
+                <button
+                  type="button"
+                  onClick={() => void runSearch()}
+                  disabled={searching || !query.trim()}
+                  aria-label={t('Search')}
+                  className="grid h-12 w-12 shrink-0 place-items-center rounded-xl bg-sun text-navy disabled:opacity-50"
+                >
+                  {searching ? (
+                    <Loader2 className="h-5 w-5 animate-spin" aria-hidden />
+                  ) : (
+                    <Search className="h-5 w-5" aria-hidden />
+                  )}
+                </button>
+              </div>
+
+              <div role="group" aria-label={t('How deeply to search')} className="mt-2 flex gap-2">
+                {(['fast', 'deep'] as const).map((option) => (
+                  <button
+                    key={option}
+                    type="button"
+                    aria-pressed={depth === option}
+                    onClick={() => setDepth(option)}
+                    className="h-11 flex-1 rounded-xl border border-line text-[13px] font-bold text-slate-600 transition aria-pressed:border-navy aria-pressed:bg-sun aria-pressed:text-navy"
+                  >
+                    {option === 'fast' ? t('Fast') : t('Deep')}
+                  </button>
+                ))}
+              </div>
+              <p className="mt-1.5 text-[12px] leading-relaxed text-slate-500">
+                {t('Nothing is added until you choose it.')}
+              </p>
+
+              {results.length > 0 ? (
+                <ul className="mt-3 space-y-2">
+                  {results.map((result) => (
+                    <li key={result.url} className="rounded-xl border border-line p-3">
+                      <p className="text-[13.5px] font-bold leading-snug text-navy">{result.title}</p>
+                      <p className="mt-0.5 text-[11.5px] text-slate-500">{result.host}</p>
+                      <p className="mt-1 line-clamp-3 text-[12.5px] leading-relaxed text-slate-600">
+                        {result.snippet}
+                      </p>
+                      <button
+                        type="button"
+                        onClick={() => void addResult(result)}
+                        disabled={Boolean(busy)}
+                        className="mt-2 flex h-11 w-full items-center justify-center gap-1.5 rounded-xl bg-mist text-[13px] font-bold text-navy transition hover:bg-sun disabled:opacity-50"
+                      >
+                        <Plus className="h-4 w-4" aria-hidden /> {t('Add this page')}
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              ) : null}
             </>
           ) : null}
         </div>
