@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { uploadFile } from '@/lib/notebooks/client';
+import { addSource, uploadFile } from '@/lib/notebooks/client';
 
 afterEach(() => {
   vi.unstubAllGlobals();
@@ -49,5 +49,29 @@ describe('uploadFile', () => {
     });
     await expect(uploadFile('notebook-1', file)).rejects.toThrow('larger than 10 MB');
     expect(fetchMock).not.toHaveBeenCalled();
+  });
+});
+
+describe('addSource', () => {
+  it.each([
+    {
+      label: 'pasted text',
+      input: { notebookId: 'notebook-1', kind: 'text' as const, title: 'Notes', text: 'Study notes' },
+    },
+    {
+      label: 'a web page',
+      input: { notebookId: 'notebook-1', kind: 'url' as const, title: 'Lesson', url: 'https://example.com/lesson' },
+    },
+  ])('submits $label through the shared sources API', async ({ input }) => {
+    const fetchMock = vi.fn(async () => Response.json({ source: {}, runner: 'inline' }));
+    vi.stubGlobal('fetch', fetchMock);
+
+    await addSource(input);
+
+    expect(fetchMock).toHaveBeenCalledWith('/api/sources', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(input),
+    });
   });
 });

@@ -15,11 +15,31 @@ function isUploadId(value: string): boolean {
 
 function tempKey(userId: string, uploadId: string, index: number): string {
   const safeUser = userId.replace(/[^a-zA-Z0-9._-]/g, '_');
-  return `sources/.tmp/${safeUser}/${uploadId}/${index}`;
+  return `sources/${safeUser}/.tmp/${uploadId}/${index}`;
 }
 
 function temporaryKeys(userId: string, uploadId: string): string[] {
   return Array.from({ length: MAX_CHUNKS }, (_, index) => tempKey(userId, uploadId, index));
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null;
+}
+
+function isStorageAuthorizationError(error: unknown): boolean {
+  if (!isRecord(error)) return false;
+  const metadata = isRecord(error.$metadata) ? error.$metadata : null;
+  return metadata?.httpStatusCode === 401
+    || metadata?.httpStatusCode === 403
+    || error.name === 'Unauthorized'
+    || error.name === 'AccessDenied'
+    || error.name === 'InvalidAccessKeyId';
+}
+
+function uploadStorageErrorMessage(error: unknown, fallback: string): string {
+  return isStorageAuthorizationError(error)
+    ? 'File storage rejected access. The app administrator needs to update the Cloudflare R2 access credentials.'
+    : fallback;
 }
 
 async function clearTemporaryChunks(userId: string, uploadId: string): Promise<void> {
@@ -94,7 +114,10 @@ export async function POST(req: NextRequest): Promise<Response> {
       return Response.json({ stored: true });
     } catch (error) {
       console.error('Could not store a source-upload chunk:', error);
-      return Response.json({ error: 'Could not save that part of the upload. Please try again.' }, { status: 503 });
+      return Response.json(
+        { error: uploadStorageErrorMessage(error, 'Could not save that part of the upload. Please try again.') },
+        { status: 503 },
+      );
     }
   }
 
@@ -154,6 +177,9 @@ export async function POST(req: NextRequest): Promise<Response> {
     return Response.json({ r2Key: saved.key, kind });
   } catch (error) {
     console.error('Could not save the completed source upload:', error);
-    return Response.json({ error: 'Could not finish saving the upload. Please try again.' }, { status: 503 });
+    return Response.json(
+      { error: uploadStorageErrorMessage(error, 'Could not finish saving the upload. Please try again.') },
+      { status: 503 },
+    );
   }
 }
