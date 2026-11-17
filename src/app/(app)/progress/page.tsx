@@ -117,8 +117,13 @@ export default function ProgressPage() {
   async function listenToReport(): Promise<void> {
     if (isSpeaking) {
       speechRun.current += 1;
-      reportAudio.current?.pause();
-      reportAudio.current = null;
+      if (reportAudio.current) {
+        reportAudio.current.pause();
+        reportAudio.current = null;
+      }
+      if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
+        window.speechSynthesis.cancel();
+      }
       setIsSpeaking(false);
       return;
     }
@@ -126,55 +131,114 @@ export default function ProgressPage() {
     setReportAction('listen');
     try {
       const report = await translatedReport();
+      const chunks = splitForSpeech(report);
+      if (!chunks.length) throw new Error('The translated learner report was empty.');
+
+      let sunbirdSucceeded = false;
       const audioUrls: string[] = [];
-      for (const chunk of splitForSpeech(report)) {
-        const response = await fetch('/api/tts', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ text: chunk, language: reportLanguage }),
-        });
-        const result = await response.json() as { audioUrl?: string; error?: string };
-        if (!response.ok || !result.audioUrl) {
-          throw new Error(result.error ?? 'Could not create audio for the learner report.');
+
+      try {
+        for (const chunk of chunks) {
+          const response = await fetch('/api/tts', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ text: chunk, language: reportLanguage }),
+          });
+          const result = await response.json() as {
+            audioUrl?: string;
+            segments?: { audioUrl?: string }[];
+            error?: string;
+          };
+          const url = result.audioUrl || result.segments?.find((s) => s.audioUrl)?.audioUrl;
+          if (response.ok && url) {
+            audioUrls.push(url);
+          } else {
+            break;
+          }
         }
-        audioUrls.push(result.audioUrl);
+        if (audioUrls.length === chunks.length) {
+          sunbirdSucceeded = true;
+        }
+      } catch {
+        sunbirdSucceeded = false;
       }
 
       const currentRun = ++speechRun.current;
-      const playChunk = (index: number): void => {
-        if (currentRun !== speechRun.current) return;
-        const audio = new Audio(audioUrls[index]);
-        reportAudio.current = audio;
-        audio.onended = () => {
+
+      // 1. If Sunbird returned audio for all chunks, play via HTMLAudioElement
+      if (sunbirdSucceeded && audioUrls.length > 0) {
+        const playChunk = (index: number): void => {
           if (currentRun !== speechRun.current) return;
-          if (index + 1 < audioUrls.length) {
-            playChunk(index + 1);
-          } else {
-            reportAudio.current = null;
-            setIsSpeaking(false);
-          }
+          const audio = new Audio(audioUrls[index]);
+          reportAudio.current = audio;
+          audio.onended = () => {
+            if (currentRun !== speechRun.current) return;
+            if (index + 1 < audioUrls.length) {
+              playChunk(index + 1);
+            } else {
+              reportAudio.current = null;
+              setIsSpeaking(false);
+            }
+          };
+          audio.onerror = () => {
+            if (currentRun !== speechRun.current) return;
+            // Fall back to browser speech synthesis if audio playback fails
+            playBrowserSpeech(report);
+          };
+          void audio.play().catch(() => {
+            if (currentRun !== speechRun.current) return;
+            playBrowserSpeech(report);
+          });
         };
-        audio.onerror = () => {
-          if (currentRun !== speechRun.current) return;
-          reportAudio.current = null;
-          setIsSpeaking(false);
-          setReportError('Could not play the learner report audio.');
-        };
-        void audio.play().catch((error: unknown) => {
-          if (currentRun !== speechRun.current) return;
-          reportAudio.current = null;
-          setIsSpeaking(false);
-          setReportError(error instanceof Error ? error.message : 'Could not play the learner report audio.');
-        });
-      };
-      if (!audioUrls.length) throw new Error('The translated learner report was empty.');
-      playChunk(0);
-      setIsSpeaking(true);
+        playChunk(0);
+        setIsSpeaking(true);
+        return;
+      }
+
+      // 2. Fall back to client-side SpeechSynthesis if Sunbird TTS is unavailable or rate-limited
+      playBrowserSpeech(report);
     } catch (error) {
       setReportError(error instanceof Error ? error.message : 'Could not play the learner report.');
     } finally {
       setReportAction(null);
     }
+  }
+
+  function playBrowserSpeech(text: string): void {
+    if (typeof window === 'undefined' || !('speechSynthesis' in window)) {
+      setReportError('Speech playback is not supported in this browser.');
+      setIsSpeaking(false);
+      return;
+    }
+
+    window.speechSynthesis.cancel();
+    const BROWSER_LANG_MAP: Record<string, string> = {
+      eng: 'en-GB',
+      swa: 'sw-KE',
+      lug: 'lg-UG',
+      ach: 'ach-UG',
+      teo: 'teo-UG',
+      nyn: 'nyn-UG',
+      luo: 'luo-KE',
+      kik: 'ki-KE',
+      kin: 'rw-RW',
+    };
+
+    const utterance = new SpeechSynthesisUtterance(text);
+    utterance.lang = BROWSER_LANG_MAP[reportLanguage] || 'en-GB';
+    utterance.rate = 0.9;
+    utterance.onend = () => {
+      setIsSpeaking(false);
+    };
+    utterance.onerror = (e) => {
+      if (e.error !== 'interrupted' && e.error !== 'canceled') {
+        setReportError('Speech synthesis could not play.');
+      }
+      setIsSpeaking(false);
+    };
+
+    window.speechSynthesis.speak(utterance);
+    setIsSpeaking(true);
   }
 
   useEffect(() => () => {

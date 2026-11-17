@@ -4,7 +4,25 @@ import type { VoiceLang } from '@/types';
 import { normalizeSunbirdLanguage } from '@/lib/sunbird-languages';
 import { triggerFeedback } from '@/lib/feedback';
 
-const BROWSER_LANG: Partial<Record<VoiceLang, string>> = { eng: 'en-GB', swa: 'sw-KE' };
+const BROWSER_LANG: Partial<Record<VoiceLang, string>> = {
+  eng: 'en-GB',
+  swa: 'sw-KE',
+  lug: 'lg-UG',
+  ach: 'ach-UG',
+  teo: 'teo-UG',
+  nyn: 'nyn-UG',
+  luo: 'luo-KE',
+  kik: 'ki-KE',
+  kin: 'rw-RW',
+  ibo: 'ig-NG',
+  yor: 'yo-NG',
+  hau: 'ha-NG',
+  zul: 'zu-ZA',
+  xho: 'xh-ZA',
+  afr: 'af-ZA',
+  som: 'so-SO',
+  amh: 'am-ET',
+};
 
 export function useVoice() {
   const [recording, setRecording] = useState(false);
@@ -224,14 +242,10 @@ export function useVoice() {
     } catch {
       /* fall through to browser speech */
     }
-    const browserLanguage = BROWSER_LANG[lang];
-    if (!browserLanguage) {
-      setSpeaking(false);
-      return;
-    }
+    const browserLanguage = BROWSER_LANG[lang] || 'en-GB';
     const u = new SpeechSynthesisUtterance(text);
     u.lang = browserLanguage;
-    u.rate = 0.9;
+    u.rate = options.rate ?? 0.9;
     u.onend = () => setSpeaking(false);
     u.onerror = () => setSpeaking(false);
     speechSynthesis.cancel();
