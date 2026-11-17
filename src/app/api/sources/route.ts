@@ -61,7 +61,7 @@ export async function GET(req: NextRequest): Promise<Response> {
  * Adds a source to a notebook and queues it for processing.
  *
  * Three shapes:
- *  - an upload that has already landed in R2 (`r2Key` from /api/sources/upload-url)
+ *  - an upload that has already landed in R2 (`r2Key` from /api/sources/upload)
  *  - pasted text (`text`)
  *  - a web address (`url`)
  *

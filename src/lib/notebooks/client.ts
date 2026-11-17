@@ -262,28 +262,56 @@ export async function uploadFile(
   notebookId: string,
   file: File,
 ): Promise<{ r2Key: string; kind: SourceKind }> {
-  const presigned = await sendJson<{ url: string; key: string; kind: SourceKind }>(
-    '/api/sources/upload-url',
-    'POST',
-    {
-      notebookId,
-      fileName: file.name,
-      contentType: file.type || 'application/octet-stream',
-      size: file.size,
-    },
-    'Could not start the upload.',
-  );
-
-  const put = await fetch(presigned.url, {
-    method: 'PUT',
-    headers: { 'Content-Type': file.type || 'application/octet-stream' },
-    body: file,
-  });
-  if (!put.ok) {
-    throw new Error('The upload did not finish. Check your connection and try again.');
+  const maxFileBytes = 10 * 1024 * 1024;
+  const chunkBytes = 3 * 1024 * 1024;
+  if (file.size === 0) throw new Error('That file is empty. Choose a file with content.');
+  if (file.size > maxFileBytes) {
+    throw new Error('That file is larger than 10 MB. Try a smaller photo or a single chapter.');
   }
 
-  return { r2Key: presigned.key, kind: presigned.kind };
+  const uploadId = crypto.randomUUID();
+  const sendUploadForm = async (form: FormData, fallback: string): Promise<Response> => {
+    let response: Response;
+    try {
+      response = await fetch('/api/sources/upload', { method: 'POST', body: form });
+    } catch {
+      throw new Error('Could not reach Sautika to save your file. Check your connection and try again.');
+    }
+    if (!response.ok) throw await failure(response, fallback);
+    return response;
+  };
+
+  try {
+    for (let offset = 0, index = 0; offset < file.size; offset += chunkBytes, index += 1) {
+      const form = new FormData();
+      form.append('action', 'chunk');
+      form.append('notebookId', notebookId);
+      form.append('uploadId', uploadId);
+      form.append('chunkIndex', String(index));
+      form.append('chunk', file.slice(offset, offset + chunkBytes), file.name);
+      await sendUploadForm(form, 'Could not save that part of the upload.');
+    }
+
+    const completeForm = new FormData();
+    completeForm.append('action', 'complete');
+    completeForm.append('notebookId', notebookId);
+    completeForm.append('uploadId', uploadId);
+    completeForm.append('fileName', file.name);
+    completeForm.append('contentType', file.type || 'application/octet-stream');
+    completeForm.append('size', String(file.size));
+    return (await sendUploadForm(completeForm, 'Could not finish saving the upload.')).json();
+  } catch (error) {
+    const abortForm = new FormData();
+    abortForm.append('action', 'abort');
+    abortForm.append('notebookId', notebookId);
+    abortForm.append('uploadId', uploadId);
+    try {
+      await sendUploadForm(abortForm, 'Could not clear the unfinished upload.');
+    } catch (abortError) {
+      console.error('Could not clear temporary source-upload data:', abortError);
+    }
+    throw error;
+  }
 }
 
 export interface ChatStreamHandlers {

@@ -2,6 +2,7 @@ import {
   S3Client,
   PutObjectCommand,
   GetObjectCommand,
+  DeleteObjectCommand,
   ListObjectsV2Command,
 } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
@@ -101,6 +102,16 @@ export async function downloadFromR2(key: string): Promise<{
     contentType: result.ContentType ?? 'application/octet-stream',
     size: body.length,
   };
+}
+
+/** Removes one object from Cloudflare R2. */
+export async function deleteFromR2(key: string): Promise<void> {
+  await getR2Client().send(
+    new DeleteObjectCommand({
+      Bucket: getR2BucketName(),
+      Key: key.replace(/^\/+/, ''),
+    }),
+  );
 }
 
 /**
