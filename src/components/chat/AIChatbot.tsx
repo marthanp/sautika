@@ -237,15 +237,16 @@ export default function AIChatbot({ context }: AIChatbotProps) {
           type="button"
           onClick={() => setOpen(true)}
           aria-label={t('Open AI Chat')}
-          className="fixed bottom-6 right-6 z-50 grid h-14 w-14 place-items-center rounded-full bg-gradient-to-br from-sun to-amber-500 text-navy shadow-lg transition-all hover:scale-110 hover:shadow-xl active:scale-95"
+          className="fixed bottom-20 right-5 sm:bottom-22 sm:right-6 z-40 flex items-center gap-2 rounded-full bg-gradient-to-r from-sun to-amber-500 px-4 py-2.5 text-navy font-bold shadow-lg transition-all hover:scale-105 hover:shadow-xl active:scale-95"
         >
-          <MessageSquare className="h-6 w-6" />
+          <Bot className="h-5 w-5" />
+          <span className="text-xs sm:text-[13px]">{t('Ask Sautika')}</span>
         </button>
       )}
 
       {/* Chat Panel */}
       {open && (
-        <div className="fixed bottom-4 right-4 z-50 flex h-[520px] w-[380px] max-w-[calc(100vw-2rem)] flex-col overflow-hidden rounded-2xl border border-line bg-white shadow-2xl dark:border-white/10 dark:bg-navy-2 sm:h-[560px] sm:w-[400px]">
+        <div className="fixed bottom-20 right-5 sm:bottom-22 sm:right-6 z-50 flex h-[520px] w-[380px] max-w-[calc(100vw-2rem)] flex-col overflow-hidden rounded-2xl border border-line bg-white shadow-2xl dark:border-white/10 dark:bg-navy-2 sm:h-[560px] sm:w-[400px]">
           {/* Header */}
           <div className="flex items-center justify-between border-b border-line bg-gradient-to-r from-sun/20 to-amber-50 px-4 py-3 dark:border-white/10 dark:from-sun/10 dark:to-navy-2">
             <div className="flex items-center gap-2.5">

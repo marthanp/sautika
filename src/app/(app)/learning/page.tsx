@@ -10,7 +10,6 @@ import { coursesForClass } from '@/lib/course-access';
 import { COURSES } from '@/data/courses';
 import { useApp } from '@/store/useApp';
 import LessonView from './LessonView';
-import AIChatbot from '@/components/chat/AIChatbot';
 
 export default function LearningPage() {
   const searchParams = useSearchParams();
@@ -298,10 +297,6 @@ export default function LearningPage() {
           </ul>
         </Card>
       </div>
-
-      <AIChatbot
-        context={`Course: ${activeCourse.title} (${activeCourse.cat}, ${activeCourse.level}). Current Lesson: ${lesson.title} (Lesson ${lessonIndex + 1} of ${activeCourse.lessons.length}).`}
-      />
     </div>
   );
 }

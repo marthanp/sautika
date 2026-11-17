@@ -25,7 +25,6 @@ import {
   type NotebookSummary,
 } from '@/lib/notebooks/client';
 import { useUITranslation } from '@/lib/useUITranslation';
-import AIChatbot from '@/components/chat/AIChatbot';
 
 type Sort = 'recent' | 'title';
 
@@ -400,8 +399,6 @@ export default function NotebooksHome() {
           onCreated={(id) => router.push(`/notebook/${id}`)}
         />
       ) : null}
-
-      <AIChatbot context="Learner is reviewing their notebook collection." />
     </div>
   );
 }

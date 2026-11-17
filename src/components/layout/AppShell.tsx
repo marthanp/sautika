@@ -5,6 +5,7 @@ import Sidebar from '@/components/layout/Sidebar';
 import Topbar from '@/components/layout/Topbar';
 import FloatingDialectSelector from '@/components/voice/FloatingDialectSelector';
 import PageAudioReader from '@/components/voice/PageAudioReader';
+import AIChatbot from '@/components/chat/AIChatbot';
 
 export default function AppShell({ children }: { children: React.ReactNode }) {
   const sidebarHidden = useApp((state) => state.sidebarHidden);
@@ -24,6 +25,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
       </div>
 
       <main className="min-w-0 px-3.5 pb-24 pt-1 sm:px-6 sm:pt-2 lg:px-8 lg:pb-10">{children}</main>
+      <AIChatbot />
       <FloatingDialectSelector />
     </div>
   );
