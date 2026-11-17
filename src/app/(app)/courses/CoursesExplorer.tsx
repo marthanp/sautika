@@ -10,6 +10,7 @@ import { SUBJECTS } from '@/data/catalog';
 import { useLearnerAccount, useLearnerProfile } from '@/components/providers/LearnerDataSync';
 import { coursesForClass } from '@/lib/course-access';
 import { searchCourses } from '@/lib/course-search';
+import { COURSES } from '@/data/courses';
 import { IMAGE_BY_CATEGORY, SUBJECT_BY_CATEGORY } from '@/lib/course-display';
 import type { Category, LevelGroup } from '@/types';
 
@@ -56,9 +57,12 @@ export default function CoursesExplorer() {
 
   const { data } = useLearnerAccount();
   const profile = useLearnerProfile();
+  const allCourses = useMemo(() => {
+    return (data?.courses && data.courses.length > 0) ? data.courses : COURSES;
+  }, [data?.courses]);
   const courses = useMemo(
-    () => coursesForClass(data?.courses ?? [], profile.educationLevel),
-    [data?.courses, profile.educationLevel],
+    () => coursesForClass(allCourses, profile.educationLevel),
+    [allCourses, profile.educationLevel],
   );
   const progressByCourse = useMemo(
     () => new Map((data?.courseProgress ?? []).map((item) => [item.courseId, item])),
@@ -121,8 +125,8 @@ export default function CoursesExplorer() {
     <div className="space-y-5">
       <p className="rounded-xl border border-blue-100 bg-blue-50 px-4 py-3 text-[13px] font-medium text-blue-900">
         {profile.educationLevel === 'Not specified'
-          ? 'Your class is not set on your learner profile, so class materials are hidden.'
-          : <>Materials are limited to your registered class: <b>{profile.educationLevel}</b>.</>}
+          ? 'Browse courses across all classes and levels in your learning library.'
+          : <>Materials highlighted for your class: <b>{profile.educationLevel}</b>. You can also explore all levels below.</>}
       </p>
 
       {/* Search Input Bar */}

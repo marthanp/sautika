@@ -4,6 +4,7 @@ import { useUser } from '@clerk/nextjs';
 import { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from 'react';
 import { useApp } from '@/store/useApp';
 import { isKnownEducationLevel } from '@/lib/course-access';
+import { COURSES } from '@/data/courses';
 import type { Course } from '@/types';
 
 export interface LearnerProfile {
@@ -126,7 +127,7 @@ function buildOfflineData(opts: {
       xp: 0,
       streak: 1,
     },
-    courses: [],
+    courses: COURSES,
     courseProgress: [],
     activity: [],
     rewards: DEFAULT_REWARDS,
@@ -275,20 +276,26 @@ export default function LearnerDataSync({ children }: { children: ReactNode }) {
   }, [app, readyUserId, userId]);
 
   // ── Determine contextData ──
-  // Priority: server-synced → offline fallback → GUEST_DATA
+  // Priority: server-synced → offline fallback → GUEST_DATA (always guaranteed courses)
   const contextData: AccountResponse = (() => {
+    let result: AccountResponse;
     if (accountData?.userId === userId && accountData.data) {
-      return accountData.data;
-    }
-    if (userId && user) {
-      return buildOfflineData({
+      result = accountData.data;
+    } else if (userId && user) {
+      result = buildOfflineData({
         firstName: user.firstName,
         lastName: user.lastName,
         email: user.primaryEmailAddress?.emailAddress,
         educationLevel: user.unsafeMetadata.education,
       });
+    } else {
+      result = GUEST_DATA;
     }
-    return GUEST_DATA;
+
+    if (!result.courses || result.courses.length === 0) {
+      return { ...result, courses: COURSES };
+    }
+    return result;
   })();
 
   return (

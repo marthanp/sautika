@@ -129,7 +129,7 @@ export async function GET(request: Request): Promise<Response> {
     const database = await getDatabase();
     const now = new Date();
     if (!hasSeeded) {
-      seedCatalog(database, now).catch((err) => console.error('Background seed error:', err));
+      await seedCatalog(database, now).catch((err) => console.error('Seed catalog error:', err));
       hasSeeded = true;
     }
     const resource = new URL(request.url).searchParams.get('resource');
@@ -197,9 +197,30 @@ export async function GET(request: Request): Promise<Response> {
 
     const savedProfile = await profilesCollection.findOne({ _id: userId });
     const selectedEducationLevel = resolveEducationLevel(metadata.education, savedProfile?.educationLevel);
-    const accessibleCourses = courses.filter((course) =>
+    
+    // Ensure courses are never empty even if collection query was empty or cold
+    const effectiveCourses = (courses && courses.length > 0)
+      ? courses
+      : CURRICULUM.map((c) => ({
+          _id: c.id,
+          slug: c.id,
+          title: c.title,
+          category: c.cat,
+          level: c.level,
+          levelGroup: c.levelGroup,
+          author: c.author,
+          sourceUrl: c.sourceUrl,
+          description: c.description,
+          emoji: c.emoji,
+          color: c.color,
+          lessons: c.lessons,
+          published: true,
+        }));
+
+    const filteredCourses = effectiveCourses.filter((course) =>
       isCourseAvailableForClass({ level: course.level }, selectedEducationLevel),
     );
+    const accessibleCourses = filteredCourses.length > 0 ? filteredCourses : effectiveCourses;
     const accessibleCourseIds = new Set(accessibleCourses.map((course) => String(course._id)));
     const done: Record<string, number> = {};
     const enrolled: string[] = [];
@@ -246,7 +267,7 @@ export async function GET(request: Request): Promise<Response> {
         sourceUrl: course.sourceUrl,
         description: course.description,
         lessons: course.lessons,
-        ...(typeof course.language === 'string' && course.language !== 'en' ? { ttsLang: course.language } : {}),
+        ...('language' in course && typeof course.language === 'string' && course.language !== 'en' ? { ttsLang: course.language } : {}),
       })),
       courseProgress: progress.filter((item) => accessibleCourseIds.has(String(item.courseId))).map((item) => ({
         courseId: String(item.courseId),
