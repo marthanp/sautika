@@ -50,11 +50,23 @@ export function useVoice() {
     };
   }, [cleanupAudioGraph]);
 
-  /** Push-to-talk: first call starts recording, second call stops and transcribes via /api/stt. */
+  /**
+   * Push-to-talk: first call starts recording, second call stops and
+   * transcribes via /api/stt.
+   *
+   * `onText` receives the transcript and is expected to act on it. In the
+   * notebook that means asking the question, not just filling the box: a
+   * voice-first app that makes you press send after speaking has not answered
+   * you.
+   *
+   * `notebookId` lets the route pass that notebook's source-guide topics to
+   * the recogniser as key terms, so subject words are heard correctly.
+   */
   async function toggleMic(
     lang: VoiceLang,
-    onText: (t: string) => void,
-    onError?: (message: string) => void
+    onText: (text: string, meta?: { language: string; provider: string }) => void,
+    onError?: (message: string) => void,
+    options: { notebookId?: string } = {},
   ): Promise<void> {
     if (rec.current) {
       triggerFeedback('record-stop');
@@ -119,15 +131,25 @@ export function useVoice() {
       const form = new FormData();
       form.append('audio', new Blob(chunks, { type: r.mimeType }), 'speech.webm');
       form.append('language', normalizeSunbirdLanguage(lang));
+      // Subject vocabulary from this notebook's sources, when there is one.
+      if (options.notebookId) form.append('notebookId', options.notebookId);
 
       try {
         const res = await fetch('/api/stt', { method: 'POST', body: form });
-        const j = (await res.json()) as { text?: string; error?: string };
+        const j = (await res.json()) as {
+          text?: string;
+          language?: string;
+          provider?: string;
+          error?: string;
+        };
         if (!res.ok) throw new Error(j.error ?? 'Speech transcription is temporarily unavailable.');
         if (!j.text?.trim()) throw new Error('No speech was recognized. Please try again.');
 
         triggerFeedback('success');
-        onText(j.text.trim());
+        onText(j.text.trim(), {
+          language: j.language ?? normalizeSunbirdLanguage(lang),
+          provider: j.provider ?? 'unknown',
+        });
       } catch (error) {
         const message = error instanceof Error ? error.message : 'Speech transcription failed.';
         if (onError) onError(message);

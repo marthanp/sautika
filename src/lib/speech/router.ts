@@ -102,14 +102,27 @@ export function chooseProvider(options: {
 }
 
 /**
- * Steps 3 and 4: keep an AssemblyAI transcript only when it is English and
- * confident. Anything else goes to Sunbird, which knows the local languages.
+ * Steps 3 and 4: keep an AssemblyAI transcript only when it is English, and
+ * confident enough. Anything else goes to Sunbird, which knows the local
+ * languages.
+ *
+ * `requireConfidence` is the part worth explaining. The confidence gate exists
+ * for one case: the learner chose `auto`, so we are relying on AssemblyAI's
+ * language detection and need to know it is sure. When the learner has
+ * explicitly chosen English we are not relying on detection at all, and
+ * applying the gate actively hurts: a short question carries little audio to
+ * judge a language from, so it scores low even when the transcript is
+ * perfect. Real example from testing — "Why do leaves look green?" came back
+ * word for word at 0.75 confidence, and the gate would have thrown it away
+ * and sent the audio to Sunbird for no reason.
  */
 export function acceptTranscript(options: {
   text: string;
   languageCode?: string;
   confidence?: number;
   threshold?: number;
+  /** True only when the language was not stated and detection is load-bearing. */
+  requireConfidence?: boolean;
 }): { accept: boolean; reason: string } {
   const threshold = options.threshold ?? englishConfidenceThreshold();
 
@@ -123,11 +136,15 @@ export function acceptTranscript(options: {
   }
 
   const confidence = options.confidence;
-  if (typeof confidence === 'number' && confidence < threshold) {
+  const gated = options.requireConfidence ?? true;
+  if (gated && typeof confidence === 'number' && confidence < threshold) {
     return { accept: false, reason: `confidence ${confidence.toFixed(2)} below ${threshold}` };
   }
 
-  return { accept: true, reason: 'confident English' };
+  return {
+    accept: true,
+    reason: gated ? 'confident English' : 'English, as the learner chose',
+  };
 }
 
 export interface SpeechResult {
@@ -313,7 +330,12 @@ export async function transcribe(options: {
   if (decision.provider === 'assemblyai') {
     try {
       const result = await transcribeWithAssembly(options.audio, options.keyterms ?? []);
-      const verdict = acceptTranscript(result);
+      // The confidence gate only matters when we are the ones guessing the
+      // language, which is the `auto` case.
+      const verdict = acceptTranscript({
+        ...result,
+        requireConfidence: decision.reason === 'language is auto',
+      });
 
       console.info(
         `[stt] provider=assemblyai accepted=${verdict.accept} reason=${verdict.reason}`,

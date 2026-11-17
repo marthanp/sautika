@@ -66,6 +66,12 @@ export default function ChatPane({
   const t = useUITranslation();
   const { recording, processing, speaking, toggleMic, speak, stopSpeaking } = useVoice();
   const readAloudRate = useApp((state) => state.readAloudRate);
+  /**
+   * What the learner speaks, which is not the same as the notebook's language:
+   * someone may keep an English notebook and still ask in Luganda. The
+   * notebook's language decides what the answer comes back in.
+   */
+  const spokenLanguage = useApp((state) => state.dialect);
 
   /**
    * Which sentence is being read aloud, so it can be highlighted. The spans
@@ -454,9 +460,18 @@ export default function ChatPane({
             aria-pressed={recording}
             onClick={() =>
               void toggleMic(
-                language,
-                (text) => setQuestion((current) => (current ? `${current} ${text}` : text)),
+                spokenLanguage,
+                // Asking, not just filling the box. A voice-first app that
+                // makes you press send after speaking has not answered you.
+                // The transcript still shows as the question in the thread,
+                // so a mishearing is visible and can be retyped.
+                (text) => {
+                  setQuestion('');
+                  void ask(text);
+                },
                 (message) => setError(message),
+                // Lets the recogniser use this notebook's key terms.
+                { notebookId },
               )
             }
             className="grid h-12 w-12 shrink-0 place-items-center rounded-xl border border-line text-navy transition hover:bg-mist aria-pressed:bg-sun"

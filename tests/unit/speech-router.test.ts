@@ -89,15 +89,43 @@ describe('acceptTranscript', () => {
     }
   });
 
-  it('rejects English below the confidence threshold, for Sunbird to retry', () => {
+  it('rejects low-confidence English when we are the ones guessing the language', () => {
     const verdict = acceptTranscript({
       text: 'something indistinct',
       languageCode: 'en',
       confidence: 0.55,
       threshold: 0.8,
+      requireConfidence: true,
     });
     expect(verdict.accept).toBe(false);
     expect(verdict.reason).toContain('0.55');
+  });
+
+  /**
+   * Found by running real audio through the pipeline: "Why do leaves look
+   * green?" transcribed perfectly but scored 0.75, because a short question
+   * carries little audio to judge a language from. When the learner has told
+   * us the language, the gate must not throw that away.
+   */
+  it('keeps a short English question the learner asked in English', () => {
+    const verdict = acceptTranscript({
+      text: 'Why do leaves look green?',
+      languageCode: 'en',
+      confidence: 0.7536,
+      threshold: 0.8,
+      requireConfidence: false,
+    });
+    expect(verdict.accept).toBe(true);
+  });
+
+  it('still rejects another language even when the learner chose English', () => {
+    const verdict = acceptTranscript({
+      text: 'Lwaki ebimera byetaaga omusana?',
+      languageCode: 'lg',
+      confidence: 0.99,
+      requireConfidence: false,
+    });
+    expect(verdict.accept).toBe(false);
   });
 
   it('rejects a transcript detected as another language', () => {
@@ -125,9 +153,21 @@ describe('acceptTranscript', () => {
 
   it('treats the threshold as inclusive at the boundary', () => {
     expect(
-      acceptTranscript({ text: 'hello', languageCode: 'en', confidence: 0.8, threshold: 0.8 })
-        .accept,
+      acceptTranscript({
+        text: 'hello',
+        languageCode: 'en',
+        confidence: 0.8,
+        threshold: 0.8,
+        requireConfidence: true,
+      }).accept,
     ).toBe(true);
+  });
+
+  it('gates by default, so a caller that forgets the flag stays strict', () => {
+    expect(
+      acceptTranscript({ text: 'hello', languageCode: 'en', confidence: 0.4, threshold: 0.8 })
+        .accept,
+    ).toBe(false);
   });
 });
 
