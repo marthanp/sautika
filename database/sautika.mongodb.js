@@ -154,6 +154,17 @@ var collections = {
       letterSpacing: { enum: ['normal', 'relaxed', 'wide'] },
       lineHeight: { enum: ['normal', 'relaxed', 'loose'] },
       readingTint: { enum: ['none', 'cream', 'yellow', 'peach', 'mint', 'blue'] },
+      // Reading comfort (Phase 8). Absent means off, so existing rows stay valid.
+      dyslexiaMode: { bsonType: 'bool' },
+      readingRuler: { bsonType: 'bool' },
+      focusMode: { bsonType: 'bool' },
+      boldWordStarts: { bsonType: 'bool' },
+      readAloudRate: { bsonType: ['double', 'int'], minimum: 0.5, maximum: 2 },
+      // First-run tutorial (Phase 7).
+      dialect: { bsonType: 'string', minLength: 2, maxLength: 10 },
+      onboardingStep: { bsonType: ['int', 'long'], minimum: 0 },
+      onboardingCompletedAt: { bsonType: 'date' },
+      createdAt: { bsonType: 'date' },
       updatedAt: { bsonType: 'date' },
     },
     indexes: [
@@ -247,6 +258,180 @@ var collections = {
     indexes: [
       { key: { userId: 1, createdAt: -1 }, options: { name: 'learner_transactions_recent' } },
       { key: { userId: 1, idempotencyKey: 1 }, options: { unique: true, name: 'transaction_idempotency_unique' } },
+    ],
+  },
+
+  // ── Notebook workspace (Phase 2) ───────────────────────────────────────────
+  // The source collection is `notebook_sources`, not `sources`: a `sources`
+  // collection already exists for the old flat note board with a strict
+  // validator requiring name/text/enabled, and reusing it would reject either
+  // the old documents or the new ones.
+  notebooks: {
+    required: ['userId', 'title', 'language', 'isFeatured', 'sourceCount', 'createdAt', 'updatedAt'],
+    properties: {
+      _id: { bsonType: ['string', 'objectId'] },
+      userId: { bsonType: 'string', minLength: 1 },
+      title: { bsonType: 'string', minLength: 1, maxLength: 200 },
+      emoji: { bsonType: 'string', maxLength: 8 },
+      coverKey: { bsonType: 'string', maxLength: 500 },
+      language: { bsonType: 'string', minLength: 2, maxLength: 10 },
+      subject: { bsonType: 'string', maxLength: 100 },
+      courseId: { bsonType: ['string', 'objectId'] },
+      isFeatured: { bsonType: 'bool' },
+      sourceCount: { bsonType: ['int', 'long'], minimum: 0 },
+      createdAt: { bsonType: 'date' },
+      updatedAt: { bsonType: 'date' },
+    },
+    indexes: [
+      { key: { userId: 1, updatedAt: -1 }, options: { name: 'notebooks_recent' } },
+      { key: { isFeatured: 1, subject: 1 }, options: { name: 'notebooks_featured' } },
+      { key: { userId: 1, courseId: 1 }, options: { name: 'notebooks_by_course' } },
+    ],
+  },
+
+  notebook_sources: {
+    required: ['notebookId', 'userId', 'kind', 'title', 'status', 'language', 'charCount', 'createdAt', 'updatedAt'],
+    properties: {
+      _id: { bsonType: ['string', 'objectId'] },
+      notebookId: { bsonType: ['string', 'objectId'] },
+      userId: { bsonType: 'string', minLength: 1 },
+      kind: { enum: ['pdf', 'docx', 'image', 'text', 'url', 'audio', 'course'] },
+      title: { bsonType: 'string', minLength: 1, maxLength: 300 },
+      r2Key: { bsonType: 'string', maxLength: 500 },
+      url: { bsonType: 'string', maxLength: 2000 },
+      status: { enum: ['queued', 'processing', 'ready', 'failed'] },
+      error: { bsonType: 'string', maxLength: 500 },
+      language: { bsonType: 'string', minLength: 2, maxLength: 10 },
+      charCount: { bsonType: ['int', 'long'], minimum: 0 },
+      // Pasted or migrated text, held only until the chunker has run; the
+      // ingest step unsets it once the chunks exist.
+      rawText: { bsonType: 'string', maxLength: 1000000 },
+      guide: {
+        bsonType: 'object',
+        properties: {
+          summary: { bsonType: 'string', maxLength: 2000 },
+          keyTopics: { bsonType: 'array', items: { bsonType: 'string' } },
+          suggestedQuestions: { bsonType: 'array', items: { bsonType: 'string' } },
+        },
+      },
+      createdAt: { bsonType: 'date' },
+      updatedAt: { bsonType: 'date' },
+    },
+    indexes: [
+      { key: { notebookId: 1, status: 1 }, options: { name: 'sources_by_status' } },
+      { key: { userId: 1, createdAt: -1 }, options: { name: 'sources_recent' } },
+    ],
+  },
+
+  // The Atlas Vector Search index on `embedding` is created separately; see
+  // database/vector-index.json. The text index here is the keyword fallback.
+  source_chunks: {
+    required: ['sourceId', 'notebookId', 'userId', 'ord', 'text', 'charStart', 'charEnd'],
+    properties: {
+      _id: { bsonType: ['string', 'objectId'] },
+      sourceId: { bsonType: ['string', 'objectId'] },
+      notebookId: { bsonType: ['string', 'objectId'] },
+      userId: { bsonType: 'string', minLength: 1 },
+      ord: { bsonType: ['int', 'long'], minimum: 0 },
+      text: { bsonType: 'string', maxLength: 10000 },
+      page: { bsonType: ['int', 'long'], minimum: 0 },
+      charStart: { bsonType: ['int', 'long'], minimum: 0 },
+      charEnd: { bsonType: ['int', 'long'], minimum: 0 },
+      embedding: { bsonType: 'array', items: { bsonType: 'double' } },
+    },
+    indexes: [
+      { key: { sourceId: 1, ord: 1 }, options: { name: 'chunks_in_order' } },
+      { key: { userId: 1, notebookId: 1 }, options: { name: 'chunks_owner' } },
+      { key: { text: 'text' }, options: { name: 'source_chunks_text', default_language: 'english' } },
+    ],
+  },
+
+  chat_messages: {
+    required: ['notebookId', 'userId', 'role', 'content', 'language', 'createdAt'],
+    properties: {
+      _id: { bsonType: ['string', 'objectId'] },
+      notebookId: { bsonType: ['string', 'objectId'] },
+      userId: { bsonType: 'string', minLength: 1 },
+      role: { enum: ['user', 'assistant'] },
+      content: { bsonType: 'string', maxLength: 20000 },
+      language: { bsonType: 'string', minLength: 2, maxLength: 10 },
+      citations: { bsonType: 'array' },
+      provider: { bsonType: 'string', maxLength: 100 },
+      createdAt: { bsonType: 'date' },
+    },
+    indexes: [
+      { key: { notebookId: 1, createdAt: 1 }, options: { name: 'chat_in_order' } },
+      { key: { userId: 1, createdAt: -1 }, options: { name: 'chat_recent' } },
+    ],
+  },
+
+  notebook_notes: {
+    required: ['notebookId', 'userId', 'title', 'body', 'origin', 'createdAt', 'updatedAt'],
+    properties: {
+      _id: { bsonType: ['string', 'objectId'] },
+      notebookId: { bsonType: ['string', 'objectId'] },
+      userId: { bsonType: 'string', minLength: 1 },
+      title: { bsonType: 'string', minLength: 1, maxLength: 200 },
+      body: { bsonType: 'string', maxLength: 50000 },
+      origin: { enum: ['manual', 'saved_reply', 'studio'] },
+      createdAt: { bsonType: 'date' },
+      updatedAt: { bsonType: 'date' },
+    },
+    indexes: [
+      { key: { notebookId: 1, createdAt: 1 }, options: { name: 'notebook_notes_in_order' } },
+      { key: { userId: 1, updatedAt: -1 }, options: { name: 'notebook_notes_recent' } },
+    ],
+  },
+
+  studio_outputs: {
+    required: ['notebookId', 'userId', 'type', 'status', 'language', 'createdAt', 'updatedAt'],
+    properties: {
+      _id: { bsonType: ['string', 'objectId'] },
+      notebookId: { bsonType: ['string', 'objectId'] },
+      userId: { bsonType: 'string', minLength: 1 },
+      type: {
+        enum: [
+          'audio_overview', 'video_overview', 'mind_map', 'report', 'flashcards',
+          'quiz', 'infographic', 'data_table', 'slide_deck',
+        ],
+      },
+      status: { enum: ['queued', 'running', 'ready', 'failed'] },
+      language: { bsonType: 'string', minLength: 2, maxLength: 10 },
+      r2Key: { bsonType: 'string', maxLength: 500 },
+      error: { bsonType: 'string', maxLength: 500 },
+      createdAt: { bsonType: 'date' },
+      updatedAt: { bsonType: 'date' },
+    },
+    indexes: [
+      { key: { notebookId: 1, createdAt: -1 }, options: { name: 'studio_recent' } },
+      { key: { userId: 1, type: 1 }, options: { name: 'studio_by_type' } },
+    ],
+  },
+
+  // Cluster-wide fixed-window rate limiting (src/lib/rate-limit.ts).
+  // One document per key per window; the TTL index clears finished windows.
+  rate_limits: {
+    required: ['count', 'expiresAt'],
+    properties: {
+      _id: { bsonType: 'string' },
+      count: { bsonType: ['int', 'long'], minimum: 0 },
+      expiresAt: { bsonType: 'date' },
+    },
+    indexes: [
+      { key: { expiresAt: 1 }, options: { expireAfterSeconds: 0, name: 'rate_limits_ttl' } },
+    ],
+  },
+
+  // Shared second-level cache (src/lib/kv-cache.ts), used for translations and
+  // the LLM circuit breaker. `value` is deliberately untyped: callers decide.
+  kv_cache: {
+    required: ['value', 'expiresAt'],
+    properties: {
+      _id: { bsonType: 'string' },
+      expiresAt: { bsonType: 'date' },
+    },
+    indexes: [
+      { key: { expiresAt: 1 }, options: { expireAfterSeconds: 0, name: 'kv_cache_ttl' } },
     ],
   },
 };

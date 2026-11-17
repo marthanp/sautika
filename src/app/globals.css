@@ -1101,3 +1101,83 @@ html[data-reading-tint='blue'] body {
   outline-color: #ffd233 !important;
   background-color: rgba(255, 210, 51, 0.22) !important;
 }
+
+/* ───────────────────────────────────────────────────────────────────────────
+   Reading comfort (Phase 8)
+
+   Driven by data attributes on <html>, set by AccessibilitySync. The
+   principles follow the British Dyslexia Association style guide: plain
+   sans-serif faces, generous spacing, an off-white page, good contrast
+   without pure black on pure white, and left-aligned text.
+   ─────────────────────────────────────────────────────────────────────────── */
+
+/* Never pure black on pure white, in either mode. */
+html[data-reading='comfort'] body {
+  background-color: #fbf8f1;
+  color: #15202b;
+}
+html[data-reading='comfort'][data-color-mode='dark'] body {
+  background-color: #141b24;
+  color: #e9eef5;
+}
+
+/* Comfortable measure, and no justified text: ragged right is easier to track. */
+html[data-reading='comfort'] p,
+html[data-reading='comfort'] li {
+  max-width: 65ch;
+  text-align: left;
+  text-wrap: pretty;
+}
+
+/* Emphasis in bold rather than italics or capitals, which are harder to read. */
+html[data-reading='comfort'] em,
+html[data-reading='comfort'] i {
+  font-style: normal;
+  font-weight: 700;
+}
+html[data-reading='comfort'] .uppercase {
+  text-transform: none;
+}
+
+/* Reading ruler: a band that follows the pointer and dims the rest. */
+html[data-reading-ruler='on']::after {
+  content: '';
+  position: fixed;
+  left: 0;
+  right: 0;
+  top: calc(var(--ruler-y, 50vh) - 1.6em);
+  height: 3.2em;
+  pointer-events: none;
+  z-index: 60;
+  /* The band itself stays clear; the shadow dims everything above and below. */
+  box-shadow: 0 0 0 100vmax rgba(10, 20, 35, 0.32);
+  border-top: 2px solid var(--color-sun);
+  border-bottom: 2px solid var(--color-sun);
+}
+
+/* Focus mode: one thing at a time, so the side panes step out of the way. */
+html[data-focus-mode='on'] [data-focus-hide='true'] {
+  display: none !important;
+}
+
+/*
+ * Optional bold word starts. Off by default and labelled as optional, because
+ * it helps some readers and gets in the way for others.
+ */
+html[data-bold-word-starts='on'] [data-bold-starts] b {
+  font-weight: 800;
+}
+
+/* The sentence being read aloud. */
+mark[data-speaking='true'] {
+  background: color-mix(in srgb, var(--color-sun) 45%, transparent);
+  color: inherit;
+  border-radius: 6px;
+  padding: 0 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html[data-reading-ruler='on']::after {
+    transition: none;
+  }
+}

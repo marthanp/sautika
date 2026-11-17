@@ -25,8 +25,8 @@ export async function POST(req: NextRequest): Promise<Response> {
   const { userId } = await auth();
 
   const limited = userId
-    ? rateLimit(`translate:${userId}`, SIGNED_IN_LIMIT, 60_000)
-    : rateLimit(`translate-ip:${clientIp(req)}`, ANONYMOUS_LIMIT, 60_000);
+    ? await rateLimit(`translate:${userId}`, SIGNED_IN_LIMIT, 60_000)
+    : await rateLimit(`translate-ip:${clientIp(req)}`, ANONYMOUS_LIMIT, 60_000);
   if (limited) return limited;
 
   const maxChars = userId ? SIGNED_IN_MAX_CHARS : ANONYMOUS_MAX_CHARS;

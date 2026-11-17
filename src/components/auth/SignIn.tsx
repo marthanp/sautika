@@ -192,10 +192,17 @@ export default function SignIn() {
           </div>
 
           <div>
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between gap-2">
               <label htmlFor="signin-password" className="block text-[11px] font-semibold uppercase tracking-wider text-slate-600 dark:text-slate-400">
                 Password
               </label>
+              {/* A learner who forgot their password had no way back in. */}
+              <Link
+                href="/forgot-password"
+                className="text-[11.5px] font-semibold text-navy hover:underline dark:text-sun"
+              >
+                Forgot password?
+              </Link>
             </div>
             <div className="relative mt-1.5">
               <input

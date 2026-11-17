@@ -1,4 +1,5 @@
 import { generateAIResponse } from '@/lib/llm-providers';
+import { kvGet, kvKey, kvSet } from '@/lib/kv-cache';
 import { normalizeSunbirdLanguage, SUNBIRD_LANGUAGES } from '@/lib/sunbird-languages';
 import { translateWithSunbird } from '@/lib/sunbird-translation';
 
@@ -65,7 +66,10 @@ export function translationProviders(): Record<TranslationProvider, boolean> {
 }
 
 const CACHE_LIMIT = 2000;
+/** Level 1: this instance only, free to read. */
 const cache = new Map<string, TranslateResult>();
+/** Level 2 (`kv_cache`) is shared by every instance, so a hit is worth a round trip. */
+const SHARED_CACHE_TTL_MS = 30 * 24 * 60 * 60 * 1000;
 
 function cacheGet(key: string): TranslateResult | undefined {
   const hit = cache.get(key);
@@ -227,6 +231,14 @@ export async function translateText(
   const cached = cacheGet(cacheKey);
   if (cached) return cached;
 
+  // Level 2: a translation another instance already paid for.
+  const sharedKey = kvKey('tr', source, target, wantsPolish ? 'p' : 'r', trimmed);
+  const shared = await kvGet<TranslateResult>(sharedKey);
+  if (shared?.text) {
+    cacheSet(cacheKey, shared);
+    return shared;
+  }
+
   const order = options.providers ?? routeFor(source, target);
   const failures: string[] = [];
 
@@ -250,6 +262,8 @@ export async function translateText(
 
       const result: TranslateResult = { text: translated, provider, polished };
       cacheSet(cacheKey, result);
+      // Do not make the learner wait on the shared write.
+      void kvSet(sharedKey, result, SHARED_CACHE_TTL_MS);
       return result;
     } catch (error) {
       failures.push(`${provider}: ${error instanceof Error ? error.message : String(error)}`);

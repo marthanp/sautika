@@ -4,6 +4,7 @@ import { guardUser } from '@/lib/api-guard';
 import { generateAIResponse } from '@/lib/llm-providers';
 import { isSunbirdLanguage, normalizeSunbirdLanguage } from '@/lib/sunbird-languages';
 import { translateText } from '@/lib/translation';
+import { parseQuizItems, type QuizItem } from '@/lib/notebooks/quiz-parse';
 
 export const runtime = 'nodejs';
 export const maxDuration = 60;
@@ -23,13 +24,6 @@ const RULES = [
   'If the notes do not cover something, say so kindly and suggest what to add to the notes.',
   'Write short sentences and simple words. No preamble, no sign-off.',
 ].join(' ');
-
-interface QuizItem {
-  q: string;
-  a: string;
-  d: [string, string];
-  e: string;
-}
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
@@ -187,23 +181,14 @@ async function buildQuiz(systemPrompt: string, language: string): Promise<Respon
 
   if (language !== 'eng') {
     try {
-      const translated = await Promise.all(
-        parsed.map(async (item) => {
-          const [q, a, d0, d1, e] = await Promise.all([
-            translateText(item.q, 'eng', language),
-            translateText(item.a, 'eng', language),
-            translateText(item.d[0], 'eng', language),
-            translateText(item.d[1], 'eng', language),
-            translateText(item.e, 'eng', language),
-          ]);
-          return {
-            item: { k: 'm', q: q.text, a: a.text, d: [d0.text, d1.text] } as Item,
-            e: e.text,
-          };
-        }),
-      );
-      items = translated.map((entry) => entry.item);
-      explanations = translated.map((entry) => entry.e);
+      // One or two requests for the whole quiz. This used to be 5 items x 5
+      // fields in parallel, which hit Sunbird's rate limit and could return a
+      // half-translated quiz.
+      const { translateFields } = await import('@/lib/translation-batch');
+      const translated = await translateFields(parsed, ['q', 'a', 'd', 'e'], 'eng', language);
+
+      items = translated.map((item) => ({ k: 'm', q: item.q, a: item.a, d: item.d }) as Item);
+      explanations = translated.map((item) => item.e);
     } catch (error) {
       console.warn('Quiz translation failed, serving the English quiz:', error);
     }
@@ -215,36 +200,3 @@ async function buildQuiz(systemPrompt: string, language: string): Promise<Respon
   });
 }
 
-/** Pulls the array out of whatever wrapping the model added, then keeps valid items only. */
-function parseQuizItems(raw: string): QuizItem[] {
-  const text = raw.replace(/```json|```/g, '');
-  const start = text.indexOf('[');
-  const end = text.lastIndexOf(']');
-  if (start === -1 || end <= start) return [];
-
-  let parsed: unknown;
-  try {
-    parsed = JSON.parse(text.slice(start, end + 1));
-  } catch {
-    return [];
-  }
-  if (!Array.isArray(parsed)) return [];
-
-  const items: QuizItem[] = [];
-  for (const entry of parsed) {
-    if (!isRecord(entry)) continue;
-    const { q, a, d, e } = entry;
-    if (typeof q !== 'string' || !q.trim()) continue;
-    if (typeof a !== 'string' || !a.trim()) continue;
-    if (!Array.isArray(d) || d.length < 2) continue;
-    const wrong = d.filter((option): option is string => typeof option === 'string' && option.trim().length > 0);
-    if (wrong.length < 2) continue;
-    items.push({
-      q: q.trim(),
-      a: a.trim(),
-      d: [wrong[0].trim(), wrong[1].trim()],
-      e: typeof e === 'string' && e.trim() ? e.trim() : '',
-    });
-  }
-  return items;
-}

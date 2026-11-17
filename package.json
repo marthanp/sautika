@@ -8,18 +8,24 @@
     "build": "next build --webpack",
     "start": "next start",
     "lint": "eslint .",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:e2e": "playwright test",
     "typecheck": "tsc --noEmit",
     "icons": "node scripts/generate-icons.mjs",
     "mcp": "node --no-warnings scripts/sautika-mcp-server.mjs",
     "mcp:inspect": "npx @modelcontextprotocol/inspector node --no-warnings scripts/sautika-mcp-server.mjs"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^1.9.0",
     "@aws-sdk/client-s3": "^3.1150.0",
+    "@aws-sdk/s3-request-presigner": "^3.1150.0",
     "@clerk/nextjs": "^7.9.14",
     "@fontsource/atkinson-hyperlegible": "^5.3.0",
     "@fontsource/comic-neue": "^5.3.0",
     "@fontsource/lexend": "^5.3.0",
     "@fontsource/opendyslexic": "^5.3.0",
+    "inngest": "^4.26.2",
     "lucide-react": "^1.55.0",
     "mammoth": "^1.13.0",
     "mongodb": "^6.17.0",
@@ -31,6 +37,7 @@
     "zustand": "^4.5.5"
   },
   "devDependencies": {
+    "@playwright/test": "^1.56.1",
     "@tailwindcss/postcss": "^4.3.3",
     "@types/node": "^20.16.0",
     "@types/react": "^19.3.0",
@@ -41,7 +48,8 @@
     "postcss": "^8.4.47",
     "sharp": "^0.35.5",
     "tailwindcss": "^4.3.3",
-    "typescript": "^5.6.2"
+    "typescript": "^5.6.2",
+    "vitest": "^3.2.4"
   },
   "engines": {
     "node": ">=22.18.0"

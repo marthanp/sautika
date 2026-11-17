@@ -13,6 +13,7 @@ import { useApp } from '@/store/useApp';
 const NAV = [
   ['Home', '#home'],
   ['Features', '#features'],
+  ['Notebook', '#notebook'],
   ['About', '#about'],
   ['Help', '#help'],
 ] as const;
@@ -111,8 +112,13 @@ export default function Hero() {
   const stats = useMemo(
     () => [
       { value: COURSES.length, label: 'courses' },
-      { value: SUNBIRD_LANGUAGES.length, label: 'languages' },
-      { value: SUNBIRD_LANGUAGES.filter((language) => hasSunbirdTts(language.code)).length, label: 'voices' },
+      // "languages" and "voices" did not say what they counted: the interface
+      // translates into far more languages than Sunbird can actually speak.
+      { value: SUNBIRD_LANGUAGES.length, label: 'interface languages' },
+      {
+        value: SUNBIRD_LANGUAGES.filter((language) => hasSunbirdTts(language.code)).length,
+        label: 'spoken languages',
+      },
     ],
     [],
   );
